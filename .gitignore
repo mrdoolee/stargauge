@@ -1,0 +1,8 @@
+.env
+.superpowers/
+node_modules/
+reference/
+dist/
+prototype/dist/
+prototype/node_modules/
+.vercel/
