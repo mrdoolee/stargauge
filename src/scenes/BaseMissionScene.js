@@ -10,7 +10,7 @@
  *     spawnObject(phase) {}                                 // called on each Spawner tick of the current phase
  *     onPhaseComplete(phase) {}                             // REQUIRED decision: advancePhase() / completeMission(...)
  *   }
- * Do NOT override create(); use setupMission(). If you override init(data), call super.init(data) first.
+ * Do NOT override create() or update(): use setupMission() and the per-frame hook onMissionUpdate(dtMs, time). If you override init(data), call super.init(data) first.
  * Fields: missionId ('m1'..'m4' — registry results key), sunRef (bool, default false),
  *         showGauge (bool, default true).
  *

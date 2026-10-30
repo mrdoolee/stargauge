@@ -30,7 +30,6 @@ export default class TitleScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    // Placeholder: does nothing yet.
-    btn.on('pointerdown', () => {});
+    btn.once('pointerdown', () => this.scene.start('m1'));
   }
 }

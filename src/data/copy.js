@@ -32,12 +32,12 @@ function byColor(phaseId, key) {
   if (!label) return `태양보다 뜨거운지 차가운지는 색으로 확인해요. ${TAIL}`;
   if (phaseId === 'm2a') {
     return key === 'yellow'
-      ? `황색 별은 태양과 같은 온도예요. 태양보다 뜨거운 별을 골라요. ${TAIL}`
+      ? `황색 별은 태양과 같은 황색이에요. 태양보다 뜨겁지도 차갑지도 않아요. ${TAIL}`
       : `${label} 별은 태양보다 표면 온도가 낮아요. ${TAIL}`;
   }
   if (phaseId === 'm2b') {
     return key === 'yellow'
-      ? `황색 별은 태양과 같은 온도예요. 태양보다 차가운 별을 골라요. ${TAIL}`
+      ? `황색 별은 태양과 같은 황색이에요. 태양보다 뜨겁지도 차갑지도 않아요. ${TAIL}`
       : `${label} 별은 태양보다 표면 온도가 높아요. ${TAIL}`;
   }
   if (phaseId === 'm1') return `더 뜨거운 쇳물은 흰색에 가까워요. ${TAIL}`;

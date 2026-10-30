@@ -77,6 +77,7 @@ export default class HudScene extends Phaser.Scene {
       },
       'mission-end': () => {
         this.closePause(false);
+        this.hideToast();
         this.activeKey = null;
       },
     };
@@ -217,6 +218,14 @@ export default class HudScene extends Phaser.Scene {
     this.toastLadder = this.add.graphics();
     this.toast = this.add.container(0, 0, [this.toastBg, this.toastText, this.toastLadder]).setVisible(false);
     this.toastTimer = null;
+  }
+
+  /** Hide any visible toast and cancel its timer (a late toast must not reappear in the next mission). */
+  hideToast() {
+    this.toastTimer?.remove(false);
+    this.toastTimer = null;
+    this.tweens.killTweensOf(this.toast);
+    this.toast.setVisible(false);
   }
 
   showToast({ text = '', colorKey = null, ladder = null, tone = 'wrong' } = {}) {

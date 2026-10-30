@@ -36,3 +36,12 @@ export const MARK_FADE_MS = 450; // correct-star mark ring + fade before returni
 export const RESTART_DELAY_MS = 600; // heat-full flash before the mission restarts
 export const HUD_SAFE_MARGIN = 24;
 export const TOAST_MS = 2400;
+
+// Task 7 additions — mission 1 (furnace) and mission 2 (star gauge).
+export const M1_PRACTICE_SEC = 30; // no asteroids / no ship-collision heat during this time
+export const M1_FALL_DISTANCE = 1100; // px a blob falls from spawn to "fully cooled"
+export const FURNACE_STAGE_CUTS = [0.4, 0.62, 0.82]; // fall fraction where white->yellow->orange->red
+export const M1_ASTEROID_INTERVAL_MS = 4000;
+export const M1_BLOB_SPEED = { min: 150, max: 210 };
+export const M2_STAR_SPEED = { min: 170, max: 250 };
+export const M2_STAR_SCALE = { min: 0.7, max: 1.5 };
