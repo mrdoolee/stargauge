@@ -25,10 +25,24 @@ export default class DebugFpsScene extends Phaser.Scene {
     this.onMission = m => {
       if (m?.key === this.missionKey) return; // the HUD re-emits mission-start; only a new scene resets
       this.missionKey = m?.key ?? null;
-      this.tracker.reset();
+      const now = performance.now();
+      this.tracker.reset(now); // + ignore ~500 ms: the next frames include the scene build
+      this.lastNow = now;
     };
+    // After a loop wake (rotate back to portrait) or a tab/app return, the first frame spans the gap:
+    // keep the stats but ignore ~500 ms of samples.
+    this.onResumeLike = () => {
+      const now = performance.now();
+      this.tracker.settle(now);
+      this.lastNow = now;
+    };
+    const resumeEvents = ['visible', 'focus', 'resume', 'loop-wake'];
     this.game.events.on('mission-start', this.onMission);
-    this.events.once('shutdown', () => this.game.events.off('mission-start', this.onMission));
+    for (const ev of resumeEvents) this.game.events.on(ev, this.onResumeLike);
+    this.events.once('shutdown', () => {
+      this.game.events.off('mission-start', this.onMission);
+      for (const ev of resumeEvents) this.game.events.off(ev, this.onResumeLike);
+    });
   }
 
   update() {

@@ -66,3 +66,53 @@ describe('FpsTracker', () => {
     expect(t.overallMin).toBe(Infinity);
   });
 });
+
+describe('FpsTracker settle window (no false lows after a reset / wake)', () => {
+  it('ignores samples for settleMs after reset(now)', () => {
+    const t = new FpsTracker({ settleMs: 500 });
+    t.reset(1000);
+    t.frame(400, 1100); // scene build frame right after mission start: 2.5 fps, must not count
+    t.frame(100, 1499);
+    expect(t.overallMin).toBe(Infinity);
+    expect(t.windowMin(1499)).toBe(Infinity);
+    t.frame(1000 / 60, 1500 + 1000 / 60);
+    expect(t.overallMin).toBeCloseTo(60, 0);
+  });
+  it('settle(now) keeps the stats but ignores the next settleMs (wake / visible)', () => {
+    const t = new FpsTracker({ settleMs: 500 });
+    t.frame(1000 / 30, 100); // 30 fps
+    t.settle(200);
+    t.frame(900, 300); // loop woke after an 0.9 s sleep: not a real frame
+    expect(t.overallMin).toBeCloseTo(30, 0);
+    expect(t.windowMin(300)).toBeCloseTo(30, 0);
+  });
+  it('reset() without a time clears without a settle window', () => {
+    const t = new FpsTracker({ settleMs: 500 });
+    t.reset();
+    t.frame(100, 10);
+    expect(t.overallMin).toBeCloseTo(10, 0);
+  });
+});
+
+describe('FpsTracker ring buffer', () => {
+  it('uses preallocated storage that never grows', () => {
+    const t = new FpsTracker({ windowMs: 10000, capacity: 64 });
+    const before = t.times;
+    let now = 0;
+    for (let i = 0; i < 1000; i++) { now += 1000 / 60; t.frame(1000 / 60, now); }
+    expect(t.times).toBe(before);
+    expect(t.times.length).toBe(64);
+  });
+  it('window min stays correct after the ring wraps (oldest samples dropped)', () => {
+    const t = new FpsTracker({ windowMs: 100000, capacity: 8 });
+    t.frame(100, 10); // 10 fps — will be overwritten by the wrap
+    let now = 10;
+    for (let i = 0; i < 8; i++) { now += 20; t.frame(20, now); } // 50 fps
+    expect(t.windowMin(now)).toBeCloseTo(50, 0);
+    expect(t.overallMin).toBeCloseTo(10, 0);
+  });
+  it('default capacity holds a 10 s window at 120 Hz', () => {
+    const t = new FpsTracker();
+    expect(t.times.length).toBeGreaterThanOrEqual(1200);
+  });
+});

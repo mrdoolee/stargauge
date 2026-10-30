@@ -18,41 +18,76 @@ export function debugRegistryDefaults() {
   return { results: {}, gaugeFinal: [...ALL_COLOR_KEYS], orionTagged: [] };
 }
 
-/** Rolling FPS statistics. frame(dtMs, nowMs) per frame; no allocation once the ring is full. */
+/**
+ * Rolling FPS statistics. frame(dtMs, nowMs) per frame. Samples live in a preallocated ring
+ * (two Float64Arrays), so recording never allocates; when the ring is full the oldest sample is
+ * overwritten (capacity 2048 covers a 10 s window at up to ~200 fps).
+ * After reset(now) or settle(now) the next settleMs are ignored: the first frames after a mission
+ * start (scene build), a loop wake or a tab return are not real gameplay frames.
+ */
 export class FpsTracker {
-  constructor({ windowMs = 10000, ignoreAboveMs = 1000 } = {}) {
+  constructor({ windowMs = 10000, ignoreAboveMs = 1000, settleMs = 500, capacity = 2048 } = {}) {
     this.windowMs = windowMs;
     this.ignoreAboveMs = ignoreAboveMs;
-    this.samples = []; // [{ t, fps }] within the window (about 600 entries at 60 fps)
+    this.settleMs = settleMs;
+    this.times = new Float64Array(capacity);
+    this.values = new Float64Array(capacity);
+    this.head = 0; // index of the oldest sample
+    this.count = 0;
+    this.ignoreUntil = -Infinity;
     this.fps = 0;
     this.overallMin = Infinity;
   }
 
-  reset() {
-    this.samples.length = 0;
+  /** Clear everything. With a time, also ignore the next settleMs (e.g. a new mission starts). */
+  reset(nowMs) {
+    this.head = 0;
+    this.count = 0;
     this.fps = 0;
     this.overallMin = Infinity;
+    this.ignoreUntil = -Infinity;
+    if (typeof nowMs === 'number') this.settle(nowMs);
+  }
+
+  /** Keep the stats but ignore samples until nowMs + settleMs (loop wake, tab visible/focus). */
+  settle(nowMs) {
+    this.ignoreUntil = nowMs + this.settleMs;
   }
 
   frame(dtMs, nowMs) {
     if (!(dtMs > 0) || dtMs > this.ignoreAboveMs) return; // app switch / sleep gap, not a real frame
+    if (nowMs < this.ignoreUntil) return; // settling after a reset / wake
     const fps = 1000 / dtMs;
     this.fps = fps;
     if (fps < this.overallMin) this.overallMin = fps;
-    this.samples.push({ t: nowMs, fps });
+    const cap = this.times.length;
+    if (this.count === cap) {
+      this.head = (this.head + 1) % cap; // full: overwrite the oldest
+      this.count -= 1;
+    }
+    const i = (this.head + this.count) % cap;
+    this.times[i] = nowMs;
+    this.values[i] = fps;
+    this.count += 1;
     this.trim(nowMs);
   }
 
   trim(nowMs) {
-    let n = 0;
-    while (n < this.samples.length && nowMs - this.samples[n].t > this.windowMs) n++;
-    if (n) this.samples.splice(0, n);
+    const cap = this.times.length;
+    while (this.count > 0 && nowMs - this.times[this.head] > this.windowMs) {
+      this.head = (this.head + 1) % cap;
+      this.count -= 1;
+    }
   }
 
   windowMin(nowMs) {
     this.trim(nowMs);
+    const cap = this.times.length;
     let min = Infinity;
-    for (const s of this.samples) if (s.fps < min) min = s.fps;
+    for (let k = 0; k < this.count; k++) {
+      const v = this.values[(this.head + k) % cap];
+      if (v < min) min = v;
+    }
     return min;
   }
 }
