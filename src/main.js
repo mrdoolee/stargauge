@@ -7,6 +7,8 @@ async function boot() {
   const { default: Phaser } = await import('phaser');
   const { default: BootScene } = await import('./scenes/BootScene.js');
   const { default: TitleScene } = await import('./scenes/TitleScene.js');
+  const { default: CardScene } = await import('./scenes/CardScene.js');
+  const { default: HudScene } = await import('./scenes/HudScene.js');
 
   const game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -16,7 +18,9 @@ async function boot() {
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     input: { activePointers: 3 },
     physics: { default: 'arcade', arcade: { debug: false } },
-    scene: [BootScene, TitleScene],
+    // Mission scenes (Tasks 7-9) go before HudScene; HudScene stays last so it draws on top
+    // (missions also call bringToTop('hud')).
+    scene: [BootScene, TitleScene, CardScene, HudScene],
   });
 
   // Landscape on a short screen (phone) -> sleep the loop behind #rotate.

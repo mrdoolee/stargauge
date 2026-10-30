@@ -14,3 +14,25 @@ export const SPAWN_NEEDED_GUARANTEE = 3; // force a needed color after this many
 export const MISSION_GOAL_COUNTS = { m1: 5, m3a: 1 };
 export const STARS_THREE_MAX_WRONG = 1;
 export const STARS_TWO_MAX_WRONG = 4;
+
+// Task 6 additions — touch controls, ship, beam, pools, HUD layout.
+// No prototype VERDICT yet: these are the prototype defaults (retune after the teacher's field test).
+export const SHIP_OFFSET_Y = 140; // ship sits this far above the finger (game px)
+export const SHIP_FOLLOW_REMAIN_PER_SEC = 0.0001; // fraction of the gap left after 1 s of easing
+export const SHIP_BODY_RADIUS = 18;
+export const SHIP_START_Y = 1000;
+export const SHIP_BOUNDS = { minX: 40, maxX: 680, minY: 320, maxY: 1220 };
+export const FIRE_BUTTON_DIAMETER = 140; // brief: >= 120 at 720 wide
+export const FIRE_BUTTON_MARGIN = 28; // brief: safe margin >= 24
+export const BEAM_SPEED = 1200; // px/s; brief: <= 1400 so beams can't skip a star
+export const BEAM_BODY_W = 12;
+export const BEAM_BODY_H = 32; // brief: >= 24 (20 px travelled per 60 Hz step < 32)
+export const POOL_STARS = 48;
+export const POOL_BEAMS = 16;
+export const POOL_ASTEROIDS = 12;
+export const CULL_MARGIN = 120; // release pooled objects this far past the screen edge
+export const COLLISION_COOLDOWN_MS = 1000; // persistent objects (boss, constellation) re-hit delay
+export const MARK_FADE_MS = 450; // correct-star mark ring + fade before returning to the pool
+export const RESTART_DELAY_MS = 600; // heat-full flash before the mission restarts
+export const HUD_SAFE_MARGIN = 24;
+export const TOAST_MS = 2400;
