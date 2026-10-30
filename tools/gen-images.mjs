@@ -35,6 +35,13 @@ export function describeRequest(req, apiKey) {
   return { method: 'POST', url: req.url, headers, [req.kind === 'json' ? 'body' : 'form']: { ...req.fields, ...(req.ref ? { 'image[]': req.ref } : {}) } };
 }
 
+/** Pure: strip the API key (exact match) and anything shaped like an OpenAI key from text we print. */
+export function redactSecrets(text, apiKey) {
+  let out = String(text ?? '');
+  if (apiKey) out = out.split(apiKey).join('[REDACTED]');
+  return out.replace(/sk-[A-Za-z0-9_-]+/g, '[REDACTED]');
+}
+
 export function parseArgs(argv) {
   const out = { assetId: null, ref: null, dryRun: false };
   for (let i = 0; i < argv.length; i++) {
@@ -77,7 +84,7 @@ async function main() {
     form.append('image[]', new Blob([readFileSync(resolve(req.ref))], { type: 'image/png' }), 'ref.png');
     res = await fetch(req.url, { method: 'POST', headers: { Authorization: `Bearer ${apiKey}` }, body: form });
   }
-  if (!res.ok) throw new Error(`OpenAI API ${res.status}: ${(await res.text()).slice(0, 500)}`);
+  if (!res.ok) throw new Error(`OpenAI API ${res.status}: ${redactSecrets(await res.text(), apiKey).slice(0, 500)}`);
   const json = await res.json();
   const b64 = json?.data?.[0]?.b64_json;
   if (!b64) throw new Error('response had no data[0].b64_json');
@@ -89,7 +96,7 @@ async function main() {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch(e => {
-    console.error(`error: ${e.message}`);
+    console.error(`error: ${redactSecrets(e.message, process.env.OPENAI_API_KEY)}`);
     process.exit(1);
   });
 }

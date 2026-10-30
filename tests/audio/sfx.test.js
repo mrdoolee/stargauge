@@ -79,3 +79,56 @@ describe('Sfx without AudioContext', () => {
     s.play('correct'); // must not throw
   });
 });
+
+describe('Sfx unlock / cleanup with a fake AudioContext', () => {
+  function makeCtx(state) {
+    const made = { resumes: 0, nodes: [] };
+    class Ctx {
+      constructor() { this.currentTime = 0; this.state = state; this.destination = {}; }
+      createGain() {
+        const n = { gain: { value: 1, setValueAtTime() {}, exponentialRampToValueAtTime() {}, linearRampToValueAtTime() {} }, connect() {}, disconnected: 0, disconnect() { this.disconnected++; } };
+        made.nodes.push(n);
+        return n;
+      }
+      createOscillator() {
+        const n = { type: '', frequency: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() {}, start() {}, stop() {}, onended: null, disconnected: 0, disconnect() { this.disconnected++; } };
+        made.nodes.push(n);
+        made.osc = n;
+        return n;
+      }
+      resume() { made.resumes++; return Promise.resolve(); }
+    }
+    return { Ctx, made };
+  }
+
+  it("resumes an iOS 'interrupted' context (any state other than 'running')", () => {
+    for (const state of ['suspended', 'interrupted']) {
+      const { Ctx, made } = makeCtx(state);
+      const s = new Sfx({ getContextClass: () => Ctx, now: () => 0 });
+      s.unlock();
+      expect(made.resumes).toBe(1);
+    }
+    const { Ctx, made } = makeCtx('running');
+    new Sfx({ getContextClass: () => Ctx, now: () => 0 }).unlock();
+    expect(made.resumes).toBe(0);
+  });
+
+  it("does not schedule notes on a context that is not 'running'", () => {
+    const { Ctx, made } = makeCtx('interrupted');
+    const s = new Sfx({ getContextClass: () => Ctx, now: () => 0 });
+    s.play('correct');
+    expect(made.osc).toBeUndefined();
+  });
+
+  it('disconnects the oscillator and its gain when the note ends', () => {
+    const { Ctx, made } = makeCtx('running');
+    const s = new Sfx({ getContextClass: () => Ctx, now: () => 0 });
+    s.play('mark');
+    const osc = made.osc;
+    expect(typeof osc.onended).toBe('function');
+    const noteGain = made.nodes[made.nodes.indexOf(osc) + 1];
+    osc.onended();
+    expect(osc.disconnected).toBe(1);
+    expect(noteGain.disconnected).toBe(1);
+  });
+});

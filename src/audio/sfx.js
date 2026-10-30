@@ -108,7 +108,9 @@ export class Sfx {
         this.ctx = ctx;
         this.buses = { master, sfx, ui };
       }
-      if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume?.()?.catch?.(() => {});
+      // Anything but 'running' needs a resume: 'suspended' (autoplay policy) and iOS 'interrupted'
+      // (call, Siri, app switch). Called from a user gesture, so the resume is allowed.
+      if (this.ctx && this.ctx.state !== 'running') this.ctx.resume?.()?.catch?.(() => {});
     } catch {
       this._failed = true;
       this.ctx = null;
@@ -129,7 +131,9 @@ export class Sfx {
     if (name === 'fire' && !this._fireOk(this.now())) return;
     this.unlock(); // no-op once created; makes a late first play still work
     const ctx = this.ctx;
-    if (!ctx || ctx.state === 'suspended') return;
+    // Not running yet (resume pending, or interrupted): skip rather than queue a burst for later.
+    // A context without a `state` field (very old WebKit) is treated as running.
+    if (!ctx || (ctx.state !== undefined && ctx.state !== 'running')) return;
     try {
       const bus = this.buses[def.bus];
       const pitch = pitchVariation(this.rng);
@@ -147,6 +151,10 @@ export class Sfx {
         g.gain.exponentialRampToValueAtTime(0.0001, end);
         osc.connect(g);
         g.connect(bus);
+        osc.onended = () => {
+          // Free the per-note nodes as soon as the note is done (no build-up over a 15-minute lesson).
+          try { osc.disconnect(); g.disconnect(); } catch { /* already gone */ }
+        };
         osc.start(start);
         osc.stop(end + 0.02);
       }
