@@ -1,9 +1,11 @@
 import { GAME_WIDTH, GAME_HEIGHT } from './config/game.js';
 import { LANDSCAPE_SMALL_QUERY, shouldSleep } from './config/orientation.js';
+import { parseDebug, debugRegistryDefaults } from './config/debug.js';
 
 export { GAME_WIDTH, GAME_HEIGHT };
 
 async function boot() {
+  const dbg = parseDebug(window.location.search); // ?debug=1 [&mission=m1|m2|m3|m4|report]
   const { default: Phaser } = await import('phaser');
   const { sfx } = await import('./audio/sfx.js');
   sfx.installUnlock(window); // AudioContext is created/resumed on the first touch
@@ -18,6 +20,12 @@ async function boot() {
   const { default: M1FurnaceScene } = await import('./scenes/M1FurnaceScene.js');
   const { default: M2GaugeScene } = await import('./scenes/M2GaugeScene.js');
 
+  const scenes = [BootScene, TitleScene, CardScene, M1FurnaceScene, M2GaugeScene, M3TrapScene, M4JewelboxScene, ReportScene, ResultScene, HudScene];
+  if (dbg.debug) {
+    const { default: DebugFpsScene } = await import('./scenes/DebugFpsScene.js');
+    scenes.push(DebugFpsScene); // last = drawn on top; not even imported when debug is off
+  }
+
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     width: GAME_WIDTH,
@@ -28,8 +36,17 @@ async function boot() {
     physics: { default: 'arcade', arcade: { debug: false } },
     // Mission scenes (Tasks 7-9) go before HudScene; HudScene stays last so it draws on top
     // (missions also call bringToTop('hud')).
-    scene: [BootScene, TitleScene, CardScene, M1FurnaceScene, M2GaugeScene, M3TrapScene, M4JewelboxScene, ReportScene, ResultScene, HudScene],
+    scene: scenes,
   });
+
+  if (dbg.debug) {
+    game.registry.set('debugFps', true); // BootScene launches the overlay scene
+    if (dbg.mission) {
+      // Debug shortcut: BootScene starts this scene instead of the title once loading is done.
+      for (const [k, v] of Object.entries(debugRegistryDefaults())) game.registry.set(k, v);
+      game.registry.set('debugStart', dbg.mission);
+    }
+  }
 
   // Landscape on a short screen (phone) -> sleep the loop behind #rotate.
   const mq = window.matchMedia(LANDSCAPE_SMALL_QUERY);

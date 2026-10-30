@@ -11,6 +11,7 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
-    this.scene.start('title');
+    if (this.registry.get('debugFps')) this.scene.launch('debugfps'); // ?debug=1 only
+    this.scene.start(this.registry.get('debugStart') ?? 'title'); // debugStart only set by ?debug=1&mission=
   }
 }
