@@ -11,7 +11,7 @@ describe('game config', () => {
 import { shouldSleep } from '../src/config/orientation.js';
 
 describe('orientation', () => {
-  it('sleeps only in small landscape', () => {
+  it('sleeps only in landscape on a touch device', () => {
     expect(shouldSleep(true)).toBe(true);
     expect(shouldSleep(false)).toBe(false);
   });

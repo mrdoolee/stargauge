@@ -1,10 +1,23 @@
 import { GAME_WIDTH, GAME_HEIGHT } from './config/game.js';
-import { LANDSCAPE_SMALL_QUERY, shouldSleep } from './config/orientation.js';
+import { ROTATE_QUERY, applyOrientation } from './config/orientation.js';
+import { showBootError } from './config/bootError.js';
 import { parseDebug, debugRegistryDefaults } from './config/debug.js';
 
 export { GAME_WIDTH, GAME_HEIGHT };
 
 async function boot() {
+  // Rotate overlay first (before the Phaser chunk loads), so landscape shows #rotate right away.
+  // JS is the only thing that shows it: CSS reads <html class="rotate"> (see config/orientation.js).
+  const mq = window.matchMedia(ROTATE_QUERY);
+  let game = null;
+  const sync = () => applyOrientation(mq.matches, {
+    root: document.documentElement,
+    loop: game?.loop,
+    onWake: () => game.events.emit('loop-wake'), // DebugFpsScene ignores the first frames after this
+  });
+  sync();
+  mq.addEventListener('change', sync);
+
   const dbg = parseDebug(window.location.search); // ?debug=1 [&mission=m1|m2|m3|m4|report]
   const { default: Phaser } = await import('phaser');
   const { sfx } = await import('./audio/sfx.js');
@@ -26,7 +39,7 @@ async function boot() {
     scenes.push(DebugFpsScene); // last = drawn on top; not even imported when debug is off
   }
 
-  const game = new Phaser.Game({
+  game = new Phaser.Game({
     type: Phaser.AUTO,
     width: GAME_WIDTH,
     height: GAME_HEIGHT,
@@ -48,11 +61,7 @@ async function boot() {
     }
   }
 
-  // Landscape on a short screen (phone) -> sleep the loop behind #rotate.
-  const mq = window.matchMedia(LANDSCAPE_SMALL_QUERY);
-  const sync = () => (shouldSleep(mq.matches) ? game.loop.sleep() : game.loop.wake());
-  mq.addEventListener('change', sync);
-
+  // Landscape on a touch device (phone or tablet) -> sleep the loop behind #rotate.
   // 'ready' fires before loop.start(), when sleep() is a no-op (loop.running is
   // false). The first POST_STEP is emitted from inside a live step, so sleep()
   // takes effect there (raf stops rescheduling).
@@ -66,4 +75,10 @@ async function boot() {
 }
 
 // Importing this module in Node (vitest) just exposes the constants.
-if (typeof window !== 'undefined') boot();
+if (typeof window !== 'undefined') {
+  boot().catch(err => {
+    // e.g. the Phaser chunk failed to load on school Wi-Fi: say so plainly instead of a black screen.
+    console.error(err);
+    showBootError(document);
+  });
+}
