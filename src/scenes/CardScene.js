@@ -11,6 +11,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
+import { armButton } from '../ui/button.js';
 
 export default class CardScene extends Phaser.Scene {
   constructor() {
@@ -69,9 +70,8 @@ export default class CardScene extends Phaser.Scene {
         backgroundColor: '#8fd3ff',
         padding: { x: 80, y: 22 },
       })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    btn.on('pointerup', () => this.goNext());
+      .setOrigin(0.5);
+    armButton(btn, () => this.goNext()); // only a press that started on it, >= 300 ms after the card appears
   }
 
   goNext() {

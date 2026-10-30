@@ -7,6 +7,7 @@ import { FONT } from '../objects/gaugeView.js';
 import { reportLayout, REPORT_L } from '../logic/reportLayout.js';
 import { hasImage } from '../config/assets.js';
 import { drawGlassCraft } from '../objects/glassCraft.js';
+import { armButton } from '../ui/button.js';
 
 const Q2_LAYOUT = reportLayout(QUIZ.find(q => q.id === 'q2').choices.length, true);
 
@@ -55,13 +56,12 @@ export default class ReportScene extends Phaser.Scene {
   }
 
   button(x, y, w, h, label, fill, fontSize, onTap) {
-    const r = this.addUi(this.add.rectangle(x, y, w, h, fill, 1).setStrokeStyle(3, 0xffffff, 0.4)
-      .setInteractive({ useHandCursor: true }));
+    const r = this.addUi(this.add.rectangle(x, y, w, h, fill, 1).setStrokeStyle(3, 0xffffff, 0.4));
     this.addUi(this.add.text(x, y, label, {
       fontFamily: FONT, fontSize: `${fontSize}px`, fontStyle: 'bold', color: '#ffffff', align: 'center',
       wordWrap: { width: w - 40, useAdvancedWrap: true },
     }).setOrigin(0.5), D + 1);
-    r.on('pointerup', () => onTap(r));
+    armButton(r, () => onTap(r)); // a press that started on it, >= 300 ms after it appeared
     return r;
   }
 

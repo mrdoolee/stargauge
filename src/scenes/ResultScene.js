@@ -4,6 +4,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { drawOrionFigure } from '../objects/orionFigure.js';
 import { buildResultSummary, clearRunKeys } from '../logic/flow.js';
+import { armButton } from '../ui/button.js';
 
 const cx = GAME_WIDTH / 2;
 
@@ -56,8 +57,8 @@ export default class ResultScene extends Phaser.Scene {
 
     const btn = this.add.text(cx, 1210, '처음부터 다시', {
       fontFamily: FONT, fontSize: '40px', color: '#05070f', backgroundColor: '#8fd3ff', padding: { x: 60, y: 18 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    btn.on('pointerup', () => this.restart());
+    }).setOrigin(0.5);
+    armButton(btn, () => this.restart());
   }
 
   restart() {

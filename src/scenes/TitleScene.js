@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { addBackdrop } from '../config/assets.js';
+import { armButton } from '../ui/button.js';
 
 const FONT = '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
 
@@ -30,8 +31,12 @@ export default class TitleScene extends Phaser.Scene {
         backgroundColor: '#8fd3ff',
         padding: { x: 80, y: 24 },
       })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    btn.once('pointerdown', () => this.scene.start('m1'));
+      .setOrigin(0.5);
+    let leaving = false;
+    armButton(btn, () => {
+      if (leaving) return;
+      leaving = true;
+      this.scene.start('m1');
+    });
   }
 }

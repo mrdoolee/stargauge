@@ -16,6 +16,9 @@
 // full state (so nothing is lost when the HUD's create runs a frame after the mission's).
 // Pause = overlay stack: pause button pauses the mission scene and pushes the overlay;
 // '계속하기' pops it and resumes. Mute toggles registry 'muted' and sfx.setMuted.
+// Returning from the background (game 'hidden' -> 'visible') during live gameplay opens the pause
+// overlay, so a student coming back is not dropped into falling stars. If the device is in landscape
+// the loop stays asleep behind #rotate (main.js); the queued pause/overlay show once back in portrait.
 
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
@@ -25,6 +28,7 @@ import {
 import { STAR_COLORS, FURNACE_STAGES } from '../logic/temperature.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
+import { armButton } from '../ui/button.js';
 
 const M = HUD_SAFE_MARGIN;
 const BTN = 72;
@@ -78,6 +82,7 @@ export default class HudScene extends Phaser.Scene {
       },
       toast: t => this.showToast(t),
       'mission-start': m => {
+        if (m?.key !== this.activeKey) for (const b of this.hudButtons) b.rearm(); // a new mission screen
         this.activeKey = m?.key ?? null;
       },
       'ship-hit': () => this.flashHeatBar(),
@@ -94,7 +99,20 @@ export default class HudScene extends Phaser.Scene {
       if (key === 'muted') sfx.setMuted(!!value);
     };
     this.registry.events.on('changedata', this.onMutedChanged);
+    this.pauseOnReturn = false;
+    this.onPageHidden = () => {
+      this.pauseOnReturn = this.isGameplayLive();
+    };
+    this.onPageVisible = () => {
+      if (!this.pauseOnReturn) return;
+      this.pauseOnReturn = false;
+      this.openPause();
+    };
+    this.game.events.on('hidden', this.onPageHidden);
+    this.game.events.on('visible', this.onPageVisible);
     this.events.once('shutdown', () => {
+      this.game.events.off('hidden', this.onPageHidden);
+      this.game.events.off('visible', this.onPageVisible);
       this.registry.events.off('changedata', this.onMutedChanged);
       for (const ev of HUD_EVENTS) this.game.events.off(ev, this.handlers[ev], this);
     });
@@ -116,15 +134,17 @@ export default class HudScene extends Phaser.Scene {
     };
     paint();
     const zone = this.add.zone(x, y, BTN, BTN).setOrigin(0).setInteractive({ useHandCursor: true });
-    zone.on('pointerdown', (p, lx, ly, ev) => {
-      ev?.stopPropagation?.();
+    // Activates on release of a press that started on the button (see ui/button.js).
+    const btn = armButton(zone, () => {
       onPress();
       paint();
-    });
+    }, { stopPropagation: true });
+    this.hudButtons.push(btn);
     return { g, zone, paint };
   }
 
   createButtons() {
+    this.hudButtons = [];
     this.makeButton(M, M, (g, x, y) => {
       g.fillStyle(0xffffff, 1);
       g.fillRect(x + 24, y + 20, 8, 32);
@@ -310,16 +330,23 @@ export default class HudScene extends Phaser.Scene {
         backgroundColor: '#8fd3ff',
         padding: { x: 56, y: 20 },
       })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    resume.on('pointerdown', () => this.closePause(true));
+      .setOrigin(0.5);
+    this.resumeButton = armButton(resume, () => this.closePause(true));
     this.pauseOverlay = this.add.container(0, 0, [dim, title, resume]).setDepth(100).setVisible(false);
+  }
+
+  /** A mission scene is running and in play (not a card, picture, quiz or restart flash). */
+  isGameplayLive() {
+    const key = this.activeKey;
+    if (this.paused || !key || !this.scene.isActive(key)) return false;
+    return this.scene.get(key)?.playing === true;
   }
 
   openPause() {
     if (this.paused || !this.activeKey || !this.scene.isActive(this.activeKey)) return;
     this.paused = true;
     this.scene.pause(this.activeKey);
+    this.resumeButton.rearm(); // the tap that opened it (or the return from background) can't close it
     this.pauseOverlay.setVisible(true);
   }
 

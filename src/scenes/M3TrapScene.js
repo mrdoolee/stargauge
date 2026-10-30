@@ -15,6 +15,7 @@ import {
 import { NAMED_STARS, ORION_BACKGROUND, CONSTELLATION_POS } from '../data/stars.js';
 import { FONT } from '../objects/gaugeView.js';
 import { drawOrionFigure, BELT } from '../objects/orionFigure.js';
+import { armButton } from '../ui/button.js';
 
 // Single place to wire the next mission: Task 9 only has to register scene 'm4'.
 const NEXT_AFTER_M3 = 'm4';
@@ -206,14 +207,15 @@ export default class M3TrapScene extends BaseMissionScene {
 
     const next = this.scene.get(NEXT_AFTER_M3) ? NEXT_AFTER_M3 : 'title';
     let leaving = false;
-    this.add.text(cx, 1170, '다음', {
+    const nextBtn = this.add.text(cx, 1170, '다음', {
       fontFamily: FONT, fontSize: '44px', color: '#05070f', backgroundColor: '#8fd3ff',
       padding: { x: 80, y: 22 },
-    }).setOrigin(0.5).setDepth(D + 3).setInteractive({ useHandCursor: true })
-      .on('pointerup', () => {
-        if (leaving) return;
-        leaving = true;
-        this.scene.start(next);
-      });
+    }).setOrigin(0.5).setDepth(D + 3);
+    // The steering finger may still be down when the picture appears: only a fresh press counts.
+    armButton(nextBtn, () => {
+      if (leaving) return;
+      leaving = true;
+      this.scene.start(next);
+    });
   }
 }

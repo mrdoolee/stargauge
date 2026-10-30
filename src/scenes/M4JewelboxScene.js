@@ -16,6 +16,7 @@ import { colorCounts, swayOffset, clusterPosition, unmarkedMisses, formatTime } 
 import { JEWELBOX, JEWELBOX_NOTE } from '../data/stars.js';
 import { MISSION_TEXT } from '../data/copy.js';
 import { FONT } from '../objects/gaugeView.js';
+import { armButton } from '../ui/button.js';
 
 // Next scene after the chart: 'report' once it is registered, else the title.
 const NEXT_AFTER_M4 = 'report';
@@ -172,12 +173,11 @@ export default class M4JewelboxScene extends BaseMissionScene {
   }
 
   button(x, y, w, label, fill, onTap) {
-    const r = this.addUi(this.add.rectangle(x, y, w, 96, fill, 1).setStrokeStyle(3, 0xffffff, 0.4)
-      .setInteractive({ useHandCursor: true }));
+    const r = this.addUi(this.add.rectangle(x, y, w, 96, fill, 1).setStrokeStyle(3, 0xffffff, 0.4));
     this.addUi(this.add.text(x, y, label, {
       fontFamily: FONT, fontSize: '36px', fontStyle: 'bold', color: '#ffffff', align: 'center',
     }).setOrigin(0.5), D + 2);
-    r.on('pointerup', () => onTap(r));
+    armButton(r, () => onTap(r)); // a press that started on it, >= 300 ms after it appeared
     return r;
   }
 
