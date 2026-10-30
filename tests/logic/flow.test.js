@@ -46,3 +46,19 @@ describe('clearRunKeys', () => {
     expect(clearRunKeys).not.toContain('muted');
   });
 });
+
+describe('estimateFlow vs the spec split', () => {
+  // spec: m1 ~2 min, m2 ~4, m3 ~3, m4 ~4, m5 (report) 1-2 min (1.5 used). Each estimate within +-30%.
+  const SPEC = { m1: 120, m2: 240, m3: 180, m4: 240, report: 90 };
+  for (const [id, target] of Object.entries(SPEC)) {
+    it(`${id} within 30% of ${target}s`, () => {
+      const sec = estimateFlow().rows.find(r => r.id === id).sec;
+      expect(sec).toBeGreaterThanOrEqual(target * 0.7);
+      expect(sec).toBeLessThanOrEqual(target * 1.3);
+    });
+  }
+  it('keeps the practice window at the spec 30 s', async () => {
+    const { M1_PRACTICE_SEC } = await import('../../src/config/balance.js');
+    expect(M1_PRACTICE_SEC).toBe(30);
+  });
+});

@@ -9,9 +9,9 @@ export const WRONG_SHOT_HEAT = 5;
 
 // Task 5 additions
 export const M4_TIME_LIMIT_SEC = 210;
-export const SPAWN_INTERVAL_MS = { m1: 1100, m2: 1300, m3: 1400, m4: 800 };
+export const SPAWN_INTERVAL_MS = { m1: 1100, m2: 2400, m3: 1400, m4: 800 };
 export const SPAWN_NEEDED_GUARANTEE = 3; // force a needed color after this many misses
-export const MISSION_GOAL_COUNTS = { m1: 20, m3a: 1 };
+export const MISSION_GOAL_COUNTS = { m1: 8, m3a: 1 };
 export const STARS_THREE_MAX_WRONG = 1;
 export const STARS_TWO_MAX_WRONG = 4;
 
@@ -38,7 +38,7 @@ export const HUD_SAFE_MARGIN = 24;
 export const TOAST_MS = 2400;
 
 // Task 7 additions — mission 1 (furnace) and mission 2 (star gauge).
-export const M1_PRACTICE_SEC = 45; // no asteroids / no ship-collision heat during this time
+export const M1_PRACTICE_SEC = 30; // no asteroids / no ship-collision heat during this time
 export const M1_FALL_DISTANCE = 1100; // px a blob falls from spawn to "fully cooled"
 export const FURNACE_STAGE_CUTS = [0.4, 0.62, 0.82]; // fall fraction where white->yellow->orange->red
 export const M1_ASTEROID_INTERVAL_MS = 4000;

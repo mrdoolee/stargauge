@@ -9,7 +9,7 @@ import { MISSION_GOAL_COUNTS } from '../config/balance.js';
 import { orderedJudge, predicateJudge } from '../logic/judges.js';
 import { sortHottestFirst, colorByKey } from '../logic/temperature.js';
 import {
-  toScreen, advanceGroup, fitLayout, groupSprites, trapLane,
+  toScreen, advanceGroup, groupSprites, trapLane,
   GROUP_SCALE, GROUP_ORIGIN_X, STAR_PX, BG_PX, TRAP_SCALE,
 } from '../logic/constellation.js';
 import { NAMED_STARS, ORION_BACKGROUND, CONSTELLATION_POS } from '../data/stars.js';
@@ -186,8 +186,7 @@ export default class M3TrapScene extends BaseMissionScene {
       if (BELT.includes(p.id)) continue; // the three belt stars share one label below
       const big = p.id === 'betelgeuse'; // its label goes left of the big ring, clear of the belt
       this.add.text(big ? x - size * 62 : x, big ? y : y + (hi ? 30 + size * 52 : 22 + size * 36),
-        big ? `${p.name} ${colorLabel(p.colorKey)}` : `${p.name}
-${colorLabel(p.colorKey)}`, {
+        big ? `${p.name} ${colorLabel(p.colorKey)}` : `${p.name}\n${colorLabel(p.colorKey)}`, {
           fontFamily: FONT, fontSize: hi ? '28px' : '22px', fontStyle: hi ? 'bold' : 'normal',
           color: hi ? '#ffe27a' : '#9fb0d0', align: 'center', stroke: '#05070f', strokeThickness: 5,
         }).setOrigin(big ? 1 : 0.5, big ? 0.5 : 0).setDepth(D + 3);
