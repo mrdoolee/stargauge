@@ -28,3 +28,50 @@ describe('furnaceStageAt', () => {
     }
   });
 });
+
+import { furnaceFallFraction, countsAsWhite, practiceToastDue } from '../../src/logic/furnace.js';
+import {
+  M1_COOL_START_Y, M1_WHITE_GRACE_MS, M1_PRACTICE_TOAST_GAP_MS, HUD_BAND_BOTTOM,
+} from '../../src/config/balance.js';
+
+describe('furnaceFallFraction (cooling measured from below the HUD)', () => {
+  it('stays 0 while the blob is still under the HUD band', () => {
+    expect(M1_COOL_START_Y).toBeGreaterThanOrEqual(HUD_BAND_BOTTOM);
+    expect(furnaceFallFraction(-60)).toBe(0);
+    expect(furnaceFallFraction(200)).toBe(0);
+    expect(furnaceFallFraction(HUD_BAND_BOTTOM)).toBe(0);
+  });
+  it('keeps a blob visibly white until roughly y 600-650', () => {
+    expect(furnaceStageAt(furnaceFallFraction(600))).toBe('white');
+    expect(furnaceStageAt(furnaceFallFraction(650))).toBe('yellow');
+  });
+  it('turns red well before the bottom of the screen', () => {
+    expect(furnaceStageAt(furnaceFallFraction(1000))).toBe('red');
+  });
+});
+
+describe('countsAsWhite (grace window)', () => {
+  it('white is always white', () => {
+    expect(countsAsWhite('white', null)).toBe(true);
+  });
+  it('a blob that left white within the grace window still counts', () => {
+    expect(M1_WHITE_GRACE_MS).toBeGreaterThanOrEqual(250);
+    expect(M1_WHITE_GRACE_MS).toBeLessThanOrEqual(400);
+    expect(countsAsWhite('yellow', 0)).toBe(true);
+    expect(countsAsWhite('yellow', M1_WHITE_GRACE_MS)).toBe(true);
+  });
+  it('after the grace window it is no longer white', () => {
+    expect(countsAsWhite('yellow', M1_WHITE_GRACE_MS + 1)).toBe(false);
+    expect(countsAsWhite('red', null)).toBe(false);
+    expect(countsAsWhite('orange', undefined)).toBe(false);
+  });
+});
+
+describe('practiceToastDue', () => {
+  it('shows the first time, then at most once per gap', () => {
+    expect(practiceToastDue(null, 0)).toBe(true);
+    expect(practiceToastDue(0, M1_PRACTICE_TOAST_GAP_MS - 1)).toBe(false);
+    expect(practiceToastDue(0, M1_PRACTICE_TOAST_GAP_MS)).toBe(true);
+    expect(M1_PRACTICE_TOAST_GAP_MS).toBeGreaterThanOrEqual(3000);
+  });
+});

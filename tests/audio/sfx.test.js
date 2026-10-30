@@ -11,7 +11,7 @@ describe('pitchVariation', () => {
 
 describe('SFX_DEFS', () => {
   it('defines every public sound with short, valid notes', () => {
-    expect(SFX_NAMES).toEqual(['correct', 'wrong', 'hit', 'fire', 'clear']);
+    expect(SFX_NAMES).toEqual(['correct', 'wrong', 'hit', 'fire', 'clear', 'mark']);
     for (const n of SFX_NAMES) {
       const d = SFX_DEFS[n];
       expect(['sfx', 'ui']).toContain(d.bus);
@@ -24,6 +24,12 @@ describe('SFX_DEFS', () => {
         expect(note.gain).toBeLessThanOrEqual(1);
       }
     }
+  });
+  it("'mark' (neutral practice hit) is softer and lower than 'correct', a single note", () => {
+    const mark = SFX_DEFS.mark.notes;
+    expect(mark.length).toBe(1);
+    expect(mark[0].gain).toBeLessThan(SFX_DEFS.correct.notes[0].gain);
+    expect(mark[0].f0).toBeLessThan(SFX_DEFS.correct.notes[0].f0);
   });
   it('keeps master quiet by default', () => {
     expect(GAINS.master).toBeLessThanOrEqual(0.3);

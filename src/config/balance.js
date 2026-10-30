@@ -36,10 +36,20 @@ export const MARK_FADE_MS = 450; // correct-star mark ring + fade before returni
 export const RESTART_DELAY_MS = 600; // heat-full flash before the mission restarts
 export const HUD_SAFE_MARGIN = 24;
 export const TOAST_MS = 2400;
+// HUD band heights (HudScene draws them). Falling objects are hidden/dimmed above HUD_BAND_BOTTOM.
+export const HUD_PANEL_H = 248; // top panel: buttons, heat bar, gauge
+export const HUD_INSTRUCTION_H = 96; // instruction strip under the panel
+export const HUD_BAND_BOTTOM = HUD_PANEL_H + HUD_INSTRUCTION_H; // 344
+export const HUD_TOAST_LOW_Y = 660; // top of a 'low' toast (m1: keeps the white zone 344-624 clear)
 
 // Task 7 additions — mission 1 (furnace) and mission 2 (star gauge).
 export const M1_PRACTICE_SEC = 30; // no asteroids / no ship-collision heat during this time
-export const M1_FALL_DISTANCE = 1100; // px a blob falls from spawn to "fully cooled"
+// Cooling is measured from below the HUD band (a blob is white while hidden under the HUD and for
+// 0.4 * 700 = 280 px after it, i.e. visibly white from y 344 to ~624; yellow ~624, orange ~778, red ~918).
+export const M1_COOL_START_Y = HUD_BAND_BOTTOM; // fall fraction starts counting here
+export const M1_FALL_DISTANCE = 700; // px below M1_COOL_START_Y to "fully cooled"
+export const M1_WHITE_GRACE_MS = 300; // a hit still counts as white this long after the blob left white
+export const M1_PRACTICE_TOAST_GAP_MS = 6000; // practice feedback toast: first time, then at most this often
 export const FURNACE_STAGE_CUTS = [0.4, 0.62, 0.82]; // fall fraction where white->yellow->orange->red
 export const M1_ASTEROID_INTERVAL_MS = 4000;
 export const M1_BLOB_SPEED = { min: 150, max: 210 };

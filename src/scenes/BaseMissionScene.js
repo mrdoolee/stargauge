@@ -12,12 +12,14 @@
  *   }
  * Do NOT override create() or update(): use setupMission() and the per-frame hook onMissionUpdate(dtMs, time). If you override init(data), call super.init(data) first.
  * Fields: missionId ('m1'..'m4' — registry results key), sunRef (bool, default false),
- *         showGauge (bool, default true).
+ *         showGauge (bool, default true), toastAt ('top' | 'low', default 'top': where HUD toasts sit;
+ *         m1 uses 'low' so toasts never cover the white zone just under the HUD).
  *
  * Phase object (plain; rebuilt every run so judge state like orderedJudge.progress resets):
  *   {
  *     id: 'm2a',                    // MISSION_TEXT key + wrongShotMessage phaseId
  *     judge: predicateJudge(...) | orderedJudge(...) | null,  // null = practice: hits just mark
+ *     practice: true,               // optional marker for subclasses (e.g. m1 skips it on a restart)
  *     remaining: scene => number,   // optional; goal counter. <= 0 auto-completes the phase
  *     instruction: '...',           // optional override of MISSION_TEXT[id].instruction
  *     spawnIntervalMs: 900,         // optional; default SPAWN_INTERVAL_MS[missionId]; 0 = no spawner
@@ -30,7 +32,9 @@
  *
  * Optional hooks: onPhaseStart(phase), onMissionUpdate(dtMs, time), onLateUpdate() (after physics —
  * position labels here), onCorrectHit(obj, result, phase), onWrongHit(obj, result, phase),
- * onShipHit(obj, heat).
+ * onShipHit(obj, heat), practiceTone(obj) ('correct' | 'neutral', default 'correct': a practice hit
+ * (judge null) on a 'neutral' object gets a soft mark — no "+1", no correct chime — and onCorrectHit
+ * receives { correct: true, practice: true, neutral: true }).
  *
  * ── Objects (pooled Arcade images; plain fields, reset on every spawn) ────────────
  *   kind 'star'|'furnace'|'asteroid', colorKey, targetable (false ⇒ beams pass through),
@@ -98,6 +102,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.missionId = key;
     this.sunRef = false;
     this.showGauge = true;
+    this.toastAt = 'top';
   }
 
   // ---- subclass hooks (defaults) --------------------------------------------------
@@ -116,6 +121,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   onCorrectHit(_obj, _result, _phase) {}
   onWrongHit(_obj, _result, _phase) {}
   onShipHit(_obj, _heat) {}
+  practiceTone(_obj) { return 'correct'; }
 
   // ---- lifecycle ------------------------------------------------------------------
   init(data) {
@@ -283,7 +289,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   toast(text, opts = {}) {
-    this.game.events.emit('toast', { text, ...opts });
+    this.game.events.emit('toast', { text, at: this.toastAt, ...opts });
   }
 
   // ---- phases ---------------------------------------------------------------------
@@ -458,8 +464,9 @@ export default class BaseMissionScene extends Phaser.Scene {
     if (!phase || this.phaseDone || this.restarting) return;
 
     if (!phase.judge) {
-      this.markObject(obj);
-      this.onCorrectHit(obj, { correct: true, practice: true }, phase);
+      const neutral = this.practiceTone(obj) === 'neutral';
+      this.markObject(obj, { neutral });
+      this.onCorrectHit(obj, { correct: true, practice: true, neutral }, phase);
       this.refreshGoal();
       return;
     }
@@ -485,17 +492,26 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.refreshGoal();
   }
 
-  /** Correct-star mark: ring burst, then fade (kept) or fade + return to the pool. Never "destroyed". */
-  markObject(obj) {
+  /**
+   * Correct-star mark: ring burst, then fade (kept) or fade + return to the pool. Never "destroyed".
+   * neutral (practice only): soft sound, grey ring, no "+1" — the hit is acknowledged, not praised.
+   */
+  markObject(obj, { neutral = false } = {}) {
     obj.marked = true;
     obj.targetable = false;
     this.tweens.killTweensOf(obj); // e.g. a collision blink
     obj.setAlpha(1);
-    sfx.play('correct');
-    this.popScore(obj.x, obj.y - obj.displayHeight / 2);
+    if (neutral) {
+      sfx.play('mark');
+    } else {
+      sfx.play('correct');
+      this.popScore(obj.x, obj.y - obj.displayHeight / 2);
+    }
     const ring = this.fxRings.find(r => !r.visible);
     if (ring) {
       const s = (obj.displayWidth / 128) * 1.1;
+      if (neutral) ring.setTint(0x9aa4b8);
+      else ring.clearTint();
       ring.setPosition(obj.x, obj.y).setScale(s).setAlpha(1).setVisible(true);
       this.tweens.add({
         targets: ring, scale: s * 1.8, alpha: 0, duration: MARK_FADE_MS,

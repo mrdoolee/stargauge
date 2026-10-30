@@ -1,7 +1,7 @@
 // Synthesized sound effects (WebAudio oscillators, no files). Classroom use: quiet by
 // default, mutable, never throws when WebAudio is missing or suspended.
 //
-//   sfx.play('correct'|'wrong'|'hit'|'fire'|'clear')   sfx.setMuted(bool)   sfx.muted
+//   sfx.play('correct'|'wrong'|'hit'|'fire'|'clear'|'mark')   sfx.setMuted(bool)   sfx.muted
 //   sfx.installUnlock(window)  // creates/resumes the single AudioContext on the first gesture
 //
 // Bus graph:  osc -> note gain -> (sfx | ui bus) -> master -> destination.
@@ -16,7 +16,7 @@ export const PITCH_SPREAD = 0.05;
 /** Min ms between two 'fire' sounds (rapid taps still fire; only the sound is limited). */
 export const FIRE_MIN_GAP_MS = 40;
 
-export const SFX_NAMES = ['correct', 'wrong', 'hit', 'fire', 'clear'];
+export const SFX_NAMES = ['correct', 'wrong', 'hit', 'fire', 'clear', 'mark'];
 
 /**
  * Envelope tables. Note: { type, f0, f1 (end freq, optional), at (s offset), dur (s),
@@ -31,6 +31,8 @@ export const SFX_DEFS = {
       { type: 'sine', f0: 990, at: 0.07, dur: 0.22, gain: 0.5, attack: 0.005 },
     ],
   },
+  // Neutral acknowledgement (m1 practice hit on an already-cooled blob): soft, low, not a reward.
+  mark: { bus: 'sfx', notes: [{ type: 'sine', f0: 392, at: 0, dur: 0.1, gain: 0.25, attack: 0.006 }] },
   wrong: { bus: 'sfx', notes: [{ type: 'triangle', f0: 220, f1: 150, at: 0, dur: 0.22, gain: 0.5, attack: 0.008 }] },
   hit: {
     bus: 'sfx',

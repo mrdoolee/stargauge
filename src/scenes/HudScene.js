@@ -8,7 +8,8 @@
 //   'gauge-changed' { filled: string[], visible: boolean } filled STAR_COLORS keys
 //   'heat-changed'  { value, max, ratio }                  hull heat (ratio 0..1)
 //   'sun-ref'       boolean                                show the 태양 marker (mission 2+)
-//   'toast'         { text, colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert' }
+//   'toast'         { text, colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert',
+//                     at?: 'top'|'low' }  'low' = below m1's white zone (HUD_TOAST_LOW_Y)
 //   'mission-start' { key }                                scene key the pause button pauses
 //   'mission-end'   { key }
 // The HUD emits 'hud-ready' at the end of create(); missions answer by re-emitting their
@@ -18,7 +19,9 @@
 
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
-import { HUD_SAFE_MARGIN, TOAST_MS } from '../config/balance.js';
+import {
+  HUD_SAFE_MARGIN, TOAST_MS, HUD_PANEL_H, HUD_INSTRUCTION_H, HUD_TOAST_LOW_Y,
+} from '../config/balance.js';
 import { STAR_COLORS, FURNACE_STAGES } from '../logic/temperature.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
@@ -26,7 +29,8 @@ import { sfx } from '../audio/sfx.js';
 const M = HUD_SAFE_MARGIN;
 const BTN = 72;
 const TXT = { fontFamily: FONT, fontSize: '28px', color: '#e8ecff' };
-const PANEL_H = 248;
+const PANEL_H = HUD_PANEL_H;
+const TOAST_TOP_Y = PANEL_H + 120;
 
 // Gauge geometry (720 wide): 7 x 64 cells + 6 x 6 gaps = 484 → starts at x 118.
 const CELL_W = 64;
@@ -205,7 +209,7 @@ export default class HudScene extends Phaser.Scene {
 
   createInstruction() {
     const y = PANEL_H + 12;
-    this.instructionBg = this.add.rectangle(0, PANEL_H, GAME_WIDTH, 96, 0x05070f, 0.5).setOrigin(0);
+    this.instructionBg = this.add.rectangle(0, PANEL_H, GAME_WIDTH, HUD_INSTRUCTION_H, 0x05070f, 0.5).setOrigin(0);
     this.instruction = this.add.text(M, y, '', {
       ...TXT,
       fontSize: '30px',
@@ -227,7 +231,7 @@ export default class HudScene extends Phaser.Scene {
   }
 
   createToast() {
-    const y = PANEL_H + 120;
+    const y = TOAST_TOP_Y;
     this.toastBg = this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 2 * M, 80, 0x2a1020, 0.92)
       .setOrigin(0.5, 0)
       .setStrokeStyle(3, 0xff8a7a);
@@ -252,7 +256,10 @@ export default class HudScene extends Phaser.Scene {
     this.toast.setVisible(false);
   }
 
-  showToast({ text = '', colorKey = null, ladder = null, tone = 'wrong' } = {}) {
+  showToast({ text = '', colorKey = null, ladder = null, tone = 'wrong', at = 'top' } = {}) {
+    const top = at === 'low' ? HUD_TOAST_LOW_Y : TOAST_TOP_Y;
+    this.toastBg.setY(top);
+    this.toastText.setY(top + 14);
     this.toastText.setText(text);
     let h = this.toastText.height + 28;
     this.toastLadder.clear();
