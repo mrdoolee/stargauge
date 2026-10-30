@@ -2,9 +2,9 @@
 // The gauge persists across the two phases (same scene) and resets on an overheat restart.
 import BaseMissionScene from './BaseMissionScene.js';
 import { GAME_WIDTH } from '../config/game.js';
-import { M2_STAR_SPEED, M2_STAR_SCALE } from '../config/balance.js';
+import { M2_STAR_SPEED, M2_STAR_SCALE, M2_SPAWN_MIN_GAP_X } from '../config/balance.js';
 import { predicateJudge } from '../logic/judges.js';
-import { pickSpawnColor } from '../logic/spawner.js';
+import { pickSpawnColor, spawnXAwayFrom } from '../logic/spawner.js';
 import { STAR_COLORS, hotterThanSun, coolerThanSun } from '../logic/temperature.js';
 import { MISSION_TEXT } from '../data/copy.js';
 
@@ -37,6 +37,10 @@ export default class M2GaugeScene extends BaseMissionScene {
     ];
   }
 
+  setupMission() {
+    this.lastSpawnX = null;
+  }
+
   onPhaseStart() {
     this.sinceNeeded = 0;
   }
@@ -45,9 +49,11 @@ export default class M2GaugeScene extends BaseMissionScene {
     const needed = this.unfilled(phase.id);
     const colorKey = pickSpawnColor({ needed, all: ALL, sinceNeeded: this.sinceNeeded, rng: Math.random });
     this.sinceNeeded = needed.includes(colorKey) ? 0 : this.sinceNeeded + 1;
-    // Size and brightness are random and independent of color.
+    // Size and brightness are random and independent of color. x keeps clear of the previous star.
+    const x = spawnXAwayFrom(this.lastSpawnX, { min: 70, max: GAME_WIDTH - 70, minGap: M2_SPAWN_MIN_GAP_X });
+    this.lastSpawnX = x;
     this.spawnStar({
-      x: rand(70, GAME_WIDTH - 70),
+      x,
       y: -60,
       colorKey,
       scale: rand(M2_STAR_SCALE.min, M2_STAR_SCALE.max),

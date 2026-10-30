@@ -55,6 +55,7 @@ export const M1_ASTEROID_INTERVAL_MS = 4000;
 export const M1_BLOB_SPEED = { min: 150, max: 210 };
 export const M2_STAR_SPEED = { min: 170, max: 250 };
 export const M2_STAR_SCALE = { min: 0.7, max: 1.5 };
+export const M2_SPAWN_MIN_GAP_X = 120; // px: a new star spawns at least this far (x) from the previous one
 
 // Task 9 additions — mission 4 (jewel box cluster boss).
 export const M4_SCATTER_INTERVAL_MS = 2200; // a scattered blue star leaves the cluster this often
