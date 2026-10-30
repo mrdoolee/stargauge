@@ -52,5 +52,10 @@ export function wrongShotMessage(phaseId, target) {
   if (phaseId === 'm3a' && target?.id === 'sirius') {
     return `시리우스는 가장 밝지만 백색이라 리겔보다 표면 온도가 낮아요. ${TAIL}`;
   }
+  if (phaseId === 'm4') {
+    // Unreachable in practice (every cluster star is a correct target; scattered stars can't be shot),
+    // but kept sensible: scattered blue stars are the hot ones to avoid.
+    return `흩어지는 청색 별은 표면 온도가 높아 선체를 가장 많이 달궈요. 피해서 날아요. ${TAIL}`;
+  }
   return byColor(phaseId, target?.colorKey);
 }

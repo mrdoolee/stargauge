@@ -45,3 +45,11 @@ export const M1_ASTEROID_INTERVAL_MS = 4000;
 export const M1_BLOB_SPEED = { min: 150, max: 210 };
 export const M2_STAR_SPEED = { min: 170, max: 250 };
 export const M2_STAR_SCALE = { min: 0.7, max: 1.5 };
+
+// Task 9 additions — mission 4 (jewel box cluster boss).
+export const M4_SCATTER_INTERVAL_MS = 2200; // a scattered blue star leaves the cluster this often
+export const M4_SCATTER_SPEED = { min: 230, max: 310 };
+export const M4_SCATTER_SCALE = 0.42;
+export const M4_CLUSTER_AREA = { x: 80, y: 440, w: 560, h: 340 }; // where the normalized JEWELBOX layout is placed
+export const M4_SWAY = { amp: 26, periodMs: 5200, bossAmp: 70, bossPeriodMs: 7600 };
+export const M4_STAR_SCALE = 0.9; // JEWELBOX size multiplier -> sprite scale

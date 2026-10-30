@@ -9,6 +9,7 @@ async function boot() {
   const { default: TitleScene } = await import('./scenes/TitleScene.js');
   const { default: CardScene } = await import('./scenes/CardScene.js');
   const { default: M3TrapScene } = await import('./scenes/M3TrapScene.js');
+  const { default: M4JewelboxScene } = await import('./scenes/M4JewelboxScene.js');
   const { default: HudScene } = await import('./scenes/HudScene.js');
   const { default: M1FurnaceScene } = await import('./scenes/M1FurnaceScene.js');
   const { default: M2GaugeScene } = await import('./scenes/M2GaugeScene.js');
@@ -23,7 +24,7 @@ async function boot() {
     physics: { default: 'arcade', arcade: { debug: false } },
     // Mission scenes (Tasks 7-9) go before HudScene; HudScene stays last so it draws on top
     // (missions also call bringToTop('hud')).
-    scene: [BootScene, TitleScene, CardScene, M1FurnaceScene, M2GaugeScene, M3TrapScene, HudScene],
+    scene: [BootScene, TitleScene, CardScene, M1FurnaceScene, M2GaugeScene, M3TrapScene, M4JewelboxScene, HudScene],
   });
 
   // Landscape on a short screen (phone) -> sleep the loop behind #rotate.
