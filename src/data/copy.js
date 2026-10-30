@@ -41,7 +41,7 @@ function byColor(phaseId, key) {
       : `${label} 별은 태양보다 표면 온도가 높아요. ${TAIL}`;
   }
   if (phaseId === 'm1') return `더 뜨거운 쇳물은 흰색에 가까워요. ${TAIL}`;
-  if (phaseId === 'm3b') return `표면 온도가 높은 순서가 아니에요. 청백색, 백색, 적색 순이에요. ${TAIL}`;
+  if (phaseId === 'm3b') return `리겔(청백색) → 시리우스(백색) → 베텔게우스(적색) 순이에요. ${TAIL}`;
   return `${label} 별이에요. 청색에 가까울수록 표면 온도가 높아요. ${TAIL}`;
 }
 

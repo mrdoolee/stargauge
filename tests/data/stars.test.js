@@ -69,3 +69,11 @@ describe('copy', () => {
     });
   });
 });
+
+describe('m3b wrong-order message', () => {
+  it('names the three stars in true order with colors', () => {
+    const m = wrongShotMessage('m3b', NAMED_STARS.sirius);
+    expect(m).toContain('리겔(청백색) → 시리우스(백색) → 베텔게우스(적색)');
+    expect(m.endsWith('온도는 색으로 비교해요.')).toBe(true);
+  });
+});
