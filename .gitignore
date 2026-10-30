@@ -6,3 +6,5 @@ dist/
 prototype/dist/
 prototype/node_modules/
 .vercel/
+
+art/raw/

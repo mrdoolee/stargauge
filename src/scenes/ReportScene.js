@@ -5,6 +5,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { QUIZ, gradeQuiz } from '../data/quiz.js';
 import { FONT } from '../objects/gaugeView.js';
 import { reportLayout, REPORT_L } from '../logic/reportLayout.js';
+import { hasImage } from '../config/assets.js';
+import { drawGlassCraft } from '../objects/glassCraft.js';
 
 const Q2_LAYOUT = reportLayout(QUIZ.find(q => q.id === 'q2').choices.length, true);
 
@@ -13,7 +15,7 @@ const Q2_LAYOUT = reportLayout(QUIZ.find(q => q.id === 'q2').choices.length, tru
  * Task 11: set `key` to the loaded image key and the box is drawn as that image instead.
  */
 export const Q2_IMAGE_SLOT = {
-  qid: 'q2', x: GAME_WIDTH / 2, y: Q2_LAYOUT.image.top, w: 560, h: Q2_LAYOUT.image.h, key: null, label: '유리 공예 그림',
+  qid: 'q2', x: GAME_WIDTH / 2, y: Q2_LAYOUT.image.top, w: 560, h: Q2_LAYOUT.image.h, key: 'glass-craft', label: '유리 공예 그림',
 };
 /**
  * Label anchors for (가) 노란빛 / (나) 붉은빛, in screen coords INSIDE the image area: the centers of its
@@ -65,14 +67,15 @@ export default class ReportScene extends Phaser.Scene {
 
   drawImageSlot(slot) {
     const { x, y, w, h } = slot;
-    if (slot.key && this.textures.exists(slot.key)) {
+    const anchors = q2LabelAnchors(slot);
+    if (hasImage(this, slot.key)) {
       this.addUi(this.add.image(x, y + h / 2, slot.key).setDisplaySize(w, h));
+      const style = { fontFamily: FONT, fontSize: '40px', fontStyle: 'bold', color: '#ffffff', stroke: '#101424', strokeThickness: 7 };
+      this.addUi(this.add.text(anchors.left.x, anchors.left.y, '(가)', style).setOrigin(0.5), D + 1);
+      this.addUi(this.add.text(anchors.right.x, anchors.right.y, '(나)', style).setOrigin(0.5), D + 1);
       return;
     }
-    this.addUi(this.add.rectangle(x, y + h / 2, w, h, 0x4a4f5c, 1).setStrokeStyle(3, 0x8890a8));
-    this.addUi(this.add.text(x, y + h / 2, slot.label, {
-      fontFamily: FONT, fontSize: '34px', color: '#e8ecff',
-    }).setOrigin(0.5), D + 1);
+    drawGlassCraft(this, slot, anchors, FONT).forEach(o => this.addUi(o, D + 1));
   }
 
   ask(i) {

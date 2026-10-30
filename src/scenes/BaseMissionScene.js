@@ -80,6 +80,7 @@ import { Spawner } from '../logic/spawner.js';
 import { missionStars } from '../logic/scoring.js';
 import { MISSION_TEXT, wrongShotMessage } from '../data/copy.js';
 import { TouchControls, fireButtonRect, followFactor } from '../input/TouchControls.js';
+import { hasImage, addBackdrop } from '../config/assets.js';
 import { makeStarTextures, textureFor } from '../objects/starTextures.js';
 import { createPools, acquire, release, syncHalos } from '../objects/Pools.js';
 import { FONT } from '../objects/gaugeView.js';
@@ -142,9 +143,13 @@ export default class BaseMissionScene extends Phaser.Scene {
     makeStarTextures(this);
     this.pools = createPools(this);
 
+    addBackdrop(this, this.backdropKey || 'bg-space', GAME_WIDTH, GAME_HEIGHT); // no-op until the image exists
     this.ship = this.physics.add.image(GAME_WIDTH / 2, SHIP_START_Y, 'ship').setDepth(20);
     this.ship.body.setAllowGravity(false);
-    this.ship.body.setCircle(SHIP_BODY_RADIUS, 32 - SHIP_BODY_RADIUS, 40 - SHIP_BODY_RADIUS);
+    // The code ship is 64x76 (s = 1). A loaded 'ship' image of another size is scaled to the same footprint.
+    const s = this.ship.width / 64;
+    this.ship.setScale(1 / s);
+    this.ship.body.setCircle(SHIP_BODY_RADIUS * s, this.ship.width / 2 - SHIP_BODY_RADIUS * s, 40 * s - SHIP_BODY_RADIUS * s);
 
     this.fxRings = [];
     for (let i = 0; i < FX_RINGS; i++) {
@@ -399,7 +404,12 @@ export default class BaseMissionScene extends Phaser.Scene {
     const label = this.add
       .text(0, 0, '발사', { fontFamily: FONT, fontSize: '36px', fontStyle: 'bold', color: '#ffffff' })
       .setOrigin(0.5);
-    this.fireButton = this.add.container(cx, cy, [g, label]).setDepth(30);
+    let parts = [g, label];
+    if (hasImage(this, 'fire-button')) {
+      g.destroy();
+      parts = [this.add.image(0, 0, 'fire-button').setDisplaySize(r.w, r.w), label];
+    }
+    this.fireButton = this.add.container(cx, cy, parts).setDepth(30);
   }
 
   fire() {

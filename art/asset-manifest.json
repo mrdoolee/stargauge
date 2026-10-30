@@ -1,0 +1,331 @@
+{
+  "schema_version": 1,
+  "art_direction_brief": "art/art-direction-brief.md",
+  "status": "planned - nothing generated yet (spec section 7: wait for teacher field test)",
+  "assets": [
+    {
+      "id": "ship",
+      "role": "player ship",
+      "path": "public/img/ship.png",
+      "status": "planned",
+      "technical": {
+        "dimensions": "256x256",
+        "alpha": true,
+        "anchor": "bottom-center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1024",
+        "background": "transparent"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "A small cute round-bodied spaceship seen from above, nose pointing up, mint-green and silver body, bright light outline, small cockpit window, tiny engine flame at the bottom. Centered, fully inside the frame. Must not use blue, white-yellow, yellow, orange or red as main colors. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "asteroid-1",
+      "role": "obstacle",
+      "path": "public/img/asteroid-1.png",
+      "status": "planned",
+      "technical": {
+        "dimensions": "128x128",
+        "alpha": true,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1024",
+        "background": "transparent"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "A single chunky cartoon asteroid, rounded lumpy rock in dull gray-brown with a few craters, bright light outline so it reads on a dark navy background, clearly NOT a glowing star. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "asteroid-2",
+      "role": "obstacle",
+      "path": "public/img/asteroid-2.png",
+      "status": "planned",
+      "technical": {
+        "dimensions": "128x128",
+        "alpha": true,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1024",
+        "background": "transparent"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "A single chunky cartoon asteroid, rounded lumpy rock in dull gray-brown with a few craters, bright light outline so it reads on a dark navy background, clearly NOT a glowing star. Elongated shape. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "asteroid-3",
+      "role": "obstacle",
+      "path": "public/img/asteroid-3.png",
+      "status": "planned",
+      "technical": {
+        "dimensions": "128x128",
+        "alpha": true,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1024",
+        "background": "transparent"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "A single chunky cartoon asteroid, rounded lumpy rock in dull gray-brown with a few craters, bright light outline so it reads on a dark navy background, clearly NOT a glowing star. Triangular-ish shape with one large crater. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "bg-space",
+      "role": "mission background",
+      "path": "public/img/bg-space.png",
+      "status": "planned",
+      "technical": {
+        "dimensions": "720x1280",
+        "alpha": false,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1536",
+        "background": "opaque"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Vertical deep dark navy-indigo space background with a very faint, low-contrast soft nebula haze. ABSOLUTELY NO stars, NO dots, NO bright points, NO sparkles, nothing that could be mistaken for a star; keep it dark and calm. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "bg-furnace",
+      "role": "furnace mission background",
+      "path": "public/img/bg-furnace.png",
+      "status": "planned",
+      "technical": {
+        "dimensions": "720x1280",
+        "alpha": false,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1536",
+        "background": "opaque"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Vertical dark background of a cosmic furnace chamber: dark charcoal and deep navy metal, faint low-contrast structure, very dim. NO bright glowing blobs, NO dots, NO stars; nothing that resembles a glowing star or flame. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "title-art",
+      "role": "title screen art",
+      "path": "public/img/title-art.png",
+      "status": "planned",
+      "technical": {
+        "dimensions": "720x1280",
+        "alpha": false,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1536",
+        "background": "opaque"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Title screen artwork: a cute mint-and-silver exploration spaceship flying up through a dark navy sky with a soft nebula, leaving the upper third and lower third empty for overlaid text. NO stars drawn as dots. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "glass-craft",
+      "role": "quiz 2 illustration",
+      "path": "public/img/glass-craft.png",
+      "status": "planned",
+      "technical": {
+        "dimensions": "560x200",
+        "alpha": false,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1536x1024",
+        "background": "opaque"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Simple clear illustration of a glassblower's blowpipe holding a glass piece. The left half of the glass glows yellow-white light (yellow glow), the right half glows red (red glow), like a heated glass piece with a temperature gradient. Plain dark background, wide landscape composition. Leave the areas above the left and right halves empty (labels are added by code). Original design, not a copy of any textbook figure. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "fire-button",
+      "role": "fire button",
+      "path": "public/img/fire-button.png",
+      "status": "planned",
+      "technical": {
+        "dimensions": "160x160",
+        "alpha": true,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1024",
+        "background": "transparent"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "A round chunky arcade fire button seen from the front, mint-green rim with a silver bezel and a blank face, bright outline. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    }
+  ]
+}

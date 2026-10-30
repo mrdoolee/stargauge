@@ -71,14 +71,25 @@ export function makeStarTextures(scene) {
   }
 
   bake('ship', 64, 76, () => {
-    g.fillStyle(SHIP_TRIM, 1);
-    g.fillTriangle(32, 0, 64, 64, 0, 64);
-    g.fillStyle(SHIP_COLOR, 1);
-    g.fillTriangle(32, 8, 56, 60, 8, 60);
-    g.fillStyle(0x1b2a3a, 1);
-    g.fillCircle(32, 36, 8);
-    g.fillStyle(BEAM_COLOR, 0.8);
-    g.fillRect(24, 64, 16, 12);
+    // rounded mint/silver ship, nose up (nothing here uses a star hex)
+    g.fillStyle(BEAM_COLOR, 0.85); // engine flame
+    g.fillRoundedRect(24, 62, 16, 14, 6);
+    g.fillStyle(0xffffff, 0.9);
+    g.fillRoundedRect(28, 62, 8, 9, 4);
+    g.fillStyle(SHIP_TRIM, 1); // silver wings
+    g.fillTriangle(2, 62, 24, 30, 30, 60);
+    g.fillTriangle(62, 62, 40, 30, 34, 60);
+    g.fillStyle(0x3fbfa6, 1); // teal wing tips
+    g.fillTriangle(2, 62, 8, 50, 14, 62);
+    g.fillTriangle(62, 62, 56, 50, 50, 62);
+    g.fillStyle(SHIP_TRIM, 1); // silver hull outline
+    g.fillEllipse(32, 34, 36, 66);
+    g.fillStyle(SHIP_COLOR, 1); // mint hull
+    g.fillEllipse(32, 35, 28, 58);
+    g.fillStyle(0x1b2a3a, 1); // cockpit
+    g.fillEllipse(32, 30, 16, 20);
+    g.fillStyle(0xc8fff0, 0.9);
+    g.fillEllipse(29, 25, 5, 8);
   });
   bake('beam', 12, 32, () => {
     g.fillStyle(BEAM_COLOR, 0.45);

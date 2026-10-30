@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
+import { addBackdrop } from '../config/assets.js';
 
 const FONT = '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
 
@@ -10,6 +11,7 @@ export default class TitleScene extends Phaser.Scene {
 
   create() {
     const cx = GAME_WIDTH / 2;
+    addBackdrop(this, 'title-art', GAME_WIDTH, GAME_HEIGHT); // no-op until the image exists
     this.add
       .text(cx, GAME_HEIGHT * 0.3, '별빛 탐사선\n스타게이지호', {
         fontFamily: FONT,
