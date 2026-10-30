@@ -5,6 +5,8 @@ export { GAME_WIDTH, GAME_HEIGHT };
 
 async function boot() {
   const { default: Phaser } = await import('phaser');
+  const { sfx } = await import('./audio/sfx.js');
+  sfx.installUnlock(window); // AudioContext is created/resumed on the first touch
   const { default: BootScene } = await import('./scenes/BootScene.js');
   const { default: TitleScene } = await import('./scenes/TitleScene.js');
   const { default: CardScene } = await import('./scenes/CardScene.js');

@@ -55,7 +55,7 @@
  *   results.<missionId> = { stars, wrongShots, restarts }. Reset to zeros on a fresh start
  *   (data.restarted falsy); restarts accumulate across heat restarts; stars/wrongShots are
  *   written by completeMission() from the finishing attempt (wrongShots count per attempt).
- *   'muted' (HUD). gaugeFinal / orionTagged are written by the subclasses that own them.
+ *   'muted' (HUD; mirrored into sfx.setMuted). gaugeFinal / orionTagged are written by the subclasses that own them.
  *
  * ── HUD events (this.game.events) ── see HudScene.js for payloads.
  */
@@ -84,8 +84,13 @@ import { hasImage, addBackdrop } from '../config/assets.js';
 import { makeStarTextures, textureFor } from '../objects/starTextures.js';
 import { createPools, acquire, release, syncHalos } from '../objects/Pools.js';
 import { FONT } from '../objects/gaugeView.js';
+import { sfx } from '../audio/sfx.js';
 
 const FX_RINGS = 8;
+const FX_POPS = 6; // pooled "+1" score texts
+const FX_FLASHES = 4; // pooled red wrong-shot beam flashes
+const SHAKE_MS = 120; // large tier: <= 150 ms, mission camera only
+const SHAKE_INTENSITY = 0.006;
 
 export default class BaseMissionScene extends Phaser.Scene {
   constructor(key) {
@@ -156,6 +161,17 @@ export default class BaseMissionScene extends Phaser.Scene {
       this.fxRings.push(this.add.image(0, 0, 'fx-ring').setDepth(15).setVisible(false));
     }
 
+    this.fxPops = [];
+    for (let i = 0; i < FX_POPS; i++) {
+      this.fxPops.push(this.add.text(0, 0, '+1', {
+        fontFamily: FONT, fontSize: '34px', fontStyle: 'bold', color: '#ffe98a', stroke: '#05070f', strokeThickness: 5,
+      }).setOrigin(0.5).setDepth(16).setVisible(false));
+    }
+    this.fxFlashes = [];
+    for (let i = 0; i < FX_FLASHES; i++) {
+      this.fxFlashes.push(this.add.image(0, 0, 'beam').setDepth(16).setVisible(false));
+    }
+
     this.fireRect = fireButtonRect();
     this.createFireButton();
     this.controls = new TouchControls(this, { fireRect: this.fireRect });
@@ -170,6 +186,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.events.on('postupdate', this.lateUpdate, this);
     this.game.events.on('hud-ready', this.emitHudState, this);
     this.events.once('shutdown', this.onShutdown, this);
+    this.cameras.main.resetFX?.(); // a shake/flash from the previous run must not carry over
 
     this.ensureHud();
     this.playing = true;
@@ -314,6 +331,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     const restarts = this.registry.get('results')?.[this.missionId]?.restarts ?? 0;
     const stars = missionStars({ wrongShots: this.wrongShots, restarts });
     this.updateResult({ stars, wrongShots: this.wrongShots, restarts });
+    sfx.play('clear');
     this.game.events.emit('mission-end', { key: this.scene.key });
     this.scene.sleep('hud');
     if (next) this.scene.start(next, nextData);
@@ -414,6 +432,7 @@ export default class BaseMissionScene extends Phaser.Scene {
 
   fire() {
     if (!this.playing) return;
+    sfx.play('fire'); // small tier: sound only (+ the button press below)
     this.tweens.killTweensOf(this.fireButton);
     this.fireButton.setScale(0.9);
     this.tweens.add({ targets: this.fireButton, scale: 1, duration: 120 });
@@ -432,6 +451,8 @@ export default class BaseMissionScene extends Phaser.Scene {
 
   handleBeamHit(beam, obj) {
     if (!beam.active) return;
+    const bx = beam.x;
+    const by = beam.y;
     release(beam);
     const phase = this.phase;
     if (!phase || this.phaseDone || this.restarting) return;
@@ -456,6 +477,8 @@ export default class BaseMissionScene extends Phaser.Scene {
       const text = phase.wrongMessage?.(target, result) ?? wrongShotMessage(phase.id, target);
       const ladder = obj.kind === 'furnace' ? 'furnace' : obj.kind === 'star' ? 'star' : null;
       this.toast(text, { colorKey: obj.colorKey, ladder, tone: 'wrong' });
+      this.flashWrongBeam(bx, by);
+      sfx.play('wrong');
       this.onWrongHit(obj, result, phase);
       this.addHeat(WRONG_SHOT_HEAT);
     }
@@ -468,6 +491,8 @@ export default class BaseMissionScene extends Phaser.Scene {
     obj.targetable = false;
     this.tweens.killTweensOf(obj); // e.g. a collision blink
     obj.setAlpha(1);
+    sfx.play('correct');
+    this.popScore(obj.x, obj.y - obj.displayHeight / 2);
     const ring = this.fxRings.find(r => !r.visible);
     if (ring) {
       const s = (obj.displayWidth / 128) * 1.1;
@@ -491,6 +516,32 @@ export default class BaseMissionScene extends Phaser.Scene {
     });
   }
 
+  /** Medium tier (correct): "+1" pops up and drifts away. Pooled; no stray tweens. */
+  popScore(x, y) {
+    const t = this.fxPops.find(p => !p.visible);
+    if (!t) return;
+    this.tweens.killTweensOf(t);
+    const px = Phaser.Math.Clamp(x, 40, GAME_WIDTH - 40);
+    t.setPosition(px, y).setAlpha(1).setScale(0.6).setVisible(true);
+    this.tweens.add({ targets: t, scale: 1.15, duration: 110, ease: 'Back.Out' });
+    this.tweens.add({
+      targets: t, y: y - 56, alpha: 0, duration: 520, delay: 60,
+      onComplete: () => t.setVisible(false),
+    });
+  }
+
+  /** Medium tier (wrong): the consumed beam flashes red where it hit. Pooled. */
+  flashWrongBeam(x, y) {
+    const f = this.fxFlashes.find(p => !p.visible);
+    if (!f) return;
+    this.tweens.killTweensOf(f);
+    f.setPosition(x, y).setTint(0xff3b30).setAlpha(1).setVisible(true);
+    this.tweens.add({
+      targets: f, alpha: 0, scaleX: 1.8, duration: 200,
+      onComplete: () => { f.setVisible(false).clearTint().setScale(1); },
+    });
+  }
+
   // ---- collisions / heat ----------------------------------------------------------
   canShipHit(_ship, obj) {
     return this.playing && this.phase?.collisions !== false && obj.active && obj.collides
@@ -504,6 +555,10 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.tweens.add({ targets: obj, alpha: 0.3, duration: 90, yoyo: true, repeat: 2, onComplete: () => obj.setAlpha(1) });
     this.ship.setTint(0xff7a5c);
     this.time.delayedCall(160, () => this.ship.clearTint());
+    // Large tier: short camera shake (mission camera only, input untouched) + heat bar flash + thud.
+    sfx.play('hit');
+    this.cameras.main.shake(SHAKE_MS, SHAKE_INTENSITY);
+    this.game.events.emit('ship-hit', { heat });
     this.onShipHit(obj, heat);
     this.addHeat(heat);
   }

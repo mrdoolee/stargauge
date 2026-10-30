@@ -14,13 +14,14 @@
 // The HUD emits 'hud-ready' at the end of create(); missions answer by re-emitting their
 // full state (so nothing is lost when the HUD's create runs a frame after the mission's).
 // Pause = overlay stack: pause button pauses the mission scene and pushes the overlay;
-// '계속하기' pops it and resumes. Mute only toggles registry 'muted' (sound = Task 12).
+// '계속하기' pops it and resumes. Mute toggles registry 'muted' and sfx.setMuted.
 
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { HUD_SAFE_MARGIN, TOAST_MS } from '../config/balance.js';
 import { STAR_COLORS, FURNACE_STAGES } from '../logic/temperature.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
+import { sfx } from '../audio/sfx.js';
 
 const M = HUD_SAFE_MARGIN;
 const BTN = 72;
@@ -34,7 +35,7 @@ const GAP = 6;
 const GAUGE_Y = 116;
 
 export const HUD_EVENTS = [
-  'instruction', 'goal-changed', 'gauge-changed', 'heat-changed', 'sun-ref', 'toast', 'mission-start', 'mission-end',
+  'instruction', 'goal-changed', 'gauge-changed', 'heat-changed', 'sun-ref', 'toast', 'mission-start', 'mission-end', 'ship-hit',
 ];
 
 export default class HudScene extends Phaser.Scene {
@@ -75,6 +76,7 @@ export default class HudScene extends Phaser.Scene {
       'mission-start': m => {
         this.activeKey = m?.key ?? null;
       },
+      'ship-hit': () => this.flashHeatBar(),
       'mission-end': () => {
         this.closePause(false);
         this.hideToast();
@@ -82,7 +84,14 @@ export default class HudScene extends Phaser.Scene {
       },
     };
     for (const ev of HUD_EVENTS) this.game.events.on(ev, this.handlers[ev], this);
+    // Mute: registry flag is the source of truth; sfx follows it now and on every change.
+    sfx.setMuted(!!this.registry.get('muted'));
+    this.onMutedChanged = (_p, key, value) => {
+      if (key === 'muted') sfx.setMuted(!!value);
+    };
+    this.registry.events.on('changedata', this.onMutedChanged);
     this.events.once('shutdown', () => {
+      this.registry.events.off('changedata', this.onMutedChanged);
       for (const ev of HUD_EVENTS) this.game.events.off(ev, this.handlers[ev], this);
     });
 
@@ -136,7 +145,12 @@ export default class HudScene extends Phaser.Scene {
         g.arc(x + 42, y + 36, 20, -0.9, 0.9);
         g.strokePath();
       }
-    }, () => this.registry.set('muted', !this.registry.get('muted')));
+    }, () => {
+      const muted = !this.registry.get('muted');
+      this.registry.set('muted', muted);
+      sfx.setMuted(muted);
+      sfx.unlock();
+    });
   }
 
   createHeatBar() {
@@ -148,6 +162,16 @@ export default class HudScene extends Phaser.Scene {
     this.heatBarW = right - barX;
     this.add.rectangle(barX, cy, this.heatBarW, 28, 0x2a3048).setOrigin(0, 0.5).setStrokeStyle(2, 0x8890a8);
     this.heatFill = this.add.rectangle(barX, cy, 0, 28, 0xff6b3a).setOrigin(0, 0.5);
+  }
+
+  /** Large tier: the heat bar blinks white-ish for a moment (alpha dip, restored on complete). */
+  flashHeatBar() {
+    this.tweens.killTweensOf(this.heatFill);
+    this.heatFill.setAlpha(1);
+    this.tweens.add({
+      targets: this.heatFill, alpha: 0.25, duration: 70, yoyo: true, repeat: 1,
+      onComplete: () => this.heatFill.setAlpha(1),
+    });
   }
 
   setHeat(ratio) {
