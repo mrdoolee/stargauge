@@ -59,6 +59,7 @@ async function boot() {
       for (const [k, v] of Object.entries(debugRegistryDefaults())) game.registry.set(k, v);
       game.registry.set('debugStart', dbg.mission);
     }
+    if (dbg.difficulty) game.registry.set('difficulty', dbg.difficulty); // ?debug=1&difficulty=easy|normal|hard
   }
 
   // Landscape on a touch device (phone or tablet) -> sleep the loop behind #rotate.

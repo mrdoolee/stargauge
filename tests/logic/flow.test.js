@@ -62,3 +62,28 @@ describe('estimateFlow vs the spec split', () => {
     expect(M1_PRACTICE_SEC).toBe(30);
   });
 });
+
+describe('estimateFlow per difficulty', () => {
+  const min = d => estimateFlow({ difficulty: d }).totalSec / 60;
+  it('normal equals the default estimate', () => {
+    expect(estimateFlow({ difficulty: 'normal' }).totalSec).toBe(estimateFlow().totalSec);
+  });
+  it('easy and normal finish within 17 minutes, hard within 16', () => {
+    expect(min('easy')).toBeLessThanOrEqual(17);
+    expect(min('normal')).toBeLessThanOrEqual(17);
+    expect(min('hard')).toBeLessThanOrEqual(16);
+  });
+  it('all difficulties stay above 12 minutes', () => {
+    for (const d of ['easy', 'normal', 'hard']) expect(min(d)).toBeGreaterThanOrEqual(12);
+  });
+  it('unknown difficulty behaves as normal', () => {
+    expect(estimateFlow({ difficulty: 'zzz' }).totalSec).toBe(estimateFlow().totalSec);
+  });
+});
+
+describe('clearRunKeys keeps preferences', () => {
+  it('keeps difficulty and muted', () => {
+    expect(clearRunKeys).not.toContain('difficulty');
+    expect(clearRunKeys).not.toContain('muted');
+  });
+});

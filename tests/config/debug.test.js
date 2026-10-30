@@ -4,13 +4,13 @@ import { ALL_COLOR_KEYS } from '../../src/logic/flow.js';
 
 describe('parseDebug', () => {
   it('is off without the flag', () => {
-    expect(parseDebug('')).toEqual({ debug: false, mission: null });
-    expect(parseDebug('?mission=m4')).toEqual({ debug: false, mission: null }); // shortcut needs debug=1
-    expect(parseDebug('?debug=0')).toEqual({ debug: false, mission: null });
-    expect(parseDebug('?debug=true')).toEqual({ debug: false, mission: null });
+    expect(parseDebug('')).toEqual({ debug: false, mission: null, difficulty: null });
+    expect(parseDebug('?mission=m4')).toEqual({ debug: false, mission: null, difficulty: null }); // shortcut needs debug=1
+    expect(parseDebug('?debug=0')).toEqual({ debug: false, mission: null, difficulty: null });
+    expect(parseDebug('?debug=true')).toEqual({ debug: false, mission: null, difficulty: null });
   });
   it('debug=1 turns the overlay on', () => {
-    expect(parseDebug('?debug=1')).toEqual({ debug: true, mission: null });
+    expect(parseDebug('?debug=1')).toEqual({ debug: true, mission: null, difficulty: null });
   });
   it('accepts known mission keys only (with debug=1)', () => {
     for (const m of ['m1', 'm2', 'm3', 'm4', 'report']) {
@@ -22,8 +22,8 @@ describe('parseDebug', () => {
     expect(parseDebug('?debug=1&mission=').mission).toBeNull();
   });
   it('tolerates junk input', () => {
-    expect(parseDebug(undefined)).toEqual({ debug: false, mission: null });
-    expect(parseDebug(null)).toEqual({ debug: false, mission: null });
+    expect(parseDebug(undefined)).toEqual({ debug: false, mission: null, difficulty: null });
+    expect(parseDebug(null)).toEqual({ debug: false, mission: null, difficulty: null });
   });
 });
 
@@ -114,5 +114,17 @@ describe('FpsTracker ring buffer', () => {
   it('default capacity holds a 10 s window at 120 Hz', () => {
     const t = new FpsTracker();
     expect(t.times.length).toBeGreaterThanOrEqual(1200);
+  });
+});
+
+describe('parseDebug difficulty', () => {
+  it('accepts easy/normal/hard with debug=1 only', () => {
+    for (const d of ['easy', 'normal', 'hard']) {
+      expect(parseDebug(`?debug=1&mission=m2&difficulty=${d}`).difficulty).toBe(d);
+    }
+    expect(parseDebug('?difficulty=hard').difficulty).toBeNull();
+    expect(parseDebug('?debug=1&difficulty=extreme').difficulty).toBeNull();
+    expect(parseDebug('?debug=1').difficulty).toBeNull();
+    expect(parseDebug('').difficulty).toBeNull();
   });
 });

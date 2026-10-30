@@ -2,6 +2,7 @@
 // The gauge persists across the two phases (same scene) and resets on an overheat restart.
 import BaseMissionScene from './BaseMissionScene.js';
 import { GAME_WIDTH } from '../config/game.js';
+import { scaleSpeed } from '../logic/difficulty.js';
 import { M2_STAR_SPEED, M2_STAR_SCALE, M2_SPAWN_MIN_GAP_X } from '../config/balance.js';
 import { predicateJudge } from '../logic/judges.js';
 import { pickSpawnColor, spawnXAwayFrom } from '../logic/spawner.js';
@@ -58,7 +59,7 @@ export default class M2GaugeScene extends BaseMissionScene {
       colorKey,
       scale: rand(M2_STAR_SCALE.min, M2_STAR_SCALE.max),
       glow: rand(0.25, 1),
-      vy: rand(M2_STAR_SPEED.min, M2_STAR_SPEED.max),
+      vy: scaleSpeed(rand(M2_STAR_SPEED.min, M2_STAR_SPEED.max), this.diff.key),
       vx: rand(-25, 25),
     });
   }

@@ -84,7 +84,8 @@ import {
   MARK_FADE_MS,
   RESTART_DELAY_MS,
 } from '../config/balance.js';
-import { HeatMeter, heatOnCollision } from '../logic/heat.js';
+import { HeatMeter } from '../logic/heat.js';
+import { getDifficulty, scaledHeat, scaleInterval } from '../logic/difficulty.js';
 import { StarGauge } from '../logic/gauge.js';
 import { Spawner } from '../logic/spawner.js';
 import { missionStars } from '../logic/scoring.js';
@@ -134,6 +135,9 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.initData = { ...(data ?? {}) };
     delete this.initData.restarted;
     this.isRestart = !!data?.restarted;
+    // Chosen on the title (registry 'difficulty', default normal); a mission restart keeps it.
+    // Subclasses scale hazard speeds with scaleSpeed(v, this.diff.key) and intervals with this.diff.
+    this.diff = getDifficulty(this.registry.get('difficulty'));
 
     this.phases = this.buildPhases();
     this.phaseIndex = -1;
@@ -312,7 +316,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     const p = (this.phase = this.phases[i]);
     this.phaseDone = false;
     this.phaseHits = 0;
-    const interval = p.spawnIntervalMs ?? SPAWN_INTERVAL_MS[this.missionId] ?? 0;
+    const interval = scaleInterval(p.spawnIntervalMs ?? SPAWN_INTERVAL_MS[this.missionId] ?? 0, this.diff.key); // 0 stays 0
     this.spawner = interval > 0 ? new Spawner({ intervalMs: interval }) : null;
     this.setInstruction(this.currentInstruction());
     this.onPhaseStart(p);
@@ -625,7 +629,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   handleShipHit(_ship, obj) {
-    const heat = heatOnCollision(obj.kind, obj.colorKey);
+    const heat = scaledHeat(obj.kind, obj.colorKey, this.diff.key); // ship collisions only: wrong-shot heat is not scaled
     if (obj.persistent) obj.hitCooldownUntil = this.time.now + COLLISION_COOLDOWN_MS;
     else obj.collides = false; // a passing object hits once, then flies on
     this.tweens.add({ targets: obj, alpha: 0.3, duration: 90, yoyo: true, repeat: 2, onComplete: () => obj.setAlpha(1) });

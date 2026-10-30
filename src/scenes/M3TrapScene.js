@@ -6,6 +6,7 @@ import Phaser from 'phaser';
 import BaseMissionScene from './BaseMissionScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { MISSION_GOAL_COUNTS } from '../config/balance.js';
+import { scaleSpeed } from '../logic/difficulty.js';
 import { orderedJudge, predicateJudge } from '../logic/judges.js';
 import { sortHottestFirst, colorByKey } from '../logic/temperature.js';
 import {
@@ -122,14 +123,14 @@ export default class M3TrapScene extends BaseMissionScene {
     // Nameless big, bright RED trap: always outside the constellation (own lane), never one of the three.
     this.spawnStar({
       x: rand(TRAP_LANE.min, TRAP_LANE.max), y: -80, colorKey: 'red',
-      scale: rand(TRAP_SCALE.min, TRAP_SCALE.max), glow: 1, vy: rand(200, 270), vx: 0, depth: 8,
+      scale: rand(TRAP_SCALE.min, TRAP_SCALE.max), glow: 1, vy: scaleSpeed(rand(200, 270), this.diff.key), vx: 0, depth: 8,
     });
   }
 
   onMissionUpdate(dt) {
     if (!this.members?.length || this.finished) return;
     this.groupY = advanceGroup(this.groupY, dt, {
-      speed: GROUP_SPEED, height: GROUP_HEIGHT, screenH: GAME_HEIGHT, margin: GROUP_MARGIN,
+      speed: scaleSpeed(GROUP_SPEED, this.diff.key), height: GROUP_HEIGHT, screenH: GAME_HEIGHT, margin: GROUP_MARGIN,
     });
     const origin = { x: GROUP_ORIGIN_X, y: this.groupY };
     for (const m of this.members) {

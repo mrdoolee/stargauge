@@ -7,6 +7,7 @@ import { GAME_WIDTH } from '../config/game.js';
 import {
   M1_PRACTICE_SEC, M1_ASTEROID_INTERVAL_MS, M1_BLOB_SPEED, MISSION_GOAL_COUNTS,
 } from '../config/balance.js';
+import { scaleSpeed, scaleInterval } from '../logic/difficulty.js';
 import { predicateJudge } from '../logic/judges.js';
 import { furnaceStageAt, furnaceFallFraction, countsAsWhite, practiceToastDue } from '../logic/furnace.js';
 import { MISSION_TEXT } from '../data/copy.js';
@@ -72,7 +73,7 @@ export default class M1FurnaceScene extends BaseMissionScene {
       kind: 'furnace',
       scale: rand(0.9, 1.3),
       glow: 0.7,
-      vy: rand(M1_BLOB_SPEED.min, M1_BLOB_SPEED.max),
+      vy: scaleSpeed(rand(M1_BLOB_SPEED.min, M1_BLOB_SPEED.max), this.diff.key),
     });
     if (o) o.whiteEndedAt = null; // pooled object: clear the previous blob's value
   }
@@ -92,9 +93,9 @@ export default class M1FurnaceScene extends BaseMissionScene {
       if (this.phaseMs >= M1_PRACTICE_SEC * 1000) this.completePhase();
     } else {
       this.asteroidAcc += dt;
-      if (this.asteroidAcc >= M1_ASTEROID_INTERVAL_MS) {
+      if (this.asteroidAcc >= scaleInterval(M1_ASTEROID_INTERVAL_MS, this.diff.key)) {
         this.asteroidAcc = 0;
-        this.spawnAsteroid({ x: rand(70, GAME_WIDTH - 70), y: SPAWN_Y, vx: rand(-40, 40), vy: rand(220, 300), scale: rand(0.9, 1.3) });
+        this.spawnAsteroid({ x: rand(70, GAME_WIDTH - 70), y: SPAWN_Y, vx: rand(-40, 40), vy: scaleSpeed(rand(220, 300), this.diff.key), scale: rand(0.9, 1.3) });
       }
     }
   }

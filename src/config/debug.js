@@ -5,12 +5,17 @@ export const DEBUG_MISSIONS = ['m1', 'm2', 'm3', 'm4', 'report'];
 
 /** Parse location.search. `mission` is honoured only together with debug=1 and only for known scene keys. */
 export function parseDebug(search) {
-  const off = { debug: false, mission: null };
+  const off = { debug: false, mission: null, difficulty: null };
   if (typeof search !== 'string' || !search) return off;
   const p = new URLSearchParams(search);
   if (p.get('debug') !== '1') return off;
   const m = p.get('mission');
-  return { debug: true, mission: DEBUG_MISSIONS.includes(m) ? m : null };
+  const d = p.get('difficulty');
+  return {
+    debug: true,
+    mission: DEBUG_MISSIONS.includes(m) ? m : null,
+    difficulty: ['easy', 'normal', 'hard'].includes(d) ? d : null,
+  };
 }
 
 /** Registry values earlier missions would have written, so a jump straight to m3/m4/report/result works. */

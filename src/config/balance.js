@@ -71,3 +71,14 @@ export const M4_SCATTER_SCALE = 0.42;
 export const M4_CLUSTER_AREA = { x: 80, y: 440, w: 560, h: 340 }; // where the normalized JEWELBOX layout is placed
 export const M4_SWAY = { amp: 26, periodMs: 5200, bossAmp: 40, bossPeriodMs: 7600 };
 export const M4_STAR_SCALE = 0.9; // JEWELBOX size multiplier -> sprite scale
+
+// Difficulty (2026-10-31). Multipliers on the base values above; `normal` is 1 everywhere = the shipped feel.
+// speed: every falling/moving hazard or target (m1 blobs + asteroids, m2 stars, m3 traps + constellation drift,
+// m4 scattered stars). spawnInterval: SPAWN_INTERVAL_MS, M1_ASTEROID_INTERVAL_MS, M4_SCATTER_INTERVAL_MS
+// (larger = fewer objects). heat: ship-collision heat only (not WRONG_SHOT_HEAT, not cooling).
+export const DIFFICULTY_MULTIPLIERS = {
+  easy: { speed: 0.75, spawnInterval: 1.35, heat: 0.6 },
+  normal: { speed: 1, spawnInterval: 1, heat: 1 },
+  hard: { speed: 1.3, spawnInterval: 0.75, heat: 1.35 },
+};
+export const DIFFICULTY_LABELS = { easy: '쉬움', normal: '중간', hard: '어려움' };

@@ -10,6 +10,7 @@ import {
   M4_TIME_LIMIT_SEC, M4_SCATTER_INTERVAL_MS, M4_SCATTER_SPEED, M4_SCATTER_SCALE,
   M4_CLUSTER_AREA, M4_SWAY, M4_STAR_SCALE,
 } from '../config/balance.js';
+import { scaleSpeed } from '../logic/difficulty.js';
 import { predicateJudge } from '../logic/judges.js';
 import { colorByKey } from '../logic/temperature.js';
 import { colorCounts, swayOffset, clusterPosition, unmarkedMisses, formatTime } from '../logic/jewelbox.js';
@@ -95,7 +96,7 @@ export default class M4JewelboxScene extends BaseMissionScene {
     // A small blue star leaves the cluster and flies down. Not targetable (beams pass), hot on contact.
     const src = pick(this.members.filter(m => !m.boss && m.star.colorKey === 'blue')) ?? this.members[0];
     if (!src) return;
-    const vy = rand(M4_SCATTER_SPEED.min, M4_SCATTER_SPEED.max);
+    const vy = scaleSpeed(rand(M4_SCATTER_SPEED.min, M4_SCATTER_SPEED.max), this.diff.key);
     const vx = Phaser.Math.Clamp((this.ship.x - src.obj.x) * 0.25, -120, 120) + rand(-30, 30);
     this.spawnStar({
       x: src.obj.x, y: src.obj.y + 30, colorKey: 'blue', scale: M4_SCATTER_SCALE, glow: 0.9,

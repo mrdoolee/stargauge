@@ -5,6 +5,7 @@ import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { drawOrionFigure } from '../objects/orionFigure.js';
 import { buildResultSummary, clearRunKeys } from '../logic/flow.js';
 import { armButton } from '../ui/button.js';
+import { getDifficulty } from '../logic/difficulty.js';
 
 const cx = GAME_WIDTH / 2;
 
@@ -23,6 +24,10 @@ export default class ResultScene extends Phaser.Scene {
     this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x05070f, 1);
     this.add.text(cx, 70, '탐사 완료! 결과', {
       fontFamily: FONT, fontSize: '50px', fontStyle: 'bold', color: '#8fd3ff',
+    }).setOrigin(0.5);
+
+    this.add.text(cx, 118, `난이도: ${getDifficulty(this.registry.get('difficulty')).label}`, {
+      fontFamily: FONT, fontSize: '30px', color: '#ffd84a',
     }).setOrigin(0.5);
 
     // Per-mission stars
