@@ -351,7 +351,6 @@ describe('TouchControls (Phaser-facing wrapper)', () => {
     for (const end of [
       () => s.input.emit('pointerup', ptr(s, 1, 228, 1152, false)),
       () => s.input.emit('pointerupoutside', ptr(s, 1, 0, 0, false)),
-      () => s.input.emit('gameout'),
       () => s.game.events.emit('blur'),
       () => s.game.events.emit('hidden'),
       () => s.events.emit('pause'),
@@ -386,5 +385,37 @@ describe('TouchControls (Phaser-facing wrapper)', () => {
     }
     for (const ev of ['blur', 'hidden']) expect(s.game.events.count(ev)).toBe(0);
     for (const ev of ['pause', 'sleep', 'shutdown']) expect(s.events.count(ev)).toBe(0);
+  });
+});
+
+describe('gameout / adopting held pointers', () => {
+  it('does not bind gameout, and a simulated gameout leaves the stick held', () => {
+    const s = fakeScene();
+    const c = make(s);
+    expect(s.input.count('gameout')).toBe(0);
+    s.input.emit('pointerdown', ptr(s, 1, 128 + 100, 1152));
+    s.input.emit('gameout');
+    expect(c.isSteering).toBe(true);
+    expect(len(c.vector)).toBeGreaterThan(0.5);
+    s.input.emit('pointerupoutside', ptr(s, 1, 900, 1300, false)); // lifted off-canvas
+    expect(c.isSteering).toBe(false);
+  });
+  it('router.adopt takes a held pointer on the stick, never fire, never a second stick', () => {
+    const r = router();
+    expect(types(r.adopt(5, 128 + 50, 1152))).toEqual(['stick']);
+    expect(r.stickId).toBe(5);
+    expect(r.adopt(6, 128, 1152)).toEqual([]);
+    const r2 = router();
+    expect(r2.adopt(7, ...FIRE)).toEqual([]);
+    expect(r2.firePressed).toBe(false);
+    expect(r2.adopt(8, 360, 640)).toEqual([]);
+  });
+  it('a new TouchControls adopts a thumb already on the stick, not on the fire button', () => {
+    const s = fakeScene();
+    ptr(s, 1, 128 + 100, 1152);
+    ptr(s, 2, ...FIRE);
+    const c = make(s);
+    expect(c.isSteering).toBe(true);
+    expect(c.firePressed).toBe(false);
   });
 });

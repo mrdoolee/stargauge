@@ -154,6 +154,13 @@ export function createPointerRouter({ joystick, fireRect, deadZone = JOYSTICK_DE
       }
       return actions;
     },
+    /** Take over a pointer that is ALREADY down (e.g. after a scene restart): only the stick, never fire. */
+    adopt(id, x, y) {
+      if (id === null || stickId !== null || firePointers.has(id)) return [];
+      if (classifyPointer(x, y, { joystick, fireRect }) !== 'joystick') return [];
+      stickId = id;
+      return [stick(x, y)];
+    },
     move(id, x, y) {
       return id !== null && id === stickId ? [stick(x, y)] : [];
     },
@@ -200,7 +207,9 @@ export class TouchControls {
       [input, 'pointermove', p => this._apply(this.router.move(p.id, p.x, p.y))],
       [input, 'pointerup', p => this._apply(this.router.up(p.id))],
       [input, 'pointerupoutside', p => this._apply(this.router.up(p.id))],
-      [input, 'gameout', () => this.cancel()],
+      // No 'gameout': Phaser fires it per touch when ANY thumb crosses onto the letterbox bars, which
+      // would drop a normal full joystick push. Lifts are caught by pointerup(outside), the window
+      // touchend and update()'s isDown check.
       [scene.game.events, 'blur', () => this.cancel()],
       [scene.game.events, 'hidden', () => this.cancel()],
       // A paused/sleeping scene gets no input, so an up during the pause would be lost.
@@ -209,6 +218,7 @@ export class TouchControls {
       [scene.events, 'shutdown', () => this.destroy()],
     ];
     for (const [em, ev, fn] of this._bindings) em.on(ev, fn, this);
+    this.adoptHeldPointers();
   }
 
   on(event, fn, ctx) {
@@ -252,6 +262,13 @@ export class TouchControls {
     for (const id of ids) {
       const p = pointers.find(q => q.id === id);
       if (!p || !p.isDown) this._apply(this.router.up(id));
+    }
+  }
+
+  /** After a scene restart a thumb may still be on the stick: adopt it (never the fire button). */
+  adoptHeldPointers() {
+    for (const p of this.scene.input.manager?.pointers ?? []) {
+      if (p && p.isDown) this._apply(this.router.adopt(p.id, p.x, p.y));
     }
   }
 

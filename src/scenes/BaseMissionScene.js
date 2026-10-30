@@ -79,6 +79,7 @@ import {
   CONTROLS_ALPHA,
   CONTROLS_ACTIVE_ALPHA,
   BEAM_SPEED,
+  BEAM_SPAWN_OFFSET_Y,
   CULL_MARGIN,
   COLLISION_COOLDOWN_MS,
   MARK_FADE_MS,
@@ -506,7 +507,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.tweens.killTweensOf(this.fireButton);
     this.fireButton.setScale(0.9);
     this.tweens.add({ targets: this.fireButton, scale: 1, duration: 120 });
-    const b = acquire(this.pools.beams, this.ship.x, this.ship.y - 44);
+    const b = acquire(this.pools.beams, this.ship.x, this.ship.y - BEAM_SPAWN_OFFSET_Y);
     if (!b) return;
     b.body.setVelocity(0, -BEAM_SPEED);
   }

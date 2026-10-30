@@ -19,6 +19,8 @@ export const STARS_TWO_MAX_WRONG = 4;
 // Controls revised 2026-10-31 (teacher field test): fixed virtual joystick bottom-left (left thumb)
 // + fire button bottom-right (right thumb), both semi-transparent over the play field.
 export const SHIP_BODY_RADIUS = 18;
+export const SHIP_HALF_HEIGHT = 38; // the 64x76 ship sprite; shipMaxY() input
+export const BEAM_SPAWN_OFFSET_Y = 44; // a beam spawns this far above the ship centre
 export const SHIP_START_Y = 900; // must stay <= the control line (shipMaxY() = 960 with the values below)
 export const SHIP_BOUNDS = { minX: 40, maxX: 680, minY: 320 }; // maxY is derived: shipMaxY() in TouchControls.js
 export const SHIP_MAX_SPEED = 520; // px/s at full joystick deflection (crosses the 640 px wide field in ~1.2 s)

@@ -4,7 +4,9 @@ import {
   DIFFICULTY_MULTIPLIERS, DIFFICULTY_LABELS, STAR_HEAT, COOL_PER_SEC,
   SPAWN_INTERVAL_MS, M1_ASTEROID_INTERVAL_MS, M4_SCATTER_INTERVAL_MS, M1_BLOB_SPEED,
   M1_WHITE_GRACE_MS, M1_COOL_START_Y, M1_FALL_DISTANCE, FURNACE_STAGE_CUTS, BEAM_SPEED,
+  SHIP_HALF_HEIGHT, BEAM_SPAWN_OFFSET_Y,
 } from '../config/balance.js';
+import { shipMaxY } from '../input/TouchControls.js';
 import { heatOnCollision } from './heat.js';
 
 export const DIFFICULTY_KEYS = ['easy', 'normal', 'hard'];
@@ -59,7 +61,8 @@ export function requiredDodgeFraction(mission, key) {
 export function M1_HARD_GRACE_CHECK(key = 'hard') {
   const blobV = scaleSpeed(M1_BLOB_SPEED.max, key);
   const whiteEndY = M1_COOL_START_Y + FURNACE_STAGE_CUTS[0] * M1_FALL_DISTANCE;
-  const beamY = 916; // lowest ship y 960 (shipMaxY) minus the beam spawn offset (~44 px)
+  // Lowest ship centre (shipMaxY, derived from the controls layout) minus the beam spawn offset.
+  const beamY = shipMaxY({ shipHalfHeight: SHIP_HALF_HEIGHT }) - BEAM_SPAWN_OFFSET_Y;
   const t = (beamY - whiteEndY) / (BEAM_SPEED + blobV); // seconds until contact, fired at the last white moment
   const blobY = whiteEndY + blobV * t;
   const nonWhiteMs = t * 1000;

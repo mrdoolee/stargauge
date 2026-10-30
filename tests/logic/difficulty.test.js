@@ -1,3 +1,5 @@
+import { shipMaxY } from '../../src/input/TouchControls.js';
+import { SHIP_HALF_HEIGHT, BEAM_SPAWN_OFFSET_Y } from '../../src/config/balance.js';
 import { describe, it, expect } from 'vitest';
 import {
   DIFFICULTY, DIFFICULTY_KEYS, getDifficulty, scaleSpeed, scaleInterval, scaledHeat,
@@ -67,5 +69,9 @@ describe('worst-case heat inflow', () => {
 describe('m1 white grace at hard speed', () => {
   it('a beam fired while the blob is still white connects within the grace window', () => {
     expect(M1_HARD_GRACE_CHECK().ok).toBe(true);
+  });
+  it('derives the beam start from the controls layout (not a hardcoded number)', () => {
+    expect(M1_HARD_GRACE_CHECK().contactMs).toBeGreaterThan(0);
+    expect(shipMaxY({ shipHalfHeight: SHIP_HALF_HEIGHT }) - BEAM_SPAWN_OFFSET_Y).toBe(916);
   });
 });
