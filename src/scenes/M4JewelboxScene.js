@@ -194,7 +194,7 @@ export default class M4JewelboxScene extends BaseMissionScene {
     }).setOrigin(0.5));
 
     const choices = Phaser.Utils.Array.Shuffle([...q.choices]);
-    const feedback = this.addUi(this.add.text(cx, 840, '', {
+    const feedback = this.addUi(this.add.text(cx, 870, '', {
       fontFamily: FONT, fontSize: '32px', color: '#ffffff', align: 'center', lineSpacing: 10,
       wordWrap: { width: GAME_WIDTH - 100, useAdvancedWrap: true },
     }).setOrigin(0.5, 0));

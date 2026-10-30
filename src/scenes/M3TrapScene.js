@@ -14,6 +14,7 @@ import {
 } from '../logic/constellation.js';
 import { NAMED_STARS, ORION_BACKGROUND, CONSTELLATION_POS } from '../data/stars.js';
 import { FONT } from '../objects/gaugeView.js';
+import { drawOrionFigure, BELT } from '../objects/orionFigure.js';
 
 // Single place to wire the next mission: Task 9 only has to register scene 'm4'.
 const NEXT_AFTER_M3 = 'm4';
@@ -28,13 +29,6 @@ const PHASE_PAUSE_MS = 800;
 const rand = (a, b) => a + Math.random() * (b - a);
 const trueOrder = () => sortHottestFirst(Object.values(NAMED_STARS)); // rigel, sirius, betelgeuse
 const colorLabel = key => colorByKey(key).label;
-
-// Orion figure (simplified): pairs of ids drawn as lines in the completion picture.
-const BELT = ['alnitak', 'alnilam', 'mintaka'];
-const ORION_LINES = [
-  ['betelgeuse', 'bellatrix'], ['betelgeuse', 'alnitak'], ['bellatrix', 'mintaka'],
-  ['alnitak', 'alnilam'], ['alnilam', 'mintaka'], ['alnitak', 'saiph'], ['mintaka', 'rigel'],
-];
 
 export default class M3TrapScene extends BaseMissionScene {
   constructor() {
@@ -187,29 +181,13 @@ export default class M3TrapScene extends BaseMissionScene {
       fontFamily: FONT, fontSize: '46px', fontStyle: 'bold', color: '#8fd3ff',
     }).setOrigin(0.5).setDepth(D + 1);
 
-    const pts = [
-      ...ORION_BACKGROUND.map(b => ({ ...b, named: false })),
-      ...trueOrder().map(s => ({ ...s, ...CONSTELLATION_POS[s.id], named: true })),
-    ];
-    const { origin, scale } = fitLayout(pts, { x: 100, y: 270, w: 520, h: 560 });
-    const pos = Object.fromEntries(pts.map(p => [p.id, toScreen(p, origin, scale)]));
-
-    const g = this.add.graphics().setDepth(D + 1);
-    g.lineStyle(4, 0x6f86b3, 0.8);
-    for (const [a, b] of ORION_LINES) g.lineBetween(pos[a].x, pos[a].y, pos[b].x, pos[b].y);
-
-    for (const p of pts) {
-      const { x, y } = pos[p.id];
-      const size = p.named ? p.size * 0.75 : p.size * 0.6;
-      this.add.image(x, y, `glow-${p.colorKey}`).setDepth(D + 1)
-        .setBlendMode(Phaser.BlendModes.ADD).setScale(size * 0.9).setAlpha(0.35 + p.glow * 0.5);
-      this.add.image(x, y, `star-${p.colorKey}`).setDepth(D + 2).setScale(size);
-      const hi = p.named && tagged.includes(p.id);
-      if (hi) this.add.image(x, y, 'fx-ring').setDepth(D + 3).setScale(size * 1.2).setTint(0xffe27a);
+    const { pos, items } = drawOrionFigure(this, { box: { x: 100, y: 270, w: 520, h: 560 }, depth: D + 1, tagged });
+    for (const { p, x, y, size, hi } of items) {
       if (BELT.includes(p.id)) continue; // the three belt stars share one label below
       const big = p.id === 'betelgeuse'; // its label goes left of the big ring, clear of the belt
       this.add.text(big ? x - size * 62 : x, big ? y : y + (hi ? 30 + size * 52 : 22 + size * 36),
-        big ? `${p.name} ${colorLabel(p.colorKey)}` : `${p.name}\n${colorLabel(p.colorKey)}`, {
+        big ? `${p.name} ${colorLabel(p.colorKey)}` : `${p.name}
+${colorLabel(p.colorKey)}`, {
           fontFamily: FONT, fontSize: hi ? '28px' : '22px', fontStyle: hi ? 'bold' : 'normal',
           color: hi ? '#ffe27a' : '#9fb0d0', align: 'center', stroke: '#05070f', strokeThickness: 5,
         }).setOrigin(big ? 1 : 0.5, big ? 0.5 : 0).setDepth(D + 3);

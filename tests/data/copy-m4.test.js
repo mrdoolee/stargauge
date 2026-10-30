@@ -9,3 +9,15 @@ describe('wrongShotMessage m4', () => {
     expect(m).not.toMatch(/\d|켈빈/);
   });
 });
+
+import { MISSION_TEXT } from '../../src/data/copy.js';
+import { formatTime } from '../../src/logic/jewelbox.js';
+
+describe('MISSION_TEXT.m4 HUD band', () => {
+  it('instruction + timer suffix fits two lines (<= 34 chars)', () => {
+    const line = `${MISSION_TEXT.m4.instruction} (남은 시간 ${formatTime(210)})`;
+    expect(line.length).toBeLessThanOrEqual(34);
+    expect(MISSION_TEXT.m4.instruction).toContain('청색');
+    expect(MISSION_TEXT.m4.instruction).toContain('표시');
+  });
+});

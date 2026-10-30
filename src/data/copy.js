@@ -20,7 +20,7 @@ export const MISSION_TEXT = {
     card: '별의 온도는 크기나 밝기가 아니라 색으로 비교해요.',
   },
   m4: {
-    instruction: '성단의 별을 모두 표시하세요. 시간 안에, 흩어지는 청색 별은 피하세요.',
+    instruction: '별 모두 표시! 흩어진 청색 별 피해요',
   },
 };
 
