@@ -1,10 +1,9 @@
 import { GAME_WIDTH, GAME_HEIGHT } from './config/game.js';
+import { LANDSCAPE_SMALL_QUERY, shouldSleep } from './config/orientation.js';
 
 export { GAME_WIDTH, GAME_HEIGHT };
 
-// Phaser touches `window` on import, so boot it only in a browser.
-// Importing this module in Node (vitest) just exposes the constants.
-if (typeof window !== 'undefined') {
+async function boot() {
   const { default: Phaser } = await import('phaser');
   const { default: BootScene } = await import('./scenes/BootScene.js');
   const { default: TitleScene } = await import('./scenes/TitleScene.js');
@@ -20,9 +19,22 @@ if (typeof window !== 'undefined') {
     scene: [BootScene, TitleScene],
   });
 
-  // Landscape on a short screen (phone) -> pause and show the #rotate overlay.
-  const mq = window.matchMedia('(orientation: landscape) and (max-height: 600px)');
-  const sync = () => (mq.matches ? game.loop.sleep() : game.loop.wake());
+  // Landscape on a short screen (phone) -> sleep the loop behind #rotate.
+  const mq = window.matchMedia(LANDSCAPE_SMALL_QUERY);
+  const sync = () => (shouldSleep(mq.matches) ? game.loop.sleep() : game.loop.wake());
   mq.addEventListener('change', sync);
-  if (mq.matches) game.events.once('ready', sync);
+
+  // 'ready' fires before loop.start(), when sleep() is a no-op (loop.running is
+  // false). The first POST_STEP is emitted from inside a live step, so sleep()
+  // takes effect there (raf stops rescheduling).
+  game.events.once('poststep', sync);
+
+  // Re-apply after tab/app switches. Phaser 4.2.1 only resetDelta()s on
+  // visible/focus (it does not wake), but this keeps landscape asleep even if
+  // that changes, and is a no-op otherwise.
+  game.events.on('visible', sync);
+  game.events.on('focus', sync);
 }
+
+// Importing this module in Node (vitest) just exposes the constants.
+if (typeof window !== 'undefined') boot();

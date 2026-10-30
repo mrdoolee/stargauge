@@ -7,3 +7,12 @@ describe('game config', () => {
     expect(GAME_HEIGHT).toBe(1280);
   });
 });
+
+import { shouldSleep } from '../src/config/orientation.js';
+
+describe('orientation', () => {
+  it('sleeps only in small landscape', () => {
+    expect(shouldSleep(true)).toBe(true);
+    expect(shouldSleep(false)).toBe(false);
+  });
+});
