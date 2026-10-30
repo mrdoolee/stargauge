@@ -16,14 +16,21 @@ export const STARS_THREE_MAX_WRONG = 1;
 export const STARS_TWO_MAX_WRONG = 4;
 
 // Task 6 additions — touch controls, ship, beam, pools, HUD layout.
-// No prototype VERDICT yet: these are the prototype defaults (retune after the teacher's field test).
-export const SHIP_OFFSET_Y = 140; // ship sits this far above the finger (game px)
-export const SHIP_FOLLOW_REMAIN_PER_SEC = 0.0001; // fraction of the gap left after 1 s of easing
+// Controls revised 2026-10-31 (teacher field test): fixed virtual joystick bottom-left (left thumb)
+// + fire button bottom-right (right thumb), both semi-transparent over the play field.
 export const SHIP_BODY_RADIUS = 18;
-export const SHIP_START_Y = 1000;
-export const SHIP_BOUNDS = { minX: 40, maxX: 680, minY: 320, maxY: 1220 };
-export const FIRE_BUTTON_DIAMETER = 140; // brief: >= 120 at 720 wide
+export const SHIP_START_Y = 900; // must stay <= the control line (shipMaxY() = 960 with the values below)
+export const SHIP_BOUNDS = { minX: 40, maxX: 680, minY: 320 }; // maxY is derived: shipMaxY() in TouchControls.js
+export const SHIP_MAX_SPEED = 520; // px/s at full joystick deflection (crosses the 640 px wide field in ~1.2 s)
+export const SHIP_CONTROL_CLEARANCE = 24; // px gap between the ship's bottom edge and the top of the controls
+export const JOYSTICK_DIAMETER = 200; // drawn outer ring
+export const JOYSTICK_MARGIN = 28; // from the left and bottom screen edges
+export const JOYSTICK_DEAD_ZONE = 0.12; // fraction of the ring radius that reads as "no push"
+export const JOYSTICK_HIT_SCALE = 1.3; // touch area radius = ring radius x this (kinder to thumbs)
+export const FIRE_BUTTON_DIAMETER = 150; // brief: >= 120 at 720 wide
 export const FIRE_BUTTON_MARGIN = 28; // brief: safe margin >= 24
+export const CONTROLS_ALPHA = 0.45; // joystick + fire button at rest (objects stay visible behind them)
+export const CONTROLS_ACTIVE_ALPHA = 0.75; // while a thumb is on the control
 export const BEAM_SPEED = 1200; // px/s; brief: <= 1400 so beams can't skip a star
 export const BEAM_BODY_W = 12;
 export const BEAM_BODY_H = 32; // brief: >= 24 (20 px travelled per 60 Hz step < 32)

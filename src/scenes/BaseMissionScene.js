@@ -46,7 +46,10 @@
  *   Asteroids are never targetable.
  *
  * ── What the base does ─────────────────────────────────────────────────────────────
- *   ship + TouchControls + fire button; HeatMeter (cooling, dt-capped); pools; overlaps
+ *   ship + TouchControls (virtual joystick bottom-left, fire button bottom-right, both semi-transparent
+ *   at depth 30: above stars/ship/labels, below end-of-mission overlays (40) and the HUD scene). The ship
+ *   moves at joystick vector x SHIP_MAX_SPEED inside this.shipBounds; its lowest y keeps the whole sprite
+ *   above the controls (shipMaxY). HeatMeter (cooling, dt-capped); pools; overlaps
  *   registered once in create(); judging: correct ⇒ score, phaseHits, gauge fill (stars),
  *   mark (ring + fade, never destroyed); wrong ⇒ wrongShots, WRONG_SHOT_HEAT, toast with
  *   wrongShotMessage, beam consumed, object keeps flying. Collision heat =
@@ -72,6 +75,9 @@ import {
   SPAWN_INTERVAL_MS,
   SHIP_BODY_RADIUS,
   SHIP_START_Y,
+  SHIP_BOUNDS,
+  CONTROLS_ALPHA,
+  CONTROLS_ACTIVE_ALPHA,
   BEAM_SPEED,
   CULL_MARGIN,
   COLLISION_COOLDOWN_MS,
@@ -83,7 +89,7 @@ import { StarGauge } from '../logic/gauge.js';
 import { Spawner } from '../logic/spawner.js';
 import { missionStars } from '../logic/scoring.js';
 import { MISSION_TEXT, wrongShotMessage } from '../data/copy.js';
-import { TouchControls, fireButtonRect, followFactor } from '../input/TouchControls.js';
+import { TouchControls, fireButtonRect, joystickLayout, shipMaxY, stepShip } from '../input/TouchControls.js';
 import { hasImage, addBackdrop } from '../config/assets.js';
 import { makeStarTextures, textureFor } from '../objects/starTextures.js';
 import { createPools, acquire, release, syncHalos } from '../objects/Pools.js';
@@ -162,6 +168,13 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.ship.setScale(1 / s);
     this.ship.body.setCircle(SHIP_BODY_RADIUS * s, this.ship.width / 2 - SHIP_BODY_RADIUS * s, 40 * s - SHIP_BODY_RADIUS * s);
 
+    // Controls layout first: the ship's lowest y is derived from it (whole sprite above the controls).
+    this.joystickArea = joystickLayout();
+    this.fireRect = fireButtonRect();
+    const maxY = shipMaxY({ joystick: this.joystickArea, fireRect: this.fireRect, shipHalfHeight: this.ship.displayHeight / 2 });
+    this.shipBounds = { ...SHIP_BOUNDS, maxY };
+    this.ship.y = Math.min(SHIP_START_Y, maxY);
+
     this.fxRings = [];
     for (let i = 0; i < FX_RINGS; i++) {
       this.fxRings.push(this.add.image(0, 0, 'fx-ring').setDepth(15).setVisible(false));
@@ -178,10 +191,11 @@ export default class BaseMissionScene extends Phaser.Scene {
       this.fxFlashes.push(this.add.image(0, 0, 'beam').setDepth(16).setVisible(false));
     }
 
-    this.fireRect = fireButtonRect();
+    this.createJoystick();
     this.createFireButton();
-    this.controls = new TouchControls(this, { fireRect: this.fireRect });
+    this.controls = new TouchControls(this, { joystick: this.joystickArea, fireRect: this.fireRect });
     this.controls.on('fire', this.fire, this);
+    this.controls.on('fire-state', this.setFirePressed, this);
 
     // Overlaps: registered ONCE per run (the world and its colliders are torn down on shutdown).
     const { stars, beams, asteroids } = this.pools;
@@ -209,13 +223,13 @@ export default class BaseMissionScene extends Phaser.Scene {
   update(time, delta) {
     const dt = Math.min(delta, MAX_DT_MS);
     this.controls.update();
+    this.syncJoystick();
     if (!this.playing) return;
 
-    const c = this.controls;
-    if (c.targetX !== null) {
-      const k = followFactor(dt / 1000);
-      this.ship.x += (c.targetX - this.ship.x) * k;
-      this.ship.y += (c.targetY - this.ship.y) * k;
+    const v = this.controls.vector;
+    if (v.x !== 0 || v.y !== 0) {
+      const p = stepShip(this.ship, v, dt, { bounds: this.shipBounds });
+      this.ship.setPosition(p.x, p.y);
     }
 
     this.heat.update(dt);
@@ -319,12 +333,13 @@ export default class BaseMissionScene extends Phaser.Scene {
     return true;
   }
 
-  /** Stop play (no spawns, shots or collisions; ship + fire button hidden) but keep the scene. */
+  /** Stop play (no spawns, shots or collisions; ship + joystick + fire button hidden) but keep the scene. */
   endGameplay() {
     this.playing = false;
     this.spawner = null;
     this.controls.cancel();
     this.ship.setVisible(false);
+    this.joystickView.setVisible(false);
     this.fireButton.setVisible(false);
   }
 
@@ -415,7 +430,41 @@ export default class BaseMissionScene extends Phaser.Scene {
     for (const b of this.pools.beams.members) if (b.active && b.y < -60) release(b);
   }
 
-  // ---- shooting -------------------------------------------------------------------
+  // ---- controls (drawn once; only the knob position and alphas change) ---------------
+  /** Semi-transparent ring + knob, bottom-left. Not a physics object: stars/blobs pass behind it. */
+  createJoystick() {
+    const j = this.joystickArea;
+    const ring = this.add.graphics();
+    ring.fillStyle(0x7ef2d4, 0.14);
+    ring.fillCircle(0, 0, j.radius);
+    ring.lineStyle(5, 0x7ef2d4, 1);
+    ring.strokeCircle(0, 0, j.radius - 3);
+    const knobR = Math.round(j.radius * 0.42);
+    this.joystickKnob = this.add.graphics();
+    this.joystickKnob.fillStyle(0x7ef2d4, 0.6);
+    this.joystickKnob.fillCircle(0, 0, knobR);
+    this.joystickKnob.lineStyle(4, 0xffffff, 0.9);
+    this.joystickKnob.strokeCircle(0, 0, knobR - 2);
+    this.joystickView = this.add.container(j.cx, j.cy, [ring, this.joystickKnob]).setDepth(30).setAlpha(CONTROLS_ALPHA);
+    this._knobX = 0;
+    this._knobY = 0;
+    this._stickActive = false;
+  }
+
+  /** Knob follows the thumb (clamped to the ring) and recentres on release; brighter while held. */
+  syncJoystick() {
+    const c = this.controls;
+    if (c.knob.x !== this._knobX || c.knob.y !== this._knobY) {
+      this._knobX = c.knob.x;
+      this._knobY = c.knob.y;
+      this.joystickKnob.setPosition(this._knobX, this._knobY);
+    }
+    if (c.isSteering !== this._stickActive) {
+      this._stickActive = c.isSteering;
+      this.joystickView.setAlpha(this._stickActive ? CONTROLS_ACTIVE_ALPHA : CONTROLS_ALPHA);
+    }
+  }
+
   createFireButton() {
     const r = this.fireRect;
     const cx = r.x + r.w / 2;
@@ -425,16 +474,27 @@ export default class BaseMissionScene extends Phaser.Scene {
     g.fillCircle(0, 0, r.w / 2);
     g.lineStyle(5, 0x7ef2d4, 1);
     g.strokeCircle(0, 0, r.w / 2 - 3);
+    // Pressed state: an inner glow shown while a finger is on the button.
+    this.firePressedGlow = this.add.graphics().setVisible(false);
+    this.firePressedGlow.fillStyle(0x7ef2d4, 0.45);
+    this.firePressedGlow.fillCircle(0, 0, r.w / 2 - 6);
     const label = this.add
-      .text(0, 0, '발사', { fontFamily: FONT, fontSize: '36px', fontStyle: 'bold', color: '#ffffff' })
+      .text(0, 0, '발사', { fontFamily: FONT, fontSize: '38px', fontStyle: 'bold', color: '#ffffff' })
       .setOrigin(0.5);
-    let parts = [g, label];
+    let parts = [g, this.firePressedGlow, label];
     if (hasImage(this, 'fire-button')) {
       g.destroy();
-      parts = [this.add.image(0, 0, 'fire-button').setDisplaySize(r.w, r.w), label];
+      parts = [this.add.image(0, 0, 'fire-button').setDisplaySize(r.w, r.w), this.firePressedGlow, label];
     }
-    this.fireButton = this.add.container(cx, cy, parts).setDepth(30);
+    this.fireButton = this.add.container(cx, cy, parts).setDepth(30).setAlpha(CONTROLS_ALPHA);
   }
+
+  setFirePressed(pressed) {
+    this.firePressedGlow.setVisible(pressed);
+    this.fireButton.setAlpha(pressed ? CONTROLS_ACTIVE_ALPHA : CONTROLS_ALPHA);
+  }
+
+  // ---- shooting -------------------------------------------------------------------
 
   fire() {
     if (!this.playing) return;
