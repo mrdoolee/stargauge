@@ -40,3 +40,30 @@ describe('fitLayout', () => {
     }
   });
 });
+
+import {
+  groupSprites, trapLane, SPRITE_HALF, TRAP_SCALE, TRAP_GAP,
+} from '../../src/logic/constellation.js';
+
+describe('trap lane vs group', () => {
+  const sprites = groupSprites();
+  const lane = trapLane(sprites, { screenW: 720 });
+  it('has a usable lane', () => {
+    expect(lane.max).toBeGreaterThanOrEqual(lane.min);
+  });
+  it('keeps trap sprites >= gap clear of every constellation sprite', () => {
+    for (const x of [lane.min, lane.max]) {
+      for (const sc of [TRAP_SCALE.min, TRAP_SCALE.max]) {
+        const left = x - SPRITE_HALF * sc;
+        for (const s of sprites) expect(left - (s.x + s.half)).toBeGreaterThanOrEqual(TRAP_GAP);
+      }
+    }
+  });
+  it('keeps traps and all group sprites fully on screen', () => {
+    expect(lane.max + SPRITE_HALF * TRAP_SCALE.max).toBeLessThanOrEqual(720);
+    for (const s of sprites) {
+      expect(s.x - s.half).toBeGreaterThanOrEqual(0);
+      expect(s.x + s.half).toBeLessThanOrEqual(720);
+    }
+  });
+});

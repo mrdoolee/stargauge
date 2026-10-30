@@ -8,20 +8,21 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { MISSION_GOAL_COUNTS } from '../config/balance.js';
 import { orderedJudge, predicateJudge } from '../logic/judges.js';
 import { sortHottestFirst, colorByKey } from '../logic/temperature.js';
-import { toScreen, advanceGroup, fitLayout } from '../logic/constellation.js';
+import {
+  toScreen, advanceGroup, fitLayout, groupSprites, trapLane,
+  GROUP_SCALE, GROUP_ORIGIN_X, STAR_PX, BG_PX, TRAP_SCALE,
+} from '../logic/constellation.js';
 import { NAMED_STARS, ORION_BACKGROUND, CONSTELLATION_POS } from '../data/stars.js';
 import { FONT } from '../objects/gaugeView.js';
 
 // Single place to wire the next mission: Task 9 only has to register scene 'm4'.
 const NEXT_AFTER_M3 = 'm4';
 
-const GROUP_SCALE = 330; // px per normalized unit while drifting
-const GROUP_ORIGIN_X = 160;
+// Trap centers stay >= TRAP_GAP clear of every constellation sprite (derived from the layout, unit-tested).
+const TRAP_LANE = trapLane(groupSprites(), { screenW: GAME_WIDTH });
 const GROUP_HEIGHT = 1.65 * GROUP_SCALE;
 const GROUP_SPEED = 45; // px/s
 const GROUP_MARGIN = 120;
-const STAR_PX = 0.9; // draw scale per unit of NAMED_STARS.size
-const TRAP_LANE = { min: 520, max: 640 }; // always right of the constellation (which ends at x ~ 450)
 const PHASE_PAUSE_MS = 800;
 
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -79,7 +80,7 @@ export default class M3TrapScene extends BaseMissionScene {
     for (const b of ORION_BACKGROUND) {
       const p = toScreen(b, origin, GROUP_SCALE);
       const obj = this.spawnStar({
-        x: p.x, y: p.y, colorKey: b.colorKey, scale: b.size * 0.7, glow: b.glow,
+        x: p.x, y: p.y, colorKey: b.colorKey, scale: b.size * BG_PX, glow: b.glow,
         targetable: false, collides: false, persistent: true, starId: b.id, depth: 6,
       });
       if (!obj) continue;
@@ -126,7 +127,7 @@ export default class M3TrapScene extends BaseMissionScene {
     // Nameless big, bright RED trap: always outside the constellation (own lane), never one of the three.
     this.spawnStar({
       x: rand(TRAP_LANE.min, TRAP_LANE.max), y: -80, colorKey: 'red',
-      scale: rand(1.5, 1.8), glow: 1, vy: rand(200, 270), vx: 0, depth: 8,
+      scale: rand(TRAP_SCALE.min, TRAP_SCALE.max), glow: 1, vy: rand(200, 270), vx: 0, depth: 8,
     });
   }
 
@@ -145,7 +146,8 @@ export default class M3TrapScene extends BaseMissionScene {
   onLateUpdate() {
     for (const m of this.members ?? []) {
       if (!m.label) continue;
-      m.label.setPosition(m.obj.x, m.obj.y + m.obj.displayHeight * 0.32 + 6);
+      const half = m.label.displayWidth / 2 + 8; // keep the label fully on screen
+      m.label.setPosition(Phaser.Math.Clamp(m.obj.x, half, GAME_WIDTH - half), m.obj.y + m.obj.displayHeight * 0.32 + 6);
     }
   }
 
@@ -189,7 +191,7 @@ export default class M3TrapScene extends BaseMissionScene {
       ...ORION_BACKGROUND.map(b => ({ ...b, named: false })),
       ...trueOrder().map(s => ({ ...s, ...CONSTELLATION_POS[s.id], named: true })),
     ];
-    const { origin, scale } = fitLayout(pts, { x: 100, y: 200, w: 520, h: 600 });
+    const { origin, scale } = fitLayout(pts, { x: 100, y: 270, w: 520, h: 560 });
     const pos = Object.fromEntries(pts.map(p => [p.id, toScreen(p, origin, scale)]));
 
     const g = this.add.graphics().setDepth(D + 1);
@@ -203,7 +205,7 @@ export default class M3TrapScene extends BaseMissionScene {
         .setBlendMode(Phaser.BlendModes.ADD).setScale(size * 0.9).setAlpha(0.35 + p.glow * 0.5);
       this.add.image(x, y, `star-${p.colorKey}`).setDepth(D + 2).setScale(size);
       const hi = p.named && tagged.includes(p.id);
-      if (hi) this.add.image(x, y, 'fx-ring').setDepth(D + 3).setScale(size * 1.5).setTint(0xffe27a);
+      if (hi) this.add.image(x, y, 'fx-ring').setDepth(D + 3).setScale(size * 1.2).setTint(0xffe27a);
       if (BELT.includes(p.id)) continue; // the three belt stars share one label below
       const big = p.id === 'betelgeuse'; // its label goes left of the big ring, clear of the belt
       this.add.text(big ? x - size * 62 : x, big ? y : y + (hi ? 30 + size * 52 : 22 + size * 36),
