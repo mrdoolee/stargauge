@@ -160,7 +160,7 @@ npm run build && npm run preview -- --host
 | 별(편대)이 너무 자주/드물게 나온다 | `FORMATION_GAP_MS` (m1 2600, m2 4000, m3 2400 밀리초. 편대와 편대 사이 쉬는 시간, 클수록 드묾). 난이도 배율(`spawnInterval`)이 곱해진다 |
 | 미션 4 보스가 너무 자주/드물게 쏜다 | `BOSS_VOLLEY_MS` (단계별 1600/1800/2400, 공격 중 발사 간격), `BOSS_ATTACK_MS` (4000/4500/5000, 공격 시간), `BOSS_GAP_MS` (4000, 빈틈 시간), `BOSS_FAN` (2·3단계 부채꼴 개수·각도) |
 | 미션 4 우주선을 위로 올려도 발사가 나오는지 | 성단에서 안전하게 쏠 수 없으면 화면 위 끝에서 내려온다 (별도 값 없음. 속도는 `SPEED_BANDS_H`의 위험물 띠) |
-| 미션 3 별자리 묶음 / 함정 | `M3_SWAY` (periodMs 12000, 좌우 흔들림 주기), `GROUP_SCALE`·`TRAP_GAP` (`src/scenes/M3TrapScene.js`, 별자리 크기와 함정이 피해 가는 여유 px) |
+| 미션 3 별자리 묶음 / 함정 | `M3_SWAY` (periodMs 12000, 좌우 흔들림 주기), `GROUP_SCALE`·`TRAP_GAP` (`src/logic/constellation.js`, 별자리 크기와 함정이 피해 가는 여유 px) |
 | 미션 1 소행성이 너무 많다/적다 | `M1_ASTEROID_SLOT_CHANCE` (0.2, 시험 단계에서 소행성이 되는 비율). 연습 단계(30초)만 `SPAWN_INTERVAL_MS` (m1 1100)를 쓴다 |
 | 별이 너무 빠르다/느리다 (속도 띠) | `SPEED_BANDS_H` (화면 높이/초 단위, 별·위험물 × 난이도)와 `REACTION_FLOOR_SEC` (반응 시간 하한). **스펙으로 정한 값이라 교사와 상의한 뒤에만 바꾼다.** 난이도 전체를 한 번에 줄이려면 `DIFFICULTY_MULTIPLIERS` |
 | 긴장이 너무 빨리/천천히 오른다, 다시 하면 쉬워지는 정도 | `RANK_START` (시작 긴장도 쉬움 0 / 중간 2 / 어려움 5), `RANK_SURVIVAL` (시간이 지나며 오르는 속도), `RANK_PER_CORRECT` (0.5, 맞힐 때 오름), `RANK_TIER_AT` (단계 경계), `RANK_AIM_MIN` (4, 이 값부터 조준 발사), `RANK_MERCY_PER_RESTART` (2)·`RANK_MERCY_MAX_RESTARTS` (2, 다시 할 때 깎아 주는 양). 쉬움은 긴장도가 고정이다 |
