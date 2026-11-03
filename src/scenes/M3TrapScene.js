@@ -1,17 +1,19 @@
 // Mission 3 — 밝기의 함정. 3-a: 세 별 중 가장 뜨거운 별(리겔), 3-b: 온도 높은 순서(리겔 → 시리우스 → 베텔게우스).
 // Betelgeuse is drawn biggest and Sirius brightest (decoys); the answer is read from COLOR only.
 // A slowly drifting "constellation group" (Orion + Sirius) holds the three targets; nameless big bright
-// red trap stars fall in a lane beside it. The last stage is the constellation picture (same scene).
+// red trap stars fall in formation slots from both sides; the group sways left <-> right and a trap is only
+// spawned when its whole flight (zigzag included) stays clear of the group's predicted box. The last stage is the constellation picture (same scene).
 import Phaser from 'phaser';
 import BaseMissionScene from './BaseMissionScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
-import { MISSION_GOAL_COUNTS } from '../config/balance.js';
+import { MISSION_GOAL_COUNTS, M3_SWAY, FORMATION_GAP_WINDOW_MS } from '../config/balance.js';
 import { scaleSpeed } from '../logic/difficulty.js';
+import { speedFor, aimVelocity } from '../logic/speed.js';
 import { orderedJudge, predicateJudge } from '../logic/judges.js';
 import { sortHottestFirst, colorByKey } from '../logic/temperature.js';
 import {
-  toScreen, advanceGroup, groupSprites, trapLane,
-  GROUP_SCALE, GROUP_ORIGIN_X, STAR_PX, BG_PX, TRAP_SCALE,
+  toScreen, advanceGroup, groupSprites, groupExtent, groupSwayX, groupBox, isTrapPathClear, trapKeepsEscapeGap,
+  GROUP_SCALE, SPRITE_HALF, STAR_PX, BG_PX, TRAP_SCALE,
 } from '../logic/constellation.js';
 import { NAMED_STARS, ORION_BACKGROUND, CONSTELLATION_POS } from '../data/stars.js';
 import { FONT } from '../objects/gaugeView.js';
@@ -21,8 +23,13 @@ import { armButton } from '../ui/button.js';
 // Single place to wire the next mission: Task 9 only has to register scene 'm4'.
 const NEXT_AFTER_M3 = 'm4';
 
-// Trap centers stay >= TRAP_GAP clear of every constellation sprite (derived from the layout, unit-tested).
-const TRAP_LANE = trapLane(groupSprites(), { screenW: GAME_WIDTH });
+// Sprites relative to originX 0; the sway amplitude comes from their extent (whole group always on screen).
+const SPRITES = groupSprites(0);
+const SWAY = { extent: groupExtent(SPRITES), screenW: GAME_WIDTH, periodMs: M3_SWAY.periodMs };
+const TRAP_HALF = SPRITE_HALF * TRAP_SCALE.max;
+const SHIP_WIDTH = 64;
+const TRAP_Y0 = -80;
+const PREDICT_STEP_MS = 50;
 const GROUP_HEIGHT = 1.65 * GROUP_SCALE;
 const GROUP_SPEED = 45; // px/s
 const GROUP_MARGIN = 120;
@@ -48,6 +55,8 @@ export default class M3TrapScene extends BaseMissionScene {
     return [
       {
         id: 'm3a',
+        waves: true,
+        waveBounds: { minX: 60, maxX: GAME_WIDTH - 60 },
         judge: predicateJudge(t => t.id === hottest.id),
         remaining: s => MISSION_GOAL_COUNTS.m3a - s.phaseHits,
         fillGauge: false,
@@ -55,6 +64,8 @@ export default class M3TrapScene extends BaseMissionScene {
       },
       {
         id: 'm3b',
+        waves: true,
+        waveBounds: { minX: 60, maxX: GAME_WIDTH - 60 },
         judge: ordered,
         remaining: () => order.length - ordered.progress,
         fillGauge: false,
@@ -65,6 +76,8 @@ export default class M3TrapScene extends BaseMissionScene {
 
   setupMission() {
     this.groupY = 60;
+    this.swayMs = 0; // elapsed mission time driving the sway
+    this.recentTraps = []; // accepted traps as escape-gap slots (delayMs = spawn time)
     this.members = []; // { obj, norm, label, star }
     this.taggedIds = [];
     this.tagCount = 0;
@@ -72,7 +85,7 @@ export default class M3TrapScene extends BaseMissionScene {
   }
 
   buildGroup() {
-    const origin = { x: GROUP_ORIGIN_X, y: this.groupY };
+    const origin = { x: groupSwayX(this.swayMs, SWAY), y: this.groupY };
     for (const b of ORION_BACKGROUND) {
       const p = toScreen(b, origin, GROUP_SCALE);
       const obj = this.spawnStar({
@@ -119,20 +132,48 @@ export default class M3TrapScene extends BaseMissionScene {
     }
   }
 
-  spawnObject() {
-    // Nameless big, bright RED trap: always outside the constellation (own lane), never one of the three.
+  groupDrift() {
+    return { speed: scaleSpeed(GROUP_SPEED, this.diff.key), height: GROUP_HEIGHT, screenH: GAME_HEIGHT, margin: GROUP_MARGIN };
+  }
+
+  /** Group box `ahead` ms from now (sway + vertical drift, wrap included). */
+  predictBox(ahead) {
+    let y = this.groupY;
+    for (let k = PREDICT_STEP_MS; k <= ahead; k += PREDICT_STEP_MS) y = advanceGroup(y, PREDICT_STEP_MS, this.groupDrift());
+    return groupBox(groupSwayX(this.swayMs + ahead, SWAY), y, SPRITES, GROUP_HEIGHT);
+  }
+
+  /** One nameless big, bright RED trap per formation slot, only if its flight stays clear of the group. */
+  spawnObject(_phase, slot) {
+    if (!slot || !this.members?.length) return;
+    const now = this.swayMs;
+    const speed = speedFor('hazard', this.diff.key, slot.tier);
+    let vx = slot.vx;
+    let vy = speed;
+    let zigzag = slot.zigzag;
+    if (slot.aim) {
+      ({ vx, vy } = aimVelocity({ x: slot.x, y: TRAP_Y0 }, { x: this.ship.x, y: this.ship.y }, speed));
+      zigzag = null;
+    }
+    const clear = isTrapPathClear({ x: slot.x, vx, vy, y0: TRAP_Y0, t0Ms: now, zigzag },
+      t => this.predictBox(t - now), { trapHalf: TRAP_HALF, screenH: GAME_HEIGHT });
+    if (!clear) return;
+    this.recentTraps = this.recentTraps.filter(r => now - r.delayMs <= FORMATION_GAP_WINDOW_MS);
+    const cand = { delayMs: now, x: slot.x, zigzag };
+    if (!trapKeepsEscapeGap(this.recentTraps, cand, { trapHalf: TRAP_HALF, shipWidth: SHIP_WIDTH, screenW: GAME_WIDTH })) return;
+    this.recentTraps.push(cand);
+    // Size and brightness never affect judging: big, bright and red stay as the decoy.
     this.spawnStar({
-      x: rand(TRAP_LANE.min, TRAP_LANE.max), y: -80, colorKey: 'red',
-      scale: rand(TRAP_SCALE.min, TRAP_SCALE.max), glow: 1, vy: scaleSpeed(rand(200, 270), this.diff.key), vx: 0, depth: 8,
+      x: slot.x, y: TRAP_Y0, colorKey: 'red', scale: rand(TRAP_SCALE.min, TRAP_SCALE.max), glow: 1,
+      vx, vy, zigzag, depth: 8,
     });
   }
 
   onMissionUpdate(dt) {
     if (!this.members?.length || this.finished) return;
-    this.groupY = advanceGroup(this.groupY, dt, {
-      speed: scaleSpeed(GROUP_SPEED, this.diff.key), height: GROUP_HEIGHT, screenH: GAME_HEIGHT, margin: GROUP_MARGIN,
-    });
-    const origin = { x: GROUP_ORIGIN_X, y: this.groupY };
+    this.swayMs += dt;
+    this.groupY = advanceGroup(this.groupY, dt, this.groupDrift());
+    const origin = { x: groupSwayX(this.swayMs, SWAY), y: this.groupY };
     for (const m of this.members) {
       const p = toScreen(m.norm, origin, GROUP_SCALE);
       m.obj.body.reset(p.x, p.y);

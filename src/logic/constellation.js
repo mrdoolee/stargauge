@@ -1,3 +1,4 @@
+import { escapeGapOk } from './formations.js';
 import { NAMED_STARS, ORION_BACKGROUND, CONSTELLATION_POS } from '../data/stars.js';
 
 // Pure layout helpers for the mission-3 constellation group (normalized coords: north up, east left).
@@ -52,9 +53,45 @@ export function groupSprites(originX = GROUP_ORIGIN_X, scale = GROUP_SCALE) {
   ];
 }
 
-/** Trap-center x range that keeps the widest trap `gap` px clear of the group and on screen. */
-export function trapLane(sprites, { trapScale = TRAP_SCALE, gap = TRAP_GAP, screenW, edge = SCREEN_EDGE }) {
-  const trapHalf = SPRITE_HALF * trapScale.max;
-  const groupRight = Math.max(...sprites.map(s => s.x + s.half));
-  return { min: groupRight + gap + trapHalf, max: screenW - edge - trapHalf, trapHalf };
+/** Horizontal extent of the sprites relative to originX (left <= 0 <= right in practice). */
+export function groupExtent(sprites, originX = 0) {
+  return {
+    left: Math.min(...sprites.map(s => s.x - s.half)) - originX,
+    right: Math.max(...sprites.map(s => s.x + s.half)) - originX,
+  };
+}
+
+/** originX at time tMs: the whole group stays on screen and sways between both edges (starts centered). */
+export function groupSwayX(tMs, { extent, screenW, edge = SCREEN_EDGE, periodMs }) {
+  const lo = edge - extent.left;
+  const hi = screenW - edge - extent.right;
+  return (lo + hi) / 2 + ((hi - lo) / 2) * Math.sin((2 * Math.PI * tMs) / periodMs);
+}
+
+/** Screen rectangle of the group. `sprites` are relative to originX 0 (groupSprites(0)). */
+export function groupBox(originX, groupY, sprites, height) {
+  const { left, right } = groupExtent(sprites);
+  const pad = Math.max(...sprites.map(s => s.half)); // sprite centers lie within [groupY, groupY + height]
+  return { left: originX + left, right: originX + right, top: groupY - pad, bottom: groupY + height + pad };
+}
+
+/**
+ * True when a trap flying from (x, y0) at time t0Ms never comes within `gap` px of the group box.
+ * Motion: y = y0 + vy*t; x = x + vx*t (+ amp*sin(2*pi*t/period) for a zigzag, the integral of zigzagVx).
+ * `boxAt(absoluteMs)` gives the group box at that time. Simulates until the trap has left the bottom.
+ */
+export function isTrapPathClear({ x, vx = 0, vy, y0, t0Ms, zigzag = null }, boxAt, { trapHalf, gap = TRAP_GAP, screenH, stepMs = 50 }) {
+  const r = trapHalf + gap;
+  for (let k = 0; ; k += stepMs) {
+    const y = y0 + (vy * k) / 1000;
+    if (y - trapHalf > screenH) return true;
+    const tx = x + (vx * k) / 1000 + (zigzag ? zigzag.amp * Math.sin((2 * Math.PI * k) / zigzag.periodMs) : 0);
+    const b = boxAt(t0Ms + k);
+    if (tx + r > b.left && tx - r < b.right && y + r > b.top && y - r < b.bottom) return false;
+  }
+}
+
+/** Would adding `cand` ({ delayMs, x, zigzag }) to the recent traps still leave the ship a gap? */
+export function trapKeepsEscapeGap(recent, cand, { trapHalf, shipWidth, screenW }) {
+  return escapeGapOk([...recent, cand], { shipWidth, minX: 0, maxX: screenW, objectWidth: 2 * trapHalf });
 }

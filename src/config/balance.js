@@ -132,3 +132,6 @@ export const WARMUP_MS = 12000; // first seconds of a run: thinner formations, n
 export const WARMUP_DENSITY = 0.7; // formation count multiplier while warming up (ceil, min 1)
 export const FORMATION_GAP_MS = { m1: 2600, m2: 3200, m3: 2400, m4: 0 }; // rest between formations (scaled by difficulty spawnInterval)
 export const RANK_GAP_SHRINK = 0.08; // rest shrinks by this fraction per tension tier
+
+// Mission 3: the constellation group sways left <-> right across the whole screen (amplitude derived from its extent)
+export const M3_SWAY = { periodMs: 9000 };

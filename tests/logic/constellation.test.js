@@ -42,28 +42,128 @@ describe('fitLayout', () => {
 });
 
 import {
-  groupSprites, trapLane, SPRITE_HALF, TRAP_SCALE, TRAP_GAP,
+  groupSprites, groupExtent, groupSwayX, groupBox, isTrapPathClear, trapKeepsEscapeGap,
+  SPRITE_HALF, TRAP_SCALE, TRAP_GAP, SCREEN_EDGE, GROUP_SCALE,
 } from '../../src/logic/constellation.js';
+import { M3_SWAY } from '../../src/config/balance.js';
+import { buildFormation, pickFormation, escapeGapOk, zigzagVx } from '../../src/logic/formations.js';
+import { speedFor } from '../../src/logic/speed.js';
+import { seededRng } from '../../src/logic/rng.js';
 
-describe('trap lane vs group', () => {
-  const sprites = groupSprites();
-  const lane = trapLane(sprites, { screenW: 720 });
-  it('has a usable lane', () => {
-    expect(lane.max).toBeGreaterThanOrEqual(lane.min);
+const SPRITES = groupSprites(0);
+const EXTENT = groupExtent(SPRITES);
+const SW = { extent: EXTENT, screenW: 720, periodMs: M3_SWAY.periodMs };
+const TRAP_HALF = SPRITE_HALF * TRAP_SCALE.max;
+const GROUP_H = 1.65 * GROUP_SCALE;
+const FIELD = { trapHalf: TRAP_HALF, screenH: 1280 };
+
+describe('groupExtent', () => {
+  it('is relative to originX and spans the sprites', () => {
+    const e = groupExtent(groupSprites(185), 185);
+    expect(e.left).toBeCloseTo(EXTENT.left);
+    expect(e.right).toBeCloseTo(EXTENT.right);
+    expect(EXTENT.left).toBeLessThan(0);
+    expect(EXTENT.right).toBeGreaterThan(0);
   });
-  it('keeps trap sprites >= gap clear of every constellation sprite', () => {
-    for (const x of [lane.min, lane.max]) {
-      for (const sc of [TRAP_SCALE.min, TRAP_SCALE.max]) {
-        const left = x - SPRITE_HALF * sc;
-        for (const s of sprites) expect(left - (s.x + s.half)).toBeGreaterThanOrEqual(TRAP_GAP);
+});
+
+describe('group sway', () => {
+  it('keeps the whole group on screen and reaches both sides', () => {
+    let lo = Infinity, hi = -Infinity;
+    for (let t = 0; t <= M3_SWAY.periodMs; t += 25) {
+      const x = groupSwayX(t, SW);
+      expect(x + EXTENT.left).toBeGreaterThanOrEqual(SCREEN_EDGE - 1e-6);
+      expect(x + EXTENT.right).toBeLessThanOrEqual(720 - SCREEN_EDGE + 1e-6);
+      lo = Math.min(lo, x); hi = Math.max(hi, x);
+    }
+    expect(hi - lo).toBeGreaterThanOrEqual(200);
+  });
+});
+
+describe('groupBox', () => {
+  it('covers every sprite horizontally and the group height vertically', () => {
+    const b = groupBox(300, 100, SPRITES, GROUP_H);
+    for (const s of SPRITES) {
+      expect(b.left).toBeLessThanOrEqual(300 + s.x - s.half + 1e-6);
+      expect(b.right).toBeGreaterThanOrEqual(300 + s.x + s.half - 1e-6);
+    }
+    expect(b.top).toBeLessThanOrEqual(100);
+    expect(b.bottom).toBeGreaterThanOrEqual(100 + GROUP_H);
+  });
+});
+
+describe('isTrapPathClear', () => {
+  const still = tMs => groupBox(360, 400 + 0 * tMs, SPRITES, GROUP_H); // group parked mid-screen
+  const box = still(0);
+  it('rejects a trap that would cross the group', () => {
+    expect(isTrapPathClear({ x: 360, vx: 0, vy: 300, y0: -80, t0Ms: 0 }, still, FIELD)).toBe(false);
+  });
+  it('rejects a trap that drifts sideways into the group', () => {
+    expect(isTrapPathClear({ x: box.left - 400, vx: 150, vy: 300, y0: -80, t0Ms: 0 }, still, FIELD)).toBe(false);
+  });
+  it('accepts one that passes beside it', () => {
+    expect(isTrapPathClear({ x: box.right + TRAP_HALF + TRAP_GAP + 5, vx: 0, vy: 300, y0: -80, t0Ms: 0 }, still, FIELD)).toBe(true);
+  });
+  it('rejects a zigzag whose sway reaches into the group', () => {
+    const x = box.right + TRAP_HALF + TRAP_GAP + 5;
+    expect(isTrapPathClear({ x, vx: 0, vy: 300, y0: -80, t0Ms: 0, zigzag: { amp: 80, periodMs: 1800 } }, still, FIELD)).toBe(false);
+  });
+});
+
+describe('trap spawning simulation', () => {
+  const dt = 50;
+  const groupY = (t) => 60 + 0.045 * t * 1; // px; slow drift (45 px/s), no wrap within a trap's flight
+  const boxAt = t => groupBox(groupSwayX(t, SW), groupY(t % 20000), SPRITES, GROUP_H);
+
+  function candidates(n) {
+    const rng = seededRng(12345);
+    const out = [];
+    let t = 0;
+    while (out.length < n) {
+      const { id, side } = pickFormation({ diffKey: 'hard', aimAllowed: false, rng });
+      const slots = buildFormation({ id, side, count: 4, minX: 60, maxX: 660, rng });
+      for (const s of slots) {
+        out.push({ ...s, t: t + s.delayMs, vy: speedFor('hazard', 'hard', Math.floor(rng() * 4), rng) });
+      }
+      t += 2400 + rng() * 9000;
+    }
+    return out.slice(0, n);
+  }
+  const accepted = candidates(2000).filter(c =>
+    isTrapPathClear({ x: c.x, vx: c.vx, vy: c.vy, y0: -80, t0Ms: c.t, zigzag: c.zigzag }, boxAt, FIELD));
+
+  it('accepts a healthy share of candidates', () => {
+    expect(accepted.length).toBeGreaterThan(30); // the group is wide: only ~3% of random candidates fit beside it
+  });
+  it('no accepted trap ever overlaps the group', () => {
+    for (const c of accepted) {
+      for (let k = 0; ; k += 10) {
+        const y = -80 + c.vy * k / 1000;
+        if (y - TRAP_HALF > 1280) break;
+        const x = c.x + c.vx * k / 1000 + (c.zigzag ? c.zigzag.amp * Math.sin(2 * Math.PI * k / c.zigzag.periodMs) : 0);
+        const b = boxAt(c.t + k);
+        const hit = x + TRAP_HALF > b.left && x - TRAP_HALF < b.right && y + TRAP_HALF > b.top && y - TRAP_HALF < b.bottom;
+        expect(hit).toBe(false);
       }
     }
   });
-  it('keeps traps and all group sprites fully on screen', () => {
-    expect(lane.max + SPRITE_HALF * TRAP_SCALE.max).toBeLessThanOrEqual(720);
-    for (const s of sprites) {
-      expect(s.x - s.half).toBeGreaterThanOrEqual(0);
-      expect(s.x + s.half).toBeLessThanOrEqual(720);
-    }
+  it('traps come from both sides', () => {
+    const left = accepted.filter(c => c.x < 360).length / accepted.length;
+    const right = accepted.filter(c => c.x > 360).length / accepted.length;
+    expect(left).toBeGreaterThanOrEqual(0.2);
+    expect(right).toBeGreaterThanOrEqual(0.2);
+  });
+});
+
+describe('trapKeepsEscapeGap', () => {
+  it('thins a dense candidate row so a gap for the ship always remains', () => {
+    const opts = { trapHalf: TRAP_HALF, shipWidth: 64, screenW: 720 };
+    const row = [];
+    for (let x = 60; x <= 660; x += 40) row.push({ delayMs: 1000, x, zigzag: null });
+    const kept = [];
+    for (const c of row) if (trapKeepsEscapeGap(kept, c, opts)) kept.push(c);
+    expect(kept.length).toBeGreaterThan(0);
+    expect(kept.length).toBeLessThan(row.length);
+    expect(escapeGapOk(kept, { shipWidth: 64, minX: 0, maxX: 720, objectWidth: 2 * TRAP_HALF })).toBe(true);
   });
 });
