@@ -9,7 +9,7 @@ All generated with OpenAI Images API, model `gpt-image-2.5-sunburst` (from OPENA
 | asset | model | date | prompt summary / notes | ref (art/raw/ship-style-a.png) |
 |---|---|---|---|---|
 | style seed ship-style-a | OPENAI_IMAGE_MODEL (teacher set) | 2026-11-03 | style A look pick, script `art/raw/ship-style-a.prompt.mjs` | - |
-| ship | gpt-image-2.5-sunburst | 2026-11-04 | normalized from the approved seed art/raw/ship-style-a.png (256x256, contain, alpha); not regenerated | no (is the ref) |
+| ship | - | 2026-11-04 | normalized from the approved seed art/raw/ship-style-a.png: trimmed to alpha bbox, padded evenly to 64:76, 256x304 (fix round 1; was 256x256 contain); not regenerated | no (is the ref) |
 | asteroid-1..3 | gpt-image-2.5-sunburst | 2026-11-04 | gray-brown chunky asteroid, 3 shapes (round / elongated / triangular with big crater), rim light | yes |
 | star-shape | gpt-image-2.5-sunburst | 2026-11-04 | grayscale-white glow with thin cross spikes, tinted by code. Regenerated once (core was too gray: avg 233; prompt now asks for a large solid white core) -> check-white-core PASS 253/253/253 | no |
 | furnace-shape | gpt-image-2.5-sunburst | 2026-11-04 | grayscale molten metal drop, tinted by code | no |
@@ -18,7 +18,7 @@ All generated with OpenAI Images API, model `gpt-image-2.5-sunburst` (from OPENA
 | bg-furnace | gpt-image-2.5-sunburst | 2026-11-04 | dark charcoal furnace-chamber plating. First try with ref drew a ship inside, rejected (raw kept as bg-furnace.try1-ship.png); regenerated without ref | no (retry); yes (rejected try) |
 | bg-cluster | gpt-image-2.5-sunburst | 2026-11-04 | abstract navy/violet painterly nebula, no stars | no |
 | title-art | gpt-image-2.5-sunburst | 2026-11-04 | mint-and-silver ship flying up through navy/teal nebula, top and bottom thirds open | yes |
-| glass-craft | gpt-image-2.5-sunburst | 2026-11-04 | glassblower's blowpipe with a glowing glass piece, yellow-white to red | yes |
+| glass-craft | gpt-image-2.5-sunburst | 2026-11-04 | fix round 1: first image (bulb, yellow core/red rim, pipe) did not match quiz Q2; regenerated once without ref with a horizontal glass rod, left half yellow-white, right half orange-red, empty top half; 1536x1024 raw cropped to 1536x549 (rod at ~72% height) then 560x200; labels (가)/(나) are drawn at the centers of the halves, y = image center | no (retry); first try yes |
 | briefing-m1 | gpt-image-2.5-sunburst | 2026-11-04 | furnace pouring molten metal white-yellow-orange-red | yes |
 | briefing-m2 | gpt-image-2.5-sunburst | 2026-11-04 | observatory scanner dish and survey ship, mint/silver/navy | yes |
 | briefing-m3 | gpt-image-2.5-sunburst | 2026-11-04 | fictional large red star and small blue star on navy | yes |

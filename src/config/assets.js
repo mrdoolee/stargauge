@@ -1,8 +1,8 @@
-// Optional generated art. Stars stay code-drawn forever (color accuracy); everything else may be swapped
-// for a PNG later. IMAGE_ASSETS lists ONLY files that actually exist in public/img/, so nothing 404s.
-// To adopt an image: put the PNG in public/img/, add { key, path: 'img/<file>.png' } here. Keys the game looks for:
-//   ship (64x76 look, any size is scaled), asteroid, fire-button,
-//   bg-space, bg-furnace, title-art, glass-craft.
+// Generated art in public/img/. Stars stay code-drawn forever (color accuracy). IMAGE_ASSETS lists ONLY files that
+// actually exist in public/img/, so nothing 404s. To adopt another image: put the PNG in public/img/ and add
+// { key, path: 'img/<file>.png' } here. Loaded keys: ship (256x304, scaled to the 64x76 footprint),
+// asteroid-1..3, star-shape, furnace-shape (grayscale, tinted by code), bg-space-far, bg-space-near, bg-furnace,
+// bg-cluster, title-art, glass-craft, briefing-m1..m4. Scenes read them by key (some are wired in later tasks).
 // Code-baked textures (starTextures.js) skip baking when a loaded texture already has the same key.
 export const IMAGE_ASSETS = [
   { key: 'ship', path: 'img/ship.png' },

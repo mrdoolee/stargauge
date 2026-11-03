@@ -9,7 +9,7 @@
       "path": "public/img/ship.png",
       "status": "generated",
       "technical": {
-        "target_size": "256x256",
+        "target_size": "256x304",
         "alpha": true,
         "anchor": "bottom-center",
         "frames": 1,
@@ -454,7 +454,7 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "Simple clear illustration of a glassblower's blowpipe holding a glass piece. The left half of the glass glows yellow-white light (yellow glow), the right half glows red (red glow), like a heated glass piece with a temperature gradient. Plain dark background, wide landscape composition. Leave the areas above the left and right halves empty (labels are added by code). Original design, not a copy of any textbook figure. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "Very wide landscape illustration on a plain dark navy background: one straight horizontal glowing glass rod (a heated glass piece) lying across the frame, spanning about 85% of the width with clear margins at both ends, placed in the lower half of the image (its center at about 70% of the height). The LEFT half of the rod glows clearly bright yellow-white (yellow glow); the RIGHT half glows clearly deep orange-red (red glow); the two halves meet at the exact horizontal center with a short blend. Nothing else touches the rod. The whole upper half of the image above the rod is empty plain dark navy for labels added by code. No blowpipe, no hands, no tools, no pipe. Original design, not a copy of any textbook figure. Style: crisp hand-painted HD 2D game illustration, soft cel shading, subtle glow. Not pixel art, no low-res blur. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
