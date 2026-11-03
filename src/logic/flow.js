@@ -1,23 +1,24 @@
 // Pure helpers for the end of the game: playtime estimate, result summary, restart key list.
 import {
-  M1_PRACTICE_SEC, M4_TIME_LIMIT_SEC, SPAWN_INTERVAL_MS, MISSION_GOAL_COUNTS, SPAWN_NEEDED_GUARANTEE,
+  M1_PRACTICE_SEC, M4_TIME_LIMIT_SEC, FORMATION_GAP_MS, FORMATION_MEAN_SIZE, FORMATION_MEAN_SPAN_MS,
+  M1_ASTEROID_SLOT_CHANCE, MISSION_GOAL_COUNTS, SPAWN_NEEDED_GUARANTEE,
 } from '../config/balance.js';
 import { STAR_COLORS } from './temperature.js';
-import { getDifficulty } from './difficulty.js';
+import { getDifficulty, scaleInterval } from './difficulty.js';
 
 /**
  * Student-pace assumptions (NOT measured: no human playtest was possible). Revisit after a field test.
  * hit = chance that a spawned *needed* target is hit correctly; read = seconds spent reading.
  */
 export const PACE = {
-  hit: { m1: 0.3, m2: 0.4 },
-  read: { title: 10, m1: 25, m2: 25, m3: 25, m4: 15, card: 15, picture: 20, chart: 45 },
+  hit: { m1: 0.3, m2: 0.25 },
+  read: { title: 10, briefing: 25, m1: 25, m2: 25, m3: 25, m4: 15, card: 15, picture: 20, chart: 45 },
   m3FindSec: 45, // 3-a: find the hottest of three
   m3OrderSec: 60, // 3-b: three ordered shots
   m4SecPerStar: 16,
   m4Stars: 12,
   retryFactor: 1.5, // heat restarts / wrong-shot detours on the timed missions (normal)
-  retryByDifficulty: { easy: 1.3, normal: 1.5, hard: 1.8 }, // fewer / more restarts and detours
+  retryByDifficulty: { easy: 1.0, normal: 1.5, hard: 2.0 }, // fewer / more restarts and detours
   quizSec: 90,
   resultSec: 20,
 };
@@ -29,23 +30,31 @@ function m2Spawns(k) {
   return n;
 }
 
+/** Target slots per second from formation throughput (one formation per scaled gap + its own span). */
+function targetsPerSec(gapMs, diffKey, slotShare = 1) {
+  return (FORMATION_MEAN_SIZE * slotShare) / ((scaleInterval(gapMs, diffKey) + FORMATION_MEAN_SPAN_MS) / 1000);
+}
+
 export function estimateFlow({
-  goals = MISSION_GOAL_COUNTS, spawn = SPAWN_INTERVAL_MS, m4Limit = M4_TIME_LIMIT_SEC, practice = M1_PRACTICE_SEC, difficulty = 'normal',
+  goals = MISSION_GOAL_COUNTS, gaps = FORMATION_GAP_MS, m4Limit = M4_TIME_LIMIT_SEC, practice = M1_PRACTICE_SEC, difficulty = 'normal',
 } = {}) {
   const P = PACE;
   const d = getDifficulty(difficulty);
   const retry = P.retryByDifficulty[d.key];
-  spawn = { ...spawn, m1: spawn.m1 * d.spawnInterval, m2: spawn.m2 * d.spawnInterval };
-  const m1 = P.read.m1 + practice + (goals.m1 / P.hit.m1) * (spawn.m1 / 1000) * retry + P.read.card;
+  const m1 = P.read.m1 + practice + (goals.m1 / P.hit.m1) / targetsPerSec(gaps.m1, d.key, 1 - M1_ASTEROID_SLOT_CHANCE) * retry + P.read.card;
   const m2spawns = m2Spawns(4) + m2Spawns(2); // 2-a: 4 hotter colors, 2-b: 2 cooler colors
-  const m2 = P.read.m2 + (m2spawns / P.hit.m2) * (spawn.m2 / 1000) * retry + P.read.card;
+  const m2 = P.read.m2 + (m2spawns / P.hit.m2) / targetsPerSec(gaps.m2, d.key) * retry + P.read.card;
   const m3 = P.read.m3 + P.m3FindSec + P.m3OrderSec + P.read.picture;
   const m4 = P.read.m4 + Math.min(m4Limit, P.m4Stars * P.m4SecPerStar) + P.read.chart;
   const rows = [
     { id: 'title', label: '시작', sec: P.read.title },
+    { id: 'briefing-m1', label: '브리핑 1', sec: P.read.briefing },
     { id: 'm1', label: '미션 1', sec: m1 },
+    { id: 'briefing-m2', label: '브리핑 2', sec: P.read.briefing },
     { id: 'm2', label: '미션 2', sec: m2 },
+    { id: 'briefing-m3', label: '브리핑 3', sec: P.read.briefing },
     { id: 'm3', label: '미션 3', sec: m3 },
+    { id: 'briefing-m4', label: '브리핑 4', sec: P.read.briefing },
     { id: 'm4', label: '미션 4', sec: m4 },
     { id: 'report', label: '귀환 보고서', sec: P.quizSec },
     { id: 'result', label: '결과', sec: P.resultSec },

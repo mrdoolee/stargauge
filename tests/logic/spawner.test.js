@@ -30,7 +30,6 @@ describe('Spawner', () => {
 });
 
 import { spawnXAwayFrom } from '../../src/logic/spawner.js';
-import { M2_SPAWN_MIN_GAP_X } from '../../src/config/balance.js';
 
 describe('spawnXAwayFrom', () => {
   const opts = rng => ({ min: 70, max: 650, minGap: 120, rng });
@@ -60,10 +59,6 @@ describe('spawnXAwayFrom', () => {
 
   it('falls back to the farthest edge when no x is far enough', () => {
     expect(spawnXAwayFrom(100, { min: 70, max: 150, minGap: 120, rng: () => 0.5 })).toBe(150);
-  });
-
-  it('m2 uses a gap of about 120 px', () => {
-    expect(M2_SPAWN_MIN_GAP_X).toBeGreaterThanOrEqual(120);
   });
 });
 

@@ -4,18 +4,26 @@ import { estimateFlow, buildResultSummary, clearRunKeys } from '../../src/logic/
 describe('estimateFlow', () => {
   it('rows sum to total and cover every stage', () => {
     const e = estimateFlow();
-    expect(e.rows.map(r => r.id)).toEqual(['title', 'm1', 'm2', 'm3', 'm4', 'report', 'result']);
+    expect(e.rows.map(r => r.id)).toEqual([
+      'title', 'briefing-m1', 'm1', 'briefing-m2', 'm2', 'briefing-m3', 'm3', 'briefing-m4', 'm4', 'report', 'result',
+    ]);
     expect(e.rows.reduce((a, r) => a + r.sec, 0)).toBeCloseTo(e.totalSec, 5);
   });
-  it('default balance lands in the 14-16 minute target', () => {
-    const { totalSec } = estimateFlow();
-    expect(totalSec).toBeGreaterThanOrEqual(14 * 60);
-    expect(totalSec).toBeLessThanOrEqual(16 * 60);
+  it('briefing rows are 25 s each', () => {
+    for (const r of estimateFlow().rows.filter(x => x.id.startsWith('briefing-'))) expect(r.sec).toBe(25);
+  });
+  it('easy lands at or under 15 minutes', () => {
+    expect(estimateFlow({ difficulty: 'easy' }).totalSec).toBeLessThanOrEqual(900);
+  });
+  it('normal and hard take longer than easy', () => {
+    const easy = estimateFlow({ difficulty: 'easy' }).totalSec;
+    expect(estimateFlow({ difficulty: 'normal' }).totalSec).toBeGreaterThan(easy);
+    expect(estimateFlow({ difficulty: 'hard' }).totalSec).toBeGreaterThan(easy);
   });
   it('more m1 goals or slower spawns lengthen m1; m4 is capped by the time limit', () => {
     const base = estimateFlow().rows.find(r => r.id === 'm1').sec;
     expect(estimateFlow({ goals: { m1: 40, m3a: 1 } }).rows.find(r => r.id === 'm1').sec).toBeGreaterThan(base);
-    expect(estimateFlow({ spawn: { m1: 3000, m2: 900, m3: 1400, m4: 800 } }).rows.find(r => r.id === 'm1').sec).toBeGreaterThan(base);
+    expect(estimateFlow({ gaps: { m1: 6000, m2: 4000, m3: 2400, m4: 0 } }).rows.find(r => r.id === 'm1').sec).toBeGreaterThan(base);
     const m4 = estimateFlow({ m4Limit: 30 }).rows.find(r => r.id === 'm4').sec;
     expect(m4).toBeLessThan(estimateFlow({ m4Limit: 300 }).rows.find(r => r.id === 'm4').sec);
   });

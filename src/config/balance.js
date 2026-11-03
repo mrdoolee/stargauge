@@ -60,21 +60,18 @@ export const M1_FALL_DISTANCE = 700; // px below M1_COOL_START_Y to "fully coole
 export const M1_WHITE_GRACE_MS = 300; // a hit still counts as white this long after the blob left white
 export const M1_PRACTICE_TOAST_GAP_MS = 6000; // practice feedback toast: first time, then at most this often
 export const FURNACE_STAGE_CUTS = [0.4, 0.62, 0.82]; // fall fraction where white->yellow->orange->red
-export const M1_ASTEROID_INTERVAL_MS = 4000;
 export const M1_ASTEROID_SLOT_CHANCE = 0.2; // m1 test phase: chance a non-aimed formation slot is a straight-falling asteroid
 export const M1_BLOB_SPEED = { min: 150, max: 210 };
-export const M2_STAR_SPEED = { min: 170, max: 250 };
 export const M2_STAR_SCALE = { min: 0.7, max: 1.5 };
-export const M2_SPAWN_MIN_GAP_X = 120; // px: a new star spawns at least this far (x) from the previous one
 
 // Task 9 additions — mission 4 (jewel box cluster boss).
-export const M4_SCATTER_INTERVAL_MS = 2200; // a scattered blue star leaves the cluster this often
 // Boss (2026-11-04): 3 stages by tagged fraction; each stage cycles attack window -> gap (no launches).
 export const BOSS_STAGE_AT = [0, 1 / 3, 2 / 3];
 export const BOSS_ATTACK_MS = { 1: 4000, 2: 4500, 3: 5000 };
-export const BOSS_GAP_MS = 2500;
-export const BOSS_VOLLEY_MS = { 1: 1100, 2: 1300, 3: 1200 }; // launch interval inside an attack window (x difficulty spawnInterval)
+export const BOSS_GAP_MS = 3000;
+export const BOSS_VOLLEY_MS = { 1: 1400, 2: 1600, 3: 1800 }; // launch interval inside an attack window (x difficulty spawnInterval)
 export const BOSS_FAN = { 2: { count: [2, 3], spreadDeg: 30 }, 3: { count: [2, 3], spreadDeg: 36 } };
+export const BOSS_FAN_SHIP_HITS = 1; // balance model: a fan is spread wider than the ship, so a standing ship takes one of it
 export const BOSS_GAP_DIM_ALPHA = 0.55;
 export const M4_SCATTER_SCALE = 0.42;
 export const M4_CLUSTER_AREA = { x: 80, y: 440, w: 560, h: 340 }; // where the normalized JEWELBOX layout is placed
@@ -83,8 +80,8 @@ export const M4_STAR_SCALE = 0.9; // JEWELBOX size multiplier -> sprite scale
 
 // Difficulty (2026-10-31). Multipliers on the base values above; `normal` is 1 everywhere = the shipped feel.
 // speed: every falling/moving hazard or target (m1 blobs + asteroids, m2 stars, m3 traps + constellation drift,
-// m4 scattered stars). spawnInterval: SPAWN_INTERVAL_MS, M1_ASTEROID_INTERVAL_MS, M4_SCATTER_INTERVAL_MS
-// (larger = fewer objects). heat: ship-collision heat only (not WRONG_SHOT_HEAT, not cooling).
+// m4 scattered stars). spawnInterval: FORMATION_GAP_MS, BOSS_VOLLEY_MS, SPAWN_INTERVAL_MS (m1 practice spawner only);
+// larger = fewer objects. heat: ship-collision heat only (not WRONG_SHOT_HEAT, not cooling).
 export const DIFFICULTY_MULTIPLIERS = {
   easy: { speed: 0.75, spawnInterval: 1.35, heat: 0.6 },
   normal: { speed: 1, spawnInterval: 1, heat: 1 },
@@ -136,8 +133,11 @@ export const FORMATION_OBJECT_WIDTH = 72; // body diameter = 2 x STAR_CORE_R (36
 // Wave director (src/logic/waves.js)
 export const WARMUP_MS = 12000; // first seconds of a run: thinner formations, no aimed shots
 export const WARMUP_DENSITY = 0.7; // formation count multiplier while warming up (ceil, min 1)
-export const FORMATION_GAP_MS = { m1: 2600, m2: 3200, m3: 2400, m4: 0 }; // rest between formations (scaled by difficulty spawnInterval)
+export const FORMATION_GAP_MS = { m1: 2600, m2: 4000, m3: 2400, m4: 0 }; // rest between formations (scaled by difficulty spawnInterval)
 export const RANK_GAP_SHRINK = 0.08; // rest shrinks by this fraction per tension tier
+// Balance-model constants (difficulty.js / flow.js): formations are 3..5 objects; slot delays span ~0.7 s on average.
+export const FORMATION_MEAN_SIZE = 4;
+export const FORMATION_MEAN_SPAN_MS = 700;
 
 // Mission 3: the constellation group sways left <-> right across the whole screen (amplitude derived from its extent)
 export const M3_SWAY = { periodMs: 12000 };

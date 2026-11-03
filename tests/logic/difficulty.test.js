@@ -66,6 +66,21 @@ describe('worst-case heat inflow', () => {
   });
 });
 
+describe('m4 boss stages', () => {
+  it('stage 1 and stage 3 respect the easy / hard bounds and the difficulty order', () => {
+    for (const st of [1, 3]) {
+      const [e, n, h] = DIFFICULTY_KEYS.map(k => requiredDodgeFraction('m4', k, st));
+      expect(e).toBeLessThanOrEqual(0.4); expect(h).toBeLessThan(0.9);
+      expect(e).toBeLessThanOrEqual(n); expect(n).toBeLessThanOrEqual(h);
+    }
+  });
+  it('no-stage m4 is the worst stage', () => {
+    for (const k of DIFFICULTY_KEYS) {
+      expect(requiredDodgeFraction('m4', k)).toBeGreaterThanOrEqual(requiredDodgeFraction('m4', k, 3));
+    }
+  });
+});
+
 describe('m1 white grace at hard speed', () => {
   it('a beam fired while the blob is still white connects within the grace window', () => {
     expect(M1_HARD_GRACE_CHECK().ok).toBe(true);
