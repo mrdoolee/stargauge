@@ -5,7 +5,22 @@
 //   bg-space, bg-furnace, title-art, glass-craft.
 // Code-baked textures (starTextures.js) skip baking when a loaded texture already has the same key.
 export const IMAGE_ASSETS = [
-  // { key: 'ship', path: 'img/ship.png' },
+  { key: 'ship', path: 'img/ship.png' },
+  { key: 'asteroid-1', path: 'img/asteroid-1.png' },
+  { key: 'asteroid-2', path: 'img/asteroid-2.png' },
+  { key: 'asteroid-3', path: 'img/asteroid-3.png' },
+  { key: 'star-shape', path: 'img/star-shape.png' },
+  { key: 'furnace-shape', path: 'img/furnace-shape.png' },
+  { key: 'bg-space-far', path: 'img/bg-space-far.png' },
+  { key: 'bg-space-near', path: 'img/bg-space-near.png' },
+  { key: 'bg-furnace', path: 'img/bg-furnace.png' },
+  { key: 'bg-cluster', path: 'img/bg-cluster.png' },
+  { key: 'title-art', path: 'img/title-art.png' },
+  { key: 'glass-craft', path: 'img/glass-craft.png' },
+  { key: 'briefing-m1', path: 'img/briefing-m1.png' },
+  { key: 'briefing-m2', path: 'img/briefing-m2.png' },
+  { key: 'briefing-m3', path: 'img/briefing-m3.png' },
+  { key: 'briefing-m4', path: 'img/briefing-m4.png' },
 ];
 
 export function loadImages(scene, list = IMAGE_ASSETS) {

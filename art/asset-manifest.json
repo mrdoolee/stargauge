@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "art_direction_brief": "art/art-direction-brief.md",
-  "status": "planned - nothing generated yet except the style reference art/raw/ship-style-a.png (style A, teacher approved)",
+  "status": "stills generated 2026-11-04 (16 assets, public/img/); captain-base and fire-button not yet generated",
   "assets": [
     {
       "id": "ship",
       "role": "player ship",
       "path": "public/img/ship.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "256x256",
         "alpha": true,
@@ -27,7 +27,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -35,7 +35,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -79,7 +79,7 @@
       "id": "asteroid-1",
       "role": "obstacle",
       "path": "public/img/asteroid-1.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "128x128",
         "alpha": true,
@@ -99,7 +99,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -107,7 +107,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -115,7 +115,7 @@
       "id": "asteroid-2",
       "role": "obstacle",
       "path": "public/img/asteroid-2.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "128x128",
         "alpha": true,
@@ -135,7 +135,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -143,7 +143,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -151,7 +151,7 @@
       "id": "asteroid-3",
       "role": "obstacle",
       "path": "public/img/asteroid-3.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "128x128",
         "alpha": true,
@@ -171,7 +171,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -179,7 +179,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -187,7 +187,7 @@
       "id": "star-shape",
       "role": "star texture (tinted by code with the 7 palette colors)",
       "path": "public/img/star-shape.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "128x128",
         "alpha": true,
@@ -202,12 +202,12 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "A glowing star shape texture in grayscale and white only, no color at all: a bright pure-white core centered in the frame, soft glow falloff to fully transparent edges, subtle thin cross spikes. Transparent background. Do not draw any hue; it will be tinted by code. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "A glowing star shape texture in grayscale and white only, no color at all: a large solid pure-white (#ffffff) core disc centered in the frame covering the central 45% of its width with no gray inside it, then soft glow falloff to fully transparent edges, subtle thin cross spikes. Transparent background. Do not draw any hue; it will be tinted by code. Style: crisp hand-painted HD, soft glow, no pixel art, no low-res blur. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -215,7 +215,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -223,7 +223,7 @@
       "id": "furnace-shape",
       "role": "molten metal blob texture (tinted by code)",
       "path": "public/img/furnace-shape.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "128x128",
         "alpha": true,
@@ -238,12 +238,12 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "A lumpy molten metal drop texture in grayscale only, no color at all: irregular blobby outline, bright white center fading to mid-gray edges, soft glow, centered. Transparent background. Do not draw any hue; it will be tinted by code. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "A lumpy molten metal drop texture in grayscale only, no color at all: irregular blobby outline, bright white center fading to mid-gray edges, soft glow, centered. Transparent background. Do not draw any hue; it will be tinted by code. Style: crisp hand-painted HD, soft glow, no pixel art, no low-res blur. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -251,7 +251,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -259,7 +259,7 @@
       "id": "bg-space-far",
       "role": "mission background, far parallax layer",
       "path": "public/img/bg-space-far.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "720x1280",
         "alpha": false,
@@ -274,12 +274,12 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "Vertical deep dark navy-indigo space background, a very faint low-contrast soft nebula haze, calm and dark. ABSOLUTELY no stars, no star points, no dots, no sparkles, nothing that could be mistaken for a star. Opaque, no characters, no objects. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "Vertical deep dark navy-indigo space background, a very faint low-contrast soft nebula haze, calm and dark. ABSOLUTELY no stars, no star points, no dots, no sparkles, nothing that could be mistaken for a star. Opaque, no characters, no objects. Style: crisp hand-painted HD, soft glow, no pixel art, no low-res blur. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -287,7 +287,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -295,7 +295,7 @@
       "id": "bg-space-near",
       "role": "mission background, near parallax layer (overlay)",
       "path": "public/img/bg-space-near.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "720x1280",
         "alpha": true,
@@ -310,12 +310,12 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "Vertical overlay of faint drifting dust and thin nebula wisps only, very low contrast, mostly transparent. ABSOLUTELY no stars, no star points, no dots, no sparkles, nothing that could be mistaken for a star. Transparent background. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "Vertical overlay of faint drifting dust and thin nebula wisps only, very low contrast, mostly transparent. ABSOLUTELY no stars, no star points, no dots, no sparkles, nothing that could be mistaken for a star. Transparent background. Style: crisp hand-painted HD, soft glow, no pixel art, no low-res blur. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -323,7 +323,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -331,7 +331,7 @@
       "id": "bg-furnace",
       "role": "furnace mission background",
       "path": "public/img/bg-furnace.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "720x1280",
         "alpha": false,
@@ -351,7 +351,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -359,7 +359,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -367,7 +367,7 @@
       "id": "bg-cluster",
       "role": "mission 4 cluster background",
       "path": "public/img/bg-cluster.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "720x1280",
         "alpha": false,
@@ -382,12 +382,12 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "Vertical abstract soft nebula in dark navy and muted violet, painterly clouds only, must not look like a real photo of a real star cluster. No stars, no star points, no dots, no sparkles. Opaque, low contrast. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "Vertical abstract soft nebula in dark navy and muted violet, painterly clouds only, must not look like a real photo of a real star cluster. No stars, no star points, no dots, no sparkles. Opaque, low contrast. Style: crisp hand-painted HD, soft glow, no pixel art, no low-res blur. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -395,7 +395,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -403,7 +403,7 @@
       "id": "title-art",
       "role": "title screen art",
       "path": "public/img/title-art.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "720x1280",
         "alpha": false,
@@ -423,7 +423,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -431,7 +431,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -439,7 +439,7 @@
       "id": "glass-craft",
       "role": "quiz 2 illustration",
       "path": "public/img/glass-craft.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "560x200",
         "alpha": false,
@@ -459,7 +459,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -467,7 +467,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -511,7 +511,7 @@
       "id": "briefing-m1",
       "role": "briefing illustration, mission 1",
       "path": "public/img/briefing-m1.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "560x320",
         "alpha": false,
@@ -531,7 +531,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -539,7 +539,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -547,7 +547,7 @@
       "id": "briefing-m2",
       "role": "briefing illustration, mission 2",
       "path": "public/img/briefing-m2.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "560x320",
         "alpha": false,
@@ -567,7 +567,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -575,7 +575,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -583,7 +583,7 @@
       "id": "briefing-m3",
       "role": "briefing illustration, mission 3",
       "path": "public/img/briefing-m3.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "560x320",
         "alpha": false,
@@ -603,7 +603,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -611,7 +611,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     },
@@ -619,7 +619,7 @@
       "id": "briefing-m4",
       "role": "briefing illustration, mission 4",
       "path": "public/img/briefing-m4.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "560x320",
         "alpha": false,
@@ -639,7 +639,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -647,7 +647,7 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
+        "technical_checks_passed": true,
         "approved_by": ""
       }
     }
