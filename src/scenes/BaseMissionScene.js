@@ -7,7 +7,8 @@
  *     gaugePrefill() { return ['yellow']; }                // optional, default []
  *     buildPhases() { return [ {...phase}, ... ]; }        // REQUIRED, called from init() every run
  *     setupMission() {}                                     // optional: build fixed objects (cluster, constellation)
- *     spawnObject(phase) {}                                 // called on each Spawner tick of the current phase
+ *     spawnObject(phase, slot) {}                           // each Spawner tick of the phase (slot undefined), or each emitted
+ *                                                           // WaveDirector slot when phase.waves (see below)
  *     onPhaseComplete(phase) {}                             // REQUIRED decision: advancePhase() / completeMission(...)
  *   }
  * Do NOT override create() or update(): use setupMission() and the per-frame hook onMissionUpdate(dtMs, time). If you override init(data), call super.init(data) first.
@@ -26,6 +27,13 @@
  *     collisions: true,             // optional; false = ship passes through everything (m1 practice)
  *     fillGauge: true,              // optional; false = correct stars don't fill the gauge
  *     wrongMessage: (target, result) => string,  // optional override of wrongShotMessage
+ *     waves: true,                  // optional; formation spawning via WaveDirector instead of a Spawner.
+ *                                   // One director per run (rank + warm-up clock persist across waves phases),
+ *                                   // created lazily with diff, registry results.<id>.restarts and
+ *                                   // gapMs = scaleInterval(FORMATION_GAP_MS[missionId]). Not updated in phases without waves.
+ *                                   // spawnObject(phase, slot) runs once per slot: slot = { delayMs, x, vx, aim,
+ *                                   // zigzag: {amp, periodMs} | null, formationId, tier, aimAllowed }. A correct hit feeds director.onCorrect().
+ *     waveBounds: { minX, maxX },   // optional; formation x range (default 70 .. GAME_WIDTH - 70)
  *   }
  * Judge target passed to phase.judge.judge(target) and wrongShotMessage:
  *   { id: obj.starId ?? null, name, colorKey, kind, obj }
@@ -84,11 +92,13 @@ import {
   COLLISION_COOLDOWN_MS,
   MARK_FADE_MS,
   RESTART_DELAY_MS,
+  FORMATION_GAP_MS,
 } from '../config/balance.js';
 import { HeatMeter } from '../logic/heat.js';
 import { getDifficulty, scaledHeat, scaleInterval } from '../logic/difficulty.js';
 import { StarGauge } from '../logic/gauge.js';
 import { Spawner } from '../logic/spawner.js';
+import { WaveDirector } from '../logic/waves.js';
 import { missionStars } from '../logic/scoring.js';
 import { MISSION_TEXT, wrongShotMessage } from '../data/copy.js';
 import { TouchControls, fireButtonRect, joystickLayout, shipMaxY, stepShip } from '../input/TouchControls.js';
@@ -119,7 +129,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
   gaugePrefill() { return []; }
   setupMission() {}
-  spawnObject(_phase) {}
+  spawnObject(_phase, _slot) {}
   onPhaseStart(_phase) {}
   onPhaseComplete(_phase) {
     if (!this.advancePhase()) this.completeMission();
@@ -146,6 +156,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.phaseDone = false;
     this.phaseHits = 0;
     this.spawner = null;
+    this.director = null; // WaveDirector, created lazily by the first `waves` phase
 
     this.score = 0;
     this.wrongShots = 0;
@@ -241,6 +252,9 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.emitHeat();
 
     if (this.spawner && !this.phaseDone && this.spawner.update(dt)) this.spawnObject(this.phase);
+    if (this.director && this.phase?.waves && !this.phaseDone) {
+      for (const slot of this.director.update(dt)) this.spawnObject(this.phase, slot);
+    }
     this.onMissionUpdate(dt, time);
     this.cull();
   }
@@ -317,8 +331,22 @@ export default class BaseMissionScene extends Phaser.Scene {
     const p = (this.phase = this.phases[i]);
     this.phaseDone = false;
     this.phaseHits = 0;
-    const interval = scaleInterval(p.spawnIntervalMs ?? SPAWN_INTERVAL_MS[this.missionId] ?? 0, this.diff.key); // 0 stays 0
-    this.spawner = interval > 0 ? new Spawner({ intervalMs: interval }) : null;
+    if (p.waves) {
+      this.spawner = null;
+      if (!this.director) {
+        const restarts = this.registry.get('results')?.[this.missionId]?.restarts ?? 0;
+        this.director = new WaveDirector({
+          diffKey: this.diff.key,
+          restarts,
+          gapMs: scaleInterval(FORMATION_GAP_MS[this.missionId] ?? 0, this.diff.key),
+          minX: p.waveBounds?.minX ?? 70,
+          maxX: p.waveBounds?.maxX ?? GAME_WIDTH - 70,
+        });
+      }
+    } else {
+      const interval = scaleInterval(p.spawnIntervalMs ?? SPAWN_INTERVAL_MS[this.missionId] ?? 0, this.diff.key); // 0 stays 0
+      this.spawner = interval > 0 ? new Spawner({ intervalMs: interval }) : null;
+    }
     this.setInstruction(this.currentInstruction());
     this.onPhaseStart(p);
     this.refreshGoal();
@@ -542,6 +570,7 @@ export default class BaseMissionScene extends Phaser.Scene {
       this.score += 1;
       this.phaseHits += 1;
       if (obj.kind === 'star' && phase.fillGauge !== false && this.gauge.fill(obj.colorKey)) this.emitGauge();
+      this.director?.onCorrect();
       this.markObject(obj);
       this.onCorrectHit(obj, result, phase);
     } else {

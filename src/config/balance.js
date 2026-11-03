@@ -125,3 +125,9 @@ export const FORMATION_EDGE_JITTER_PX = 40; // random start offset for diagonal 
 export const FORMATION_ZIGZAG_CENTER_JITTER_PX = 60;
 export const FORMATION_GAP_WINDOW_MS = 400; // slots this close in time count as the same row
 export const FORMATION_OBJECT_WIDTH = 72; // body diameter = 2 x STAR_CORE_R (36) in src/objects/starTextures.js
+
+// Wave director (src/logic/waves.js)
+export const WARMUP_MS = 12000; // first seconds of a run: thinner formations, no aimed shots
+export const WARMUP_DENSITY = 0.7; // formation count multiplier while warming up (ceil, min 1)
+export const FORMATION_GAP_MS = { m1: 2600, m2: 3200, m3: 2400, m4: 0 }; // rest between formations (scaled by difficulty spawnInterval)
+export const RANK_GAP_SHRINK = 0.08; // rest shrinks by this fraction per tension tier
