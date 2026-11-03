@@ -74,10 +74,6 @@ export default class M3TrapScene extends BaseMissionScene {
     ];
   }
 
-  onPhaseStart() {
-    this.formSpeed = createFormationMemo(); // formation indices restart each phase
-  }
-
   setupMission() {
     this.groupY = 60;
     this.swayMs = 0; // elapsed mission time driving the sway
@@ -118,6 +114,7 @@ export default class M3TrapScene extends BaseMissionScene {
   }
 
   onPhaseStart(phase) {
+    this.formSpeed = createFormationMemo(); // formation indices restart each phase
     // Fresh targets for each phase: a star marked in 3-a (Rigel) is shootable again in 3-b.
     for (const m of this.members) {
       if (!m.star) continue;
