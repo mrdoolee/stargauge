@@ -23,16 +23,19 @@ export const IMAGE_ASSETS = [
   { key: 'briefing-m4', path: 'img/briefing-m4.png' },
 ];
 
-// Aseprite-JSON atlases made by sprite-gen (Task 11). List ONLY atlases whose png+json exist in public/img/.
-// `captain` (tags normal/smile/serious/surprised) and `ship-engine` (tag burn) are added when generated.
-export const ATLAS_ASSETS = [];
+// JSON-hash atlases (scene.load.atlas). List ONLY atlases whose png+json exist in public/img/ (paths relative to public/).
+// `captain`: frames normal/smile/serious/surprised (416x520 each, transparent). `ship-engine` (sprite-gen, tag burn)
+// is NOT listed: pending the Codex reset on 2026-11-20 (see art/PROVENANCE.md); Task 12 draws the flicker in code.
+export const ATLAS_ASSETS = [
+  { key: 'captain', png: 'img/captain.png', json: 'img/captain.json' },
+];
 
 // Captain expression frame tags in `captain` (Task 12 picks one per mission).
 export const BRIEFING_EXPRESSIONS = ['normal', 'smile', 'serious', 'surprised'];
 
 export function loadImages(scene, list = IMAGE_ASSETS, atlases = ATLAS_ASSETS) {
   for (const { key, path } of list) scene.load.image(key, path);
-  for (const { key, png, json } of atlases) scene.load.aseprite(key, png, json);
+  for (const { key, png, json } of atlases) scene.load.atlas(key, png, json);
 }
 
 /** True when an optional image with this key was loaded. */

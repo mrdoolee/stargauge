@@ -1,0 +1,94 @@
+{
+  "frames": {
+    "normal": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 416,
+        "h": 520
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 416,
+        "h": 520
+      },
+      "sourceSize": {
+        "w": 416,
+        "h": 520
+      }
+    },
+    "smile": {
+      "frame": {
+        "x": 416,
+        "y": 0,
+        "w": 416,
+        "h": 520
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 416,
+        "h": 520
+      },
+      "sourceSize": {
+        "w": 416,
+        "h": 520
+      }
+    },
+    "serious": {
+      "frame": {
+        "x": 0,
+        "y": 520,
+        "w": 416,
+        "h": 520
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 416,
+        "h": 520
+      },
+      "sourceSize": {
+        "w": 416,
+        "h": 520
+      }
+    },
+    "surprised": {
+      "frame": {
+        "x": 416,
+        "y": 520,
+        "w": 416,
+        "h": 520
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 416,
+        "h": 520
+      },
+      "sourceSize": {
+        "w": 416,
+        "h": 520
+      }
+    }
+  },
+  "meta": {
+    "app": "captain pack (Pillow)",
+    "image": "captain.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 832,
+      "h": 1040
+    },
+    "scale": "1"
+  }
+}

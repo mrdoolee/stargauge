@@ -1,5 +1,5 @@
 // Dev-time only image generation. NOT part of the game bundle.
-//   node --env-file=.env tools/gen-images.mjs <assetId> [--ref <png>] [--out <png>] [--dry-run]
+//   node --env-file=.env tools/gen-images.mjs <assetId> [--ref <png>] [--out <png>] [--prompt-suffix <text>] [--dry-run]
 // Env: OPENAI_API_KEY (never logged), OPENAI_IMAGE_MODEL.
 // Assumptions (verify against current OpenAI docs before first real run):
 //  - POST https://api.openai.com/v1/images/generations takes JSON {model, prompt, size, background, n}.
@@ -17,11 +17,11 @@ export const EDITS_URL = 'https://api.openai.com/v1/images/edits';
  * Pure: build the request description for one manifest asset. No I/O, no network.
  * Returns { url, kind: 'json'|'multipart', fields } where fields is a plain object (no key, no file bytes).
  */
-export function buildRequest(asset, { model, ref = null } = {}) {
+export function buildRequest(asset, { model, ref = null, promptSuffix = '' } = {}) {
   if (!asset) throw new Error('asset is required');
   if (!model) throw new Error('OPENAI_IMAGE_MODEL is not set');
   const t = asset.technical || {};
-  const fields = { model, prompt: asset.prompt, size: t.request_size || '1024x1024', n: 1 };
+  const fields = { model, prompt: promptSuffix ? `${asset.prompt} ${promptSuffix}` : asset.prompt, size: t.request_size || '1024x1024', n: 1 };
   if (t.alpha) fields.background = 'transparent';
   return ref
     ? { url: EDITS_URL, kind: 'multipart', fields, ref }
@@ -43,11 +43,12 @@ export function redactSecrets(text, apiKey) {
 }
 
 export function parseArgs(argv) {
-  const out = { assetId: null, ref: null, dryRun: false, out: null };
+  const out = { assetId: null, ref: null, dryRun: false, out: null, promptSuffix: '' };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--ref') out.ref = argv[++i];
     else if (a === '--out') out.out = argv[++i];
+    else if (a === '--prompt-suffix') out.promptSuffix = argv[++i] ?? '';
     else if (a === '--dry-run') out.dryRun = true;
     else if (!a.startsWith('--') && !out.assetId) out.assetId = a;
     else throw new Error(`unknown argument: ${a}`);
@@ -58,7 +59,7 @@ export function parseArgs(argv) {
 async function main() {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const args = parseArgs(process.argv.slice(2));
-  if (!args.assetId) throw new Error('usage: node --env-file=.env tools/gen-images.mjs <assetId> [--ref <png>] [--out <png>] [--dry-run]');
+  if (!args.assetId) throw new Error('usage: node --env-file=.env tools/gen-images.mjs <assetId> [--ref <png>] [--out <png>] [--prompt-suffix <text>] [--dry-run]');
   const manifest = JSON.parse(readFileSync(resolve(root, 'art/asset-manifest.json'), 'utf8'));
   const asset = manifest.assets.find(a => a.id === args.assetId);
   if (!asset) throw new Error(`unknown asset id "${args.assetId}". Known: ${manifest.assets.map(a => a.id).join(', ')}`);
@@ -66,7 +67,7 @@ async function main() {
   const model = process.env.OPENAI_IMAGE_MODEL;
   if (!apiKey) throw new Error('OPENAI_API_KEY is not set (run with: node --env-file=.env tools/gen-images.mjs ...)');
   if (!model) throw new Error('OPENAI_IMAGE_MODEL is not set (add it to .env)');
-  const req = buildRequest(asset, { model, ref: args.ref });
+  const req = buildRequest(asset, { model, ref: args.ref, promptSuffix: args.promptSuffix });
   if (args.dryRun) {
     console.log(JSON.stringify(describeRequest(req, apiKey), null, 2));
     return;

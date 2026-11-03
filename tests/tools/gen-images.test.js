@@ -58,7 +58,12 @@ describe('gen-images buildRequest', () => {
     expect(find('bg-space')).toBeUndefined();
   });
   it('parseArgs', () => {
-    expect(parseArgs(['ship', '--ref', 'a.png', '--dry-run'])).toEqual({ assetId: 'ship', ref: 'a.png', dryRun: true, out: null });
+    expect(parseArgs(['ship', '--ref', 'a.png', '--dry-run'])).toEqual({ assetId: 'ship', ref: 'a.png', dryRun: true, out: null, promptSuffix: '' });
+  });
+  it('parseArgs --prompt-suffix is appended to the prompt', () => {
+    expect(parseArgs(['ship', '--prompt-suffix', 'hello world']).promptSuffix).toBe('hello world');
+    const req = buildRequest({ prompt: 'P', technical: {} }, { model: 'm', promptSuffix: 'S' });
+    expect(req.fields.prompt).toBe('P S');
   });
   it('parseArgs --out', () => {
     expect(parseArgs(['ship', '--out', 'x/y.png']).out).toBe('x/y.png');

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ATLAS_ASSETS, BRIEFING_EXPRESSIONS } from '../../src/config/assets.js';
 
@@ -14,5 +14,11 @@ describe('assets config', () => {
       expect(existsSync(pub(png)), `${key} png`).toBe(true);
       expect(existsSync(pub(json)), `${key} json`).toBe(true);
     }
+  });
+  it('captain atlas (JSON hash) has exactly the four expression frames', () => {
+    const entry = ATLAS_ASSETS.find(a => a.key === 'captain');
+    expect(entry).toBeTruthy();
+    const json = JSON.parse(readFileSync(pub(entry.json), 'utf8'));
+    expect(Object.keys(json.frames).sort()).toEqual([...BRIEFING_EXPRESSIONS].sort());
   });
 });

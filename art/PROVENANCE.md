@@ -53,9 +53,16 @@ After generating and normalizing a PNG into `public/img/`, run per asset (exampl
 
 Then add `{ key: 'ship', path: 'img/ship.png' }` to `src/config/assets.js` (only for files that exist, so nothing 404s).
 
+## Captain expressions (Task 11, still image edits)
+
+- Model gpt-image-2.5-sunburst (OpenAI Images API edits, `--ref art/raw/captain-base.png`), 2026-11-04, via `tools/gen-images.mjs captain-base --prompt-suffix "<edit text>"`. Prompt: same character, outfit, pose, framing and green background, pulled slightly smaller so the shoulders do not touch the frame edges, change ONLY the facial expression (calm closed-mouth smile / big warm smile / serious, brows lowered / surprised, round open mouth).
+- 4 edit calls, 0 retries (first batch of 3 calls hung with no response and was stopped, no result produced; resubmitted). Identity checked by eye: same hair, mustache, jacket, framing in all four. `normal` was re-made as an edit too (the original captain-base kept as art/raw/captain-base.orig.png) because it had a larger framing and shoulders touching the edges.
+- Raw (git-ignored): art/raw/captain-{normal,smile,serious,surprised}.png. Keyed locally with Pillow/numpy (green-excess alpha plus despill, no provider), one crop for all four frames, packed 2x2 into public/img/captain.png (832x1040, 839 KB) + captain.json (Phaser JSON hash, frames normal/smile/serious/surprised, 416x520 each). Check: 0 green-ish pixels left, no empty frames.
+- Teacher approval of the captain's look still pending.
+
 ## sprite-gen runs (Task 11)
 
-- Tool: sprite-gen 3.15.0 at commit `4f5ccd55c7cf06685a41f954acc1e476b7772ece`, provider codex (ChatGPT login), date 2026-11-04.
-- captain (states normal, smile, serious, surprised; 2 frames each; cell 256x320; magenta key): `prepare` OK in `C:\Users\mrdoo\tools\sprite-runs\captain`; `gen-set --provider codex` FAILED for all 4 states: "You've hit your usage limit ... try again at Nov 20th, 2026 9:08 AM". No frames generated yet.
-- ship-engine (state burn, 3 frames, cell 128x152): request written at art/sprites/ship/sprite-request.json; not run (same Codex limit).
-- No atlas files in public/img/ yet; `ATLAS_ASSETS` in src/config/assets.js is empty until they exist.
+- Tool: sprite-gen 3.15.0 at commit `4f5ccd55c7cf06685a41f954acc1e476b7772ece`, provider codex (ChatGPT login), 2026-11-04.
+- captain (4 states x 2 frames): `prepare` OK in `C:\Users\mrdoo\tools\sprite-runs\captain`; `gen-set --provider codex` FAILED for all rows: Codex "usage limit ... try again at Nov 20th, 2026 9:08 AM" (exit 1). Not used for the shipped captain art.
+- ship-engine (`burn`, 3 frames): request kept at art/sprites/ship/sprite-request.json, not run. The captain request art/sprites/captain/sprite-request.json is also kept.
+- PENDING: sprite-gen animation (blink/nod frames for the captain, engine flame atlas) after the Codex reset on 2026-11-20. Teacher decides then; the OpenAI provider of sprite-gen is not used without the teacher's choice. `ship-engine` is not in ATLAS_ASSETS.
