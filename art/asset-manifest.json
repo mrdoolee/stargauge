@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "art_direction_brief": "art/art-direction-brief.md",
-  "status": "planned - nothing generated yet (spec section 7: wait for teacher field test)",
+  "status": "planned - nothing generated yet except the style reference art/raw/ship-style-a.png (style A, teacher approved)",
   "assets": [
     {
       "id": "ship",
@@ -9,7 +9,7 @@
       "path": "public/img/ship.png",
       "status": "planned",
       "technical": {
-        "dimensions": "256x256",
+        "target_size": "256x256",
         "alpha": true,
         "anchor": "bottom-center",
         "frames": 1,
@@ -22,7 +22,43 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "A small cute round-bodied spaceship seen from above, nose pointing up, mint-green and silver body, bright light outline, small cockpit window, tiny engine flame at the bottom. Centered, fully inside the frame. Must not use blue, white-yellow, yellow, orange or red as main colors. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "Top-down view of a single small space exploration ship for a modern vertical-scrolling shooter game, nose pointing up, centered and fully inside the frame, transparent background, no stars or sparkles around it. Main colors mint #7ef2d4 and silver #d9e2ea with a small cockpit window and a small engine glow at the bottom; do not use blue, white-yellow, yellow, orange or red as main colors. Original design. Match the approved reference art/raw/ship-style-a.png. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "captain-base",
+      "role": "briefing captain (base portrait, expression sheet source)",
+      "path": "public/img/captain-base.png",
+      "status": "planned",
+      "technical": {
+        "target_size": "512x640",
+        "alpha": false,
+        "anchor": "bottom-center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1536",
+        "background": "solid flat chroma green #00ff00 (sprite-gen keying)"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Upper-body portrait of a friendly veteran space ship captain, facing the viewer with a calm smile, wearing a mint-and-silver flight jacket with panel details (no insignia text, no military uniform), centered, on a solid flat pure green background (#00ff00) with no shadow or gradient so it can be keyed out. Do not use green, blue, yellow, orange or red as main clothing colors. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
@@ -45,7 +81,7 @@
       "path": "public/img/asteroid-1.png",
       "status": "planned",
       "technical": {
-        "dimensions": "128x128",
+        "target_size": "128x128",
         "alpha": true,
         "anchor": "center",
         "frames": 1,
@@ -58,7 +94,7 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "A single chunky cartoon asteroid, rounded lumpy rock in dull gray-brown with a few craters, bright light outline so it reads on a dark navy background, clearly NOT a glowing star. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "A single chunky asteroid, lumpy irregular dull gray-brown rock with a few craters and rivet-like ridges, lit from upper left, bright rim light so it reads on a dark navy background, clearly NOT a glowing round star. Transparent background. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
@@ -81,7 +117,7 @@
       "path": "public/img/asteroid-2.png",
       "status": "planned",
       "technical": {
-        "dimensions": "128x128",
+        "target_size": "128x128",
         "alpha": true,
         "anchor": "center",
         "frames": 1,
@@ -94,7 +130,7 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "A single chunky cartoon asteroid, rounded lumpy rock in dull gray-brown with a few craters, bright light outline so it reads on a dark navy background, clearly NOT a glowing star. Elongated shape. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "A single chunky asteroid, lumpy irregular dull gray-brown rock with a few craters and rivet-like ridges, lit from upper left, bright rim light so it reads on a dark navy background, clearly NOT a glowing round star. Transparent background. Elongated shape. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
@@ -117,7 +153,7 @@
       "path": "public/img/asteroid-3.png",
       "status": "planned",
       "technical": {
-        "dimensions": "128x128",
+        "target_size": "128x128",
         "alpha": true,
         "anchor": "center",
         "frames": 1,
@@ -130,7 +166,7 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "A single chunky cartoon asteroid, rounded lumpy rock in dull gray-brown with a few craters, bright light outline so it reads on a dark navy background, clearly NOT a glowing star. Triangular-ish shape with one large crater. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "A single chunky asteroid, lumpy irregular dull gray-brown rock with a few craters and rivet-like ridges, lit from upper left, bright rim light so it reads on a dark navy background, clearly NOT a glowing round star. Transparent background. Triangular-ish shape with one large crater. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
@@ -148,12 +184,84 @@
       }
     },
     {
-      "id": "bg-space",
-      "role": "mission background",
-      "path": "public/img/bg-space.png",
+      "id": "star-shape",
+      "role": "star texture (tinted by code with the 7 palette colors)",
+      "path": "public/img/star-shape.png",
       "status": "planned",
       "technical": {
-        "dimensions": "720x1280",
+        "target_size": "128x128",
+        "alpha": true,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1024",
+        "background": "transparent"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "A glowing star shape texture in grayscale and white only, no color at all: a bright pure-white core centered in the frame, soft glow falloff to fully transparent edges, subtle thin cross spikes. Transparent background. Do not draw any hue; it will be tinted by code. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "furnace-shape",
+      "role": "molten metal blob texture (tinted by code)",
+      "path": "public/img/furnace-shape.png",
+      "status": "planned",
+      "technical": {
+        "target_size": "128x128",
+        "alpha": true,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1024",
+        "background": "transparent"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "A lumpy molten metal drop texture in grayscale only, no color at all: irregular blobby outline, bright white center fading to mid-gray edges, soft glow, centered. Transparent background. Do not draw any hue; it will be tinted by code. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "bg-space-far",
+      "role": "mission background, far parallax layer",
+      "path": "public/img/bg-space-far.png",
+      "status": "planned",
+      "technical": {
+        "target_size": "720x1280",
         "alpha": false,
         "anchor": "center",
         "frames": 1,
@@ -166,7 +274,43 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "Vertical deep dark navy-indigo space background with a very faint, low-contrast soft nebula haze. ABSOLUTELY NO stars, NO dots, NO bright points, NO sparkles, nothing that could be mistaken for a star; keep it dark and calm. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "Vertical deep dark navy-indigo space background, a very faint low-contrast soft nebula haze, calm and dark. ABSOLUTELY no stars, no star points, no dots, no sparkles, nothing that could be mistaken for a star. Opaque, no characters, no objects. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "bg-space-near",
+      "role": "mission background, near parallax layer (overlay)",
+      "path": "public/img/bg-space-near.png",
+      "status": "planned",
+      "technical": {
+        "target_size": "720x1280",
+        "alpha": true,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1536",
+        "background": "transparent"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Vertical overlay of faint drifting dust and thin nebula wisps only, very low contrast, mostly transparent. ABSOLUTELY no stars, no star points, no dots, no sparkles, nothing that could be mistaken for a star. Transparent background. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
@@ -189,7 +333,7 @@
       "path": "public/img/bg-furnace.png",
       "status": "planned",
       "technical": {
-        "dimensions": "720x1280",
+        "target_size": "720x1280",
         "alpha": false,
         "anchor": "center",
         "frames": 1,
@@ -202,7 +346,43 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "Vertical dark background of a cosmic furnace chamber: dark charcoal and deep navy metal, faint low-contrast structure, very dim. NO bright glowing blobs, NO dots, NO stars; nothing that resembles a glowing star or flame. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "Vertical dark background of a cosmic furnace chamber: dark charcoal and deep navy metal plating with chunky panels and rivets, faint low-contrast structure, very dim. No stars, no star points, NO bright glowing blobs, NO dots; nothing that resembles a glowing star or flame. Opaque. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "bg-cluster",
+      "role": "mission 4 cluster background",
+      "path": "public/img/bg-cluster.png",
+      "status": "planned",
+      "technical": {
+        "target_size": "720x1280",
+        "alpha": false,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1536",
+        "background": "opaque"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Vertical abstract soft nebula in dark navy and muted violet, painterly clouds only, must not look like a real photo of a real star cluster. No stars, no star points, no dots, no sparkles. Opaque, low contrast. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
@@ -225,7 +405,7 @@
       "path": "public/img/title-art.png",
       "status": "planned",
       "technical": {
-        "dimensions": "720x1280",
+        "target_size": "720x1280",
         "alpha": false,
         "anchor": "center",
         "frames": 1,
@@ -238,7 +418,7 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "Title screen artwork: a cute mint-and-silver exploration spaceship flying up through a dark navy sky with a soft nebula, leaving the upper third and lower third empty for overlaid text. NO stars drawn as dots. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "Title screen artwork: a mint-and-silver exploration spaceship flying up through a dark navy sky with a soft nebula, leaving the upper third and lower third empty for overlaid text. No stars drawn as dots, no star points. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
@@ -261,7 +441,7 @@
       "path": "public/img/glass-craft.png",
       "status": "planned",
       "technical": {
-        "dimensions": "560x200",
+        "target_size": "560x200",
         "alpha": false,
         "anchor": "center",
         "frames": 1,
@@ -274,7 +454,7 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "Simple clear illustration of a glassblower's blowpipe holding a glass piece. The left half of the glass glows yellow-white light (yellow glow), the right half glows red (red glow), like a heated glass piece with a temperature gradient. Plain dark background, wide landscape composition. Leave the areas above the left and right halves empty (labels are added by code). Original design, not a copy of any textbook figure. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "Simple clear illustration of a glassblower's blowpipe holding a glass piece. The left half of the glass glows yellow-white light (yellow glow), the right half glows red (red glow), like a heated glass piece with a temperature gradient. Plain dark background, wide landscape composition. Leave the areas above the left and right halves empty (labels are added by code). Original design, not a copy of any textbook figure. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
@@ -297,7 +477,7 @@
       "path": "public/img/fire-button.png",
       "status": "planned",
       "technical": {
-        "dimensions": "160x160",
+        "target_size": "160x160",
         "alpha": true,
         "anchor": "center",
         "frames": 1,
@@ -310,7 +490,151 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "A round chunky arcade fire button seen from the front, mint-green rim with a silver bezel and a blank face, bright outline. Bright 2D cartoon / neon space style, bold rounded silhouettes, thick clean outline, flat shading with soft glow. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "A round chunky arcade fire button seen from the front, mint-green rim with a silver bezel and a blank face, bright outline. Transparent background. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "briefing-m1",
+      "role": "briefing illustration, mission 1",
+      "path": "public/img/briefing-m1.png",
+      "status": "planned",
+      "technical": {
+        "target_size": "560x320",
+        "alpha": false,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1536x1024",
+        "background": "opaque"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Wide illustration of a cosmic furnace pouring molten metal; the molten metal stream changes color along its flow from glowing white to yellow to orange to red as it cools. Dark charcoal metal machinery around it, empty dark area for overlays. No stars, no star points. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "briefing-m2",
+      "role": "briefing illustration, mission 2",
+      "path": "public/img/briefing-m2.png",
+      "status": "planned",
+      "technical": {
+        "target_size": "560x320",
+        "alpha": false,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1536x1024",
+        "background": "opaque"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Wide calm observatory scene: a small survey ship near a large scanner dish and instrument console looking out into dark navy space with a soft nebula. No colored stars, no row of glowing spheres, no star points; only mint, silver and navy tones. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "briefing-m3",
+      "role": "briefing illustration, mission 3",
+      "path": "public/img/briefing-m3.png",
+      "status": "planned",
+      "technical": {
+        "target_size": "560x320",
+        "alpha": false,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1536x1024",
+        "background": "opaque"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Wide illustration of two clearly fictional stars side by side on dark navy space: on the left a very large red star, on the right a small blue star, both as smooth glowing discs with soft glow, unnamed, not real constellation stars. No other stars, no star points, no constellation lines. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": false,
+        "technical_checks_passed": false,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "briefing-m4",
+      "role": "briefing illustration, mission 4",
+      "path": "public/img/briefing-m4.png",
+      "status": "planned",
+      "technical": {
+        "target_size": "560x320",
+        "alpha": false,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1536x1024",
+        "background": "opaque"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Wide illustration of an abstract soft nebula in dark navy and muted violet with the mint-and-silver exploration ship approaching from the lower left. Not a recognizable real star cluster, no photo look, no stars, no star points. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",

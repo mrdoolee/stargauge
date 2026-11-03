@@ -13,7 +13,7 @@ describe('gen-images buildRequest', () => {
     expect(r.fields.prompt).toBe(find('ship').prompt);
   });
   it('opaque asset has no background field', () => {
-    expect(buildRequest(find('bg-space'), { model: 'm' }).fields.background).toBeUndefined();
+    expect(buildRequest(find('bg-space-far'), { model: 'm' }).fields.background).toBeUndefined();
   });
   it('--ref switches to the edits endpoint', () => {
     const r = buildRequest(find('asteroid-1'), { model: 'm', ref: 'art/raw/ship.png' });
@@ -33,6 +33,29 @@ describe('gen-images buildRequest', () => {
       expect(a.prompt).toMatch(/NO text/);
       expect(a.technical.request_size).toMatch(/^\d+x\d+$/);
     }
+  });
+  it('every asset has request_size, alpha and target_size', () => {
+    for (const a of manifest.assets) {
+      expect(a.technical.request_size, a.id).toMatch(/^\d+x\d+$/);
+      expect(typeof a.technical.alpha, a.id).toBe('boolean');
+      expect(a.technical.target_size, a.id).toMatch(/^\d+x\d+$/);
+    }
+  });
+  it('star-shape and furnace-shape prompts demand grayscale/white only', () => {
+    for (const id of ['star-shape', 'furnace-shape']) {
+      const p = find(id).prompt;
+      expect(p, id).toMatch(/grayscale|white only/i);
+      expect(p, id).not.toMatch(/\b(?:blue|red|orange|yellow)\s+(?:glow|core|color|tint|main)/i);
+    }
+  });
+  it('background prompts forbid point stars', () => {
+    const bgs = manifest.assets.filter(a => a.id.startsWith('bg-'));
+    expect(bgs.length).toBeGreaterThanOrEqual(4);
+    for (const a of bgs) expect(a.prompt, a.id).toMatch(/no stars|no star points/i);
+  });
+  it('new Part 2 assets exist and bg-space was renamed', () => {
+    for (const id of ['captain-base', 'star-shape', 'furnace-shape', 'bg-space-far', 'bg-space-near', 'bg-cluster', 'briefing-m1', 'briefing-m2', 'briefing-m3', 'briefing-m4']) expect(find(id), id).toBeTruthy();
+    expect(find('bg-space')).toBeUndefined();
   });
   it('parseArgs', () => {
     expect(parseArgs(['ship', '--ref', 'a.png', '--dry-run'])).toEqual({ assetId: 'ship', ref: 'a.png', dryRun: true });
