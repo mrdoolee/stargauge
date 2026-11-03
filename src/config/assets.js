@@ -23,8 +23,16 @@ export const IMAGE_ASSETS = [
   { key: 'briefing-m4', path: 'img/briefing-m4.png' },
 ];
 
-export function loadImages(scene, list = IMAGE_ASSETS) {
+// Aseprite-JSON atlases made by sprite-gen (Task 11). List ONLY atlases whose png+json exist in public/img/.
+// `captain` (tags normal/smile/serious/surprised) and `ship-engine` (tag burn) are added when generated.
+export const ATLAS_ASSETS = [];
+
+// Captain expression frame tags in `captain` (Task 12 picks one per mission).
+export const BRIEFING_EXPRESSIONS = ['normal', 'smile', 'serious', 'surprised'];
+
+export function loadImages(scene, list = IMAGE_ASSETS, atlases = ATLAS_ASSETS) {
   for (const { key, path } of list) scene.load.image(key, path);
+  for (const { key, png, json } of atlases) scene.load.aseprite(key, png, json);
 }
 
 /** True when an optional image with this key was loaded. */

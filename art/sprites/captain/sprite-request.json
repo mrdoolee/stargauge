@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "sprite-gen-request",
+  "engine": "component-row",
+  "character": {
+    "id": "captain",
+    "description": "friendly veteran space captain, upper-body bust portrait, gray-white wavy hair and mustache, navy and silver jacket",
+    "base_image": null
+  },
+  "cell": { "shape": "rect", "width": 256, "height": 320, "safe_margin_x": 12, "safe_margin_y": 12 },
+  "chroma_key": { "name": "magenta", "hex": "#FF00FF", "rgb": [255, 0, 255], "selection": "forced" },
+  "states": {
+    "normal":    { "frames": 2, "fps": 2, "loop": true,  "action": "calm gentle smile, then a soft slow blink; same bust pose, head and shoulders stay still, only the eyelids change" },
+    "smile":     { "frames": 2, "fps": 2, "loop": true,  "action": "big warm happy smile with eyes crinkled, slight pleased head tilt in frame 2" },
+    "serious":   { "frames": 2, "fps": 2, "loop": true,  "action": "serious focused expression, mouth closed and straight, brows lowered; frame 2 gives a small slow nod" },
+    "surprised": { "frames": 2, "fps": 2, "loop": true,  "action": "surprised expression, eyebrows raised, eyes wide, mouth open in an O; frame 2 is slightly more astonished" }
+  },
+  "style": "crisp hand-painted HD 2D game illustration, clean dark outlines, soft cel shading, cartoon-leaning; same character, same jacket, same bust framing in every frame"
+}

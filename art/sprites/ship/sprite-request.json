@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "kind": "sprite-gen-request",
+  "engine": "component-row",
+  "character": {
+    "id": "ship-engine",
+    "description": "small top-down mint and silver space exploration ship, nose up; only the engine flame at the bottom changes",
+    "base_image": null
+  },
+  "cell": { "shape": "rect", "width": 128, "height": 152, "safe_margin_x": 8, "safe_margin_y": 8 },
+  "chroma_key": { "name": "magenta", "hex": "#FF00FF", "rgb": [255, 0, 255], "selection": "forced" },
+  "states": {
+    "burn": { "frames": 3, "fps": 12, "loop": true, "action": "engine exhaust flame flickers: the flame at the bottom of the ship grows and shrinks and changes shape slightly each frame; the ship body, size and position stay identical in every frame" }
+  },
+  "style": "crisp hand-painted HD 2D game sprite, soft cel shading; same ship in every frame; flame in warm white-yellow-orange"
+}

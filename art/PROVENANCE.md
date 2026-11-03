@@ -23,7 +23,7 @@ All generated with OpenAI Images API, model `gpt-image-2.5-sunburst` (from OPENA
 | briefing-m2 | gpt-image-2.5-sunburst | 2026-11-04 | observatory scanner dish and survey ship, mint/silver/navy | yes |
 | briefing-m3 | gpt-image-2.5-sunburst | 2026-11-04 | fictional large red star and small blue star on navy | yes |
 | briefing-m4 | gpt-image-2.5-sunburst | 2026-11-04 | abstract navy/violet nebula with the ship approaching from lower left | yes |
-| captain-base | - | - | not generated yet (Task 11) | - |
+| captain-base | gpt-image-2.5-sunburst | 2026-11-04 | friendly veteran captain bust, cartoon-leaning style A, navy/silver jacket, tiny mint accent, gray-white hair and mustache, on flat #00ff00; no --ref (a ship ref would pull a ship into the portrait). Attempt 1 was too photoreal (resembled a real actor) and was rejected; attempt 2 kept. Raw: art/raw/captain-base.png (git-ignored). Teacher approval of the look deferred. | yes |
 | fire-button | - | - | not generated yet | - |
 
 Prompt changes this task: star-shape, furnace-shape, bg-space-far, bg-space-near, bg-cluster no longer carry the "chunky detailed panels and rivets" phrase (replaced with "crisp hand-painted HD, soft glow, no pixel art, no low-res blur"); star-shape asks for a large solid white core.
@@ -52,3 +52,10 @@ After generating and normalizing a PNG into `public/img/`, run per asset (exampl
     python .claude/skills/create-game-assets/scripts/asset_report.py public/img/ship.png --expect-size 256x256 --require-alpha --json
 
 Then add `{ key: 'ship', path: 'img/ship.png' }` to `src/config/assets.js` (only for files that exist, so nothing 404s).
+
+## sprite-gen runs (Task 11)
+
+- Tool: sprite-gen 3.15.0 at commit `4f5ccd55c7cf06685a41f954acc1e476b7772ece`, provider codex (ChatGPT login), date 2026-11-04.
+- captain (states normal, smile, serious, surprised; 2 frames each; cell 256x320; magenta key): `prepare` OK in `C:\Users\mrdoo\tools\sprite-runs\captain`; `gen-set --provider codex` FAILED for all 4 states: "You've hit your usage limit ... try again at Nov 20th, 2026 9:08 AM". No frames generated yet.
+- ship-engine (state burn, 3 frames, cell 128x152): request written at art/sprites/ship/sprite-request.json; not run (same Codex limit).
+- No atlas files in public/img/ yet; `ATLAS_ASSETS` in src/config/assets.js is empty until they exist.
