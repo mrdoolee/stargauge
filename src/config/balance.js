@@ -94,3 +94,16 @@ export const RANK_MERCY_PER_RESTART = 2;
 export const RANK_MERCY_MAX_RESTARTS = 2;
 export const RANK_TIER_AT = [0, 4, 7, 10];
 export const RANK_AIM_MIN = 4; // aimed shots allowed from this value (never on easy)
+
+// Speed bands / reaction floors (2026-11-03). Bands are in screen heights per second (H/s, H = 1280 px).
+// Band bottom = tension tier 0 minimum, top = tier 3 maximum; easy uses the whole band (no tiers).
+export const SPEED_BANDS_H = {
+  target: { easy: [0.10, 0.15], normal: [0.25, 0.35], hard: [0.35, 0.45] },
+  hazard: { easy: [0.09, 0.18], normal: [0.375, 0.55], hard: [0.5, 0.75] },
+};
+// Minimum seconds the student gets to react to a hazard / target.
+export const REACTION_FLOOR_SEC = {
+  target: { easy: 2.0, normal: 1.0, hard: 0.8 },
+  hazard: { easy: 1.2, normal: 0.7, hard: 0.5 },
+};
+export const AIM_MAX_ANGLE_DEG = 35; // aimed shots deviate at most this far from straight down
