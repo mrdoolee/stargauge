@@ -84,3 +84,13 @@ export const DIFFICULTY_MULTIPLIERS = {
   hard: { speed: 1.3, spawnInterval: 0.75, heat: 1.35 },
 };
 export const DIFFICULTY_LABELS = { easy: '쉬움', normal: '중간', hard: '어려움' };
+
+// Rank / tension (2026-11-03). value = start - mercy + survivalSteps + correct * perCorrect.
+// Easy ignores it (tier 0, no aiming). Tier = last index i with value >= RANK_TIER_AT[i].
+export const RANK_START = { easy: 0, normal: 2, hard: 5 };
+export const RANK_SURVIVAL = { firstStepMs: 30000, stepMs: 20000, maxSteps: 8 };
+export const RANK_PER_CORRECT = 0.5;
+export const RANK_MERCY_PER_RESTART = 2;
+export const RANK_MERCY_MAX_RESTARTS = 2;
+export const RANK_TIER_AT = [0, 4, 7, 10];
+export const RANK_AIM_MIN = 4; // aimed shots allowed from this value (never on easy)
