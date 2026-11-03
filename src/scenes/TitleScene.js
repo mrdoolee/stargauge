@@ -71,7 +71,7 @@ export default class TitleScene extends Phaser.Scene {
     armButton(btn, () => {
       if (leaving) return;
       leaving = true;
-      this.scene.start('m1');
+      this.scene.start(this.scene.get('briefing') ? 'briefing' : 'm1', { mission: 'm1' });
     });
   }
 }

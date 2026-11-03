@@ -257,7 +257,8 @@ export default class M3TrapScene extends BaseMissionScene {
     armButton(nextBtn, () => {
       if (leaving) return;
       leaving = true;
-      this.scene.start(next);
+      if (next === 'm4' && this.scene.get('briefing')) this.scene.start('briefing', { mission: 'm4' });
+      else this.scene.start(next);
     });
   }
 }

@@ -82,7 +82,7 @@ export default class M2GaugeScene extends BaseMissionScene {
         title: '스타게이지 완성!',
         gauge: ALL,
         body: MISSION_TEXT.m2b.card,
-        next,
+        ...(next === NEXT_AFTER_M2 && this.scene.get('briefing') ? { next: 'briefing', nextData: { mission: next } } : { next }),
       },
     });
   }

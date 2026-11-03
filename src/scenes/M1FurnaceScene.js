@@ -123,7 +123,7 @@ export default class M1FurnaceScene extends BaseMissionScene {
     }
     this.completeMission({
       next: 'card',
-      nextData: { title: '정리 카드', body: MISSION_TEXT.m1.card, next: 'm2' },
+      nextData: { title: '정리 카드', body: MISSION_TEXT.m1.card, next: 'briefing', nextData: { mission: 'm2' } },
     });
   }
 }
