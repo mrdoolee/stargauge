@@ -42,3 +42,13 @@ export function aimVelocity(from, to, speedPxS, maxAngleDeg = AIM_MAX_ANGLE_DEG)
   angle = Math.max(-max, Math.min(max, angle));
   return { vx: speedPxS * Math.sin(angle), vy: speedPxS * Math.cos(angle) };
 }
+
+/** One value per formation: draw() runs when formationIndex changes, otherwise the cached value is returned. */
+export function createFormationMemo() {
+  let idx = null;
+  let val;
+  return (formationIndex, draw) => {
+    if (formationIndex !== idx) { idx = formationIndex; val = draw(); }
+    return val;
+  };
+}

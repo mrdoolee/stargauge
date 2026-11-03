@@ -8,7 +8,7 @@ import {
 } from '../config/balance.js';
 import { GAME_WIDTH } from '../config/game.js';
 import { scaleSpeed } from '../logic/difficulty.js';
-import { speedFor, aimVelocity } from '../logic/speed.js';
+import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
 import { predicateJudge } from '../logic/judges.js';
 import { furnaceStageAt, furnaceFallFraction, countsAsWhite, practiceToastDue } from '../logic/furnace.js';
 import { MISSION_TEXT } from '../data/copy.js';
@@ -62,6 +62,8 @@ export default class M1FurnaceScene extends BaseMissionScene {
 
   onPhaseStart(phase) {
     this.phaseMs = 0;
+    this.asteroidSpeed = createFormationMemo(); // formation indices restart each phase
+    this.blobSpeed = createFormationMemo();
     if (!phase.practice) {
       this.toast('이제 진짜예요! 흰색일 때만 쏘고, 부딪히면 선체 온도가 올라가요.', { tone: 'info' });
     }
@@ -79,7 +81,9 @@ export default class M1FurnaceScene extends BaseMissionScene {
     }
     // Test: aimed slots and a share of the others become asteroids; the rest are furnace blobs.
     if (slot.aim || Math.random() < M1_ASTEROID_SLOT_CHANCE) {
-      const speed = speedFor('hazard', this.diff.key, slot.tier);
+      // One speed per formation keeps a row together; aimed slots keep their own.
+      const speed = slot.aim ? speedFor('hazard', this.diff.key, slot.tier)
+        : this.asteroidSpeed(slot.formationIndex, () => speedFor('hazard', this.diff.key, slot.tier));
       let vx = slot.vx;
       let vy = speed;
       if (slot.aim) ({ vx, vy } = aimVelocity({ x: slot.x, y: SPAWN_Y }, { x: this.ship.x, y: this.ship.y }, speed));
@@ -88,7 +92,8 @@ export default class M1FurnaceScene extends BaseMissionScene {
     }
     const o = this.spawnStar({
       x: slot.x, y: SPAWN_Y, colorKey: 'white', kind: 'furnace', scale: rand(0.9, 1.3), glow: 0.7,
-      vx: slot.vx, vy: scaleSpeed(rand(M1_BLOB_SPEED.min, M1_BLOB_SPEED.max), this.diff.key), zigzag: slot.zigzag,
+      vx: slot.vx, zigzag: slot.zigzag,
+      vy: this.blobSpeed(slot.formationIndex, () => scaleSpeed(rand(M1_BLOB_SPEED.min, M1_BLOB_SPEED.max), this.diff.key)),
     });
     if (o) o.whiteEndedAt = null;
   }

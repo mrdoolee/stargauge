@@ -51,3 +51,17 @@ describe('speed', () => {
     }
   });
 });
+
+import { createFormationMemo } from '../../src/logic/speed.js';
+describe('createFormationMemo', () => {
+  it('draws once per formation index', () => {
+    const memo = createFormationMemo();
+    let n = 0;
+    const draw = () => ++n;
+    expect(memo(0, draw)).toBe(1);
+    expect(memo(0, draw)).toBe(1);
+    expect(memo(1, draw)).toBe(2);
+    expect(memo(1, draw)).toBe(2);
+    expect(memo(2, draw)).toBe(3);
+  });
+});

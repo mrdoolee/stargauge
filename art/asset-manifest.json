@@ -258,7 +258,7 @@
     {
       "id": "bg-space-far",
       "role": "mission background, far parallax layer",
-      "path": "public/img/bg-space-far.png",
+      "path": "public/img/bg-space-far.jpg",
       "status": "generated",
       "technical": {
         "target_size": "720x1280",
@@ -330,7 +330,7 @@
     {
       "id": "bg-furnace",
       "role": "furnace mission background",
-      "path": "public/img/bg-furnace.png",
+      "path": "public/img/bg-furnace.jpg",
       "status": "generated",
       "technical": {
         "target_size": "720x1280",
@@ -366,7 +366,7 @@
     {
       "id": "bg-cluster",
       "role": "mission 4 cluster background",
-      "path": "public/img/bg-cluster.png",
+      "path": "public/img/bg-cluster.jpg",
       "status": "generated",
       "technical": {
         "target_size": "720x1280",
@@ -402,7 +402,7 @@
     {
       "id": "title-art",
       "role": "title screen art",
-      "path": "public/img/title-art.png",
+      "path": "public/img/title-art.jpg",
       "status": "generated",
       "technical": {
         "target_size": "720x1280",
@@ -510,7 +510,7 @@
     {
       "id": "briefing-m1",
       "role": "briefing illustration, mission 1",
-      "path": "public/img/briefing-m1.png",
+      "path": "public/img/briefing-m1.jpg",
       "status": "generated",
       "technical": {
         "target_size": "560x320",
@@ -546,7 +546,7 @@
     {
       "id": "briefing-m2",
       "role": "briefing illustration, mission 2",
-      "path": "public/img/briefing-m2.png",
+      "path": "public/img/briefing-m2.jpg",
       "status": "generated",
       "technical": {
         "target_size": "560x320",
@@ -582,7 +582,7 @@
     {
       "id": "briefing-m3",
       "role": "briefing illustration, mission 3",
-      "path": "public/img/briefing-m3.png",
+      "path": "public/img/briefing-m3.jpg",
       "status": "generated",
       "technical": {
         "target_size": "560x320",
@@ -618,7 +618,7 @@
     {
       "id": "briefing-m4",
       "role": "briefing illustration, mission 4",
-      "path": "public/img/briefing-m4.png",
+      "path": "public/img/briefing-m4.jpg",
       "status": "generated",
       "technical": {
         "target_size": "560x320",

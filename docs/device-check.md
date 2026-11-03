@@ -157,7 +157,14 @@ npm run build && npm run preview -- --host
 | 발사 버튼이 작다 / 크다 | `FIRE_BUTTON_DIAMETER` (150, 최소 120 권장), 위치는 `FIRE_BUTTON_MARGIN` (28) |
 | 조이스틱·발사 버튼이 너무 진하다 / 흐리다 | `CONTROLS_ALPHA` (0.45, 평소), `CONTROLS_ACTIVE_ALPHA` (0.75, 누르고 있을 때) |
 | 우주선이 조이스틱·발사 버튼에 너무 붙는다 / 너무 위에서 멈춘다 | `SHIP_CONTROL_CLEARANCE` (24, 우주선 아랫면과 조작 영역 사이 간격). 미션 시작 위치는 `SHIP_START_Y` (900) |
-| 별이 너무 자주/드물게 나온다 | `SPAWN_INTERVAL_MS` (m1 1100, m2 2400, m3 1400, m4 800 밀리초. 클수록 느림) |
+| 별(편대)이 너무 자주/드물게 나온다 | `FORMATION_GAP_MS` (m1 2600, m2 4000, m3 2400 밀리초. 편대와 편대 사이 쉬는 시간, 클수록 드묾). 난이도 배율(`spawnInterval`)이 곱해진다 |
+| 미션 4 보스가 너무 자주/드물게 쏜다 | `BOSS_VOLLEY_MS` (단계별 1600/1800/2400, 공격 중 발사 간격), `BOSS_ATTACK_MS` (4000/4500/5000, 공격 시간), `BOSS_GAP_MS` (4000, 빈틈 시간), `BOSS_FAN` (2·3단계 부채꼴 개수·각도) |
+| 미션 4 우주선을 위로 올려도 발사가 나오는지 | 성단에서 안전하게 쏠 수 없으면 화면 위 끝에서 내려온다 (별도 값 없음. 속도는 `SPEED_BANDS_H`의 위험물 띠) |
+| 미션 3 별자리 묶음 / 함정 | `M3_SWAY` (periodMs 12000, 좌우 흔들림 주기), `GROUP_SCALE`·`TRAP_GAP` (`src/scenes/M3TrapScene.js`, 별자리 크기와 함정이 피해 가는 여유 px) |
+| 미션 1 소행성이 너무 많다/적다 | `M1_ASTEROID_SLOT_CHANCE` (0.2, 시험 단계에서 소행성이 되는 비율). 연습 단계(30초)만 `SPAWN_INTERVAL_MS` (m1 1100)를 쓴다 |
+| 별이 너무 빠르다/느리다 (속도 띠) | `SPEED_BANDS_H` (화면 높이/초 단위, 별·위험물 × 난이도)와 `REACTION_FLOOR_SEC` (반응 시간 하한). **스펙으로 정한 값이라 교사와 상의한 뒤에만 바꾼다.** 난이도 전체를 한 번에 줄이려면 `DIFFICULTY_MULTIPLIERS` |
+| 긴장이 너무 빨리/천천히 오른다, 다시 하면 쉬워지는 정도 | `RANK_START` (시작 긴장도 쉬움 0 / 중간 2 / 어려움 5), `RANK_SURVIVAL` (시간이 지나며 오르는 속도), `RANK_PER_CORRECT` (0.5, 맞힐 때 오름), `RANK_TIER_AT` (단계 경계), `RANK_AIM_MIN` (4, 이 값부터 조준 발사), `RANK_MERCY_PER_RESTART` (2)·`RANK_MERCY_MAX_RESTARTS` (2, 다시 할 때 깎아 주는 양). 쉬움은 긴장도가 고정이다 |
+| 시작 몸풀기가 너무 길다/짧다 | `WARMUP_MS` (12000, 처음 몇 밀리초), `WARMUP_DENSITY` (0.7, 이 동안 편대 크기 배율. 조준 발사는 없다. 미션 4는 발사 간격이 이 값으로 나뉜다) |
 | 미션 1이 길다/짧다 | `MISSION_GOAL_COUNTS.m1` (8), `M1_PRACTICE_SEC` (30) |
 | 미션 1 쇳물이 너무 빨리/늦게 식는다 | `M1_FALL_DISTANCE` (700, 클수록 오래 흰색). 상단 HUD 아래(y 344)부터 식기 시작해 약 y 624까지 흰색 |
 | 미션 1 "방금 노랗게 변했는데 틀렸다"가 잦다 | `M1_WHITE_GRACE_MS` (300, 흰색에서 바뀐 뒤 이 시간 안의 명중은 정답) |

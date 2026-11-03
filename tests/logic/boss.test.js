@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { bossStage, bossCycle, fanVelocities, pickLaunchSource } from '../../src/logic/boss.js';
-import { canLaunch, speedBand } from '../../src/logic/speed.js';
+import { bossStage, bossCycle, fanVelocities, pickLaunchSource, pickLaunchOrigin, bossWarmup } from '../../src/logic/boss.js';
+import { canLaunch, speedBand, topEntryReactionSec } from '../../src/logic/speed.js';
 import { clusterPosition } from '../../src/logic/jewelbox.js';
 import { JEWELBOX } from '../../src/data/stars.js';
 import {
-  BOSS_ATTACK_MS, BOSS_GAP_MS, M4_CLUSTER_AREA, SHIP_START_Y,
+  BOSS_ATTACK_MS, BOSS_GAP_MS, M4_CLUSTER_AREA, SHIP_START_Y, WARMUP_MS, WARMUP_DENSITY,
+  REACTION_FLOOR_SEC,
 } from '../../src/config/balance.js';
 
 const member = (y, colorKey = 'blue', boss = false) => ({ obj: { x: 300, y }, star: { colorKey }, boss });
@@ -100,5 +101,53 @@ describe('pickLaunchSource', () => {
     const r = pickLaunchSource(realMembers(), ship, { diffKey: 'hard', tier: 3, rng: seq(0.99) });
     expect(r).not.toBeNull();
     expect(r.speedPxS).toBeLessThan(speedBand('hazard', 'hard', 3).max);
+  });
+});
+
+describe('pickLaunchOrigin (boss never goes silent)', () => {
+  const raised = { x: 360, y: 700 };
+  it('still launches on every difficulty with the ship raised to y 700', () => {
+    for (const diffKey of ['easy', 'normal', 'hard']) {
+      for (let r = 0; r < 20; r++) {
+        const o = pickLaunchOrigin(realMembers(), raised, { diffKey, tier: 0, rng: Math.random, offsetY: 30 });
+        expect(o).toBeTruthy();
+        expect(o.speedPxS).toBeGreaterThan(0);
+        expect(Number.isFinite(o.x)).toBe(true);
+      }
+    }
+  });
+  it('prefers a cluster source when one is eligible', () => {
+    const o = pickLaunchOrigin(realMembers(), ship, { diffKey: 'easy', tier: 0, rng: seq(0.1), offsetY: 30 });
+    expect(o.fromCluster).toBe(true);
+    expect(o.y).toBeGreaterThan(0);
+  });
+  it('falls back to the top edge at a blue member x when no source qualifies', () => {
+    const o = pickLaunchOrigin(realMembers(), raised, { diffKey: 'hard', tier: 0, rng: seq(0.3), offsetY: 30 });
+    expect(o.fromCluster).toBe(false);
+    expect(o.y).toBeLessThan(0);
+    const blueXs = realMembers().filter(m => !m.boss && m.star.colorKey === 'blue').map(m => m.obj.x);
+    expect(blueXs).toContain(o.x);
+  });
+  it('top-edge launches satisfy the hazard top-entry floor at tier 3', () => {
+    for (const diffKey of ['easy', 'normal', 'hard']) {
+      for (let r = 0; r < 50; r++) {
+        const o = pickLaunchOrigin(realMembers(), raised, { diffKey, tier: 3, rng: Math.random, offsetY: 30 });
+        if (o.fromCluster) continue;
+        expect(topEntryReactionSec(o.speedPxS)).toBeGreaterThanOrEqual(REACTION_FLOOR_SEC.hazard[diffKey]);
+      }
+    }
+  });
+});
+
+describe('bossWarmup', () => {
+  it('no aim and sparser volleys during warm-up, normal afterwards', () => {
+    const w = bossWarmup(1000, true, 1600);
+    expect(w.warm).toBe(true);
+    expect(w.aim).toBe(false);
+    expect(w.intervalMs).toBeCloseTo(1600 / WARMUP_DENSITY);
+    expect(w.intervalMs).toBeGreaterThan(1600);
+    const a = bossWarmup(WARMUP_MS, true, 1600);
+    expect(a).toEqual({ warm: false, aim: true, intervalMs: 1600 });
+    expect(bossWarmup(WARMUP_MS + 1, false, 1600).aim).toBe(false);
   });
 });

@@ -2,7 +2,7 @@
 // The gauge persists across the two phases (same scene) and resets on an overheat restart.
 import BaseMissionScene from './BaseMissionScene.js';
 import { M2_STAR_SCALE } from '../config/balance.js';
-import { speedFor, aimVelocity } from '../logic/speed.js';
+import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
 import { predicateJudge } from '../logic/judges.js';
 import { fillFormationColors } from '../logic/spawner.js';
 import { STAR_COLORS, hotterThanSun, coolerThanSun } from '../logic/temperature.js';
@@ -38,6 +38,7 @@ export default class M2GaugeScene extends BaseMissionScene {
   }
 
   onPhaseStart() {
+    this.formSpeed = createFormationMemo();
     this.sinceNeeded = 0;
     this.formColors = null;
     this.formIndex = -1;
@@ -57,7 +58,8 @@ export default class M2GaugeScene extends BaseMissionScene {
     }
     const colorKey = this.formColors[slot.slotIndex] ?? ALL[Math.floor(Math.random() * ALL.length)];
     const y = -60;
-    const speed = speedFor('target', this.diff.key, slot.tier);
+    const speed = slot.aim ? speedFor('target', this.diff.key, slot.tier)
+      : this.formSpeed(slot.formationIndex, () => speedFor('target', this.diff.key, slot.tier)); // one per formation
     let vx = slot.vx;
     let vy = speed;
     if (slot.aim) ({ vx, vy } = aimVelocity({ x: slot.x, y }, { x: this.ship.x, y: this.ship.y }, speed));

@@ -13,7 +13,7 @@ import {
 import { scaleInterval } from '../logic/difficulty.js';
 import { createRank } from '../logic/rank.js';
 import { aimVelocity } from '../logic/speed.js';
-import { bossStage, bossCycle, fanVelocities, pickLaunchSource, angleToward } from '../logic/boss.js';
+import { bossStage, bossCycle, fanVelocities, pickLaunchOrigin, bossWarmup, angleToward } from '../logic/boss.js';
 import { predicateJudge } from '../logic/judges.js';
 import { colorByKey } from '../logic/temperature.js';
 import { colorCounts, swayOffset, clusterPosition, unmarkedMisses, formatTime } from '../logic/jewelbox.js';
@@ -82,7 +82,8 @@ export default class M4JewelboxScene extends BaseMissionScene {
     });
     this.stage = 1;
     this.stageMs = 0;
-    this.volleyMs = 0;
+    // Spec 3.1 warm-up: the first volley waits one (sparser) interval instead of firing on frame 1.
+    this.volleyMs = bossWarmup(0, false, scaleInterval(BOSS_VOLLEY_MS[1], this.diff.key)).intervalMs;
     this.dimmed = false;
     JEWELBOX.forEach((s, i) => {
       const boss = !!s.isSupergiant;
@@ -108,13 +109,12 @@ export default class M4JewelboxScene extends BaseMissionScene {
     this.rank.onCorrect();
   }
 
-  /** Dim (gap) or restore (attack) every unmarked cluster star. Marked stars keep their marked look. */
+  /** Dim (gap) or restore (attack) the HALOS of unmarked cluster stars. Cores stay alpha 1 so colors never shift. */
   setGapDim(on) {
     this.dimmed = on;
     for (const m of this.members) {
       if (m.obj.marked) continue;
-      this.tweens.killTweensOf([m.obj, m.obj.halo]);
-      this.tweens.add({ targets: m.obj, alpha: on ? BOSS_GAP_DIM_ALPHA : 1, duration: GAP_TWEEN_MS });
+      this.tweens.killTweensOf(m.obj.halo);
       this.tweens.add({
         targets: m.obj.halo, alpha: on ? m.obj.haloAlpha * BOSS_GAP_DIM_ALPHA : m.obj.haloAlpha, duration: GAP_TWEEN_MS,
       });
@@ -133,7 +133,10 @@ export default class M4JewelboxScene extends BaseMissionScene {
     const prev = this.stageMs;
     this.stageMs += dt;
     const { attacking, gapJustStarted } = bossCycle(stage, this.stageMs, prev);
-    if (gapJustStarted && !this.dimmed) this.setGapDim(true);
+    if (gapJustStarted && !this.dimmed) {
+      this.setGapDim(true);
+      this.toast('지금이 기회!', { tone: 'info' }); // non-color cue, once per gap
+    }
     else if (attacking && this.dimmed) this.setGapDim(false);
     if (!attacking) {
       this.volleyMs = 0;
@@ -141,18 +144,18 @@ export default class M4JewelboxScene extends BaseMissionScene {
     }
     this.volleyMs -= dt;
     if (this.volleyMs > 0) return;
-    this.volleyMs = scaleInterval(BOSS_VOLLEY_MS[stage], this.diff.key);
-    this.fireVolley(stage);
+    const w = bossWarmup(this.elapsed, this.rank.aimAllowed, scaleInterval(BOSS_VOLLEY_MS[stage], this.diff.key));
+    this.volleyMs = w.intervalMs;
+    this.fireVolley(stage, w.aim);
   }
 
-  fireVolley(stage) {
+  fireVolley(stage, aim) {
     const ship = { x: this.ship.x, y: this.ship.y };
-    const src = pickLaunchSource(this.members, ship, {
+    // A safe cluster source if any, else the top edge (the boss never goes silent when the ship moves up).
+    const src = pickLaunchOrigin(this.members, ship, {
       diffKey: this.diff.key, tier: this.rank.tier, offsetY: SPAWN_OFFSET_Y,
     });
-    if (!src) return;
-    const from = { x: src.member.obj.x, y: src.member.obj.y + SPAWN_OFFSET_Y };
-    const aim = this.rank.aimAllowed;
+    const from = { x: src.x, y: src.y };
     const shots = [];
     if (stage === 1) {
       shots.push(...fanVelocities(aim ? angleToward(from, ship) : 0, 1, 0, src.speedPxS));
@@ -198,6 +201,7 @@ export default class M4JewelboxScene extends BaseMissionScene {
     if (this.timedOut || this.phaseDone || this.restarting || this.finished) return;
     this.timedOut = true;
     this.phaseDone = true;
+    this.setGapDim(false); // the reveal shows true colors
     const left = this.members.filter(m => !m.obj.marked);
     this.wrongShots += unmarkedMisses(this.members.map(m => m.obj));
     this.endGameplay();

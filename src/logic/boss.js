@@ -1,6 +1,6 @@
 // Mission 4 boss logic (pure): stage by tagged fraction, attack/gap cycle, fans, safe launch sources.
 import {
-  BOSS_STAGE_AT, BOSS_ATTACK_MS, BOSS_GAP_MS, REACTION_FLOOR_SEC, AIM_MAX_ANGLE_DEG,
+  BOSS_STAGE_AT, BOSS_ATTACK_MS, BOSS_GAP_MS, REACTION_FLOOR_SEC, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY,
 } from '../config/balance.js';
 import { getDifficulty } from './difficulty.js';
 import { speedBand, speedFor } from './speed.js';
@@ -67,4 +67,29 @@ export function pickLaunchSource(members, ship, { diffKey, tier = 0, rng = Math.
   if (!eligible.length) return null;
   const e = eligible[Math.min(eligible.length - 1, Math.floor(rng() * eligible.length))];
   return { member: e.member, speedPxS: Math.min(speedFor('hazard', key, tier, rng), e.cap) };
+}
+
+export const TOP_EDGE_LAUNCH_Y = -40; // just above the visible field (the HUD band hides the entry)
+
+/**
+ * Where a scattered star starts. Prefer a safe cluster source; if none is eligible (the ship moved up) fall back to
+ * the top edge above a random non-boss blue member, at the hazard band speed (top-entry reaction floors hold).
+ * Returns { x, y, speedPxS, fromCluster }.
+ */
+export function pickLaunchOrigin(members, ship, { diffKey, tier = 0, rng = Math.random, offsetY = 0 } = {}) {
+  const src = pickLaunchSource(members, ship, { diffKey, tier, rng, offsetY });
+  if (src) return { x: src.member.obj.x, y: src.member.obj.y + offsetY, speedPxS: src.speedPxS, fromCluster: true };
+  const blues = members.filter(m => !m.boss && m.star?.colorKey === 'blue');
+  const pool = blues.length ? blues : members;
+  const m = pool.length ? pool[Math.min(pool.length - 1, Math.floor(rng() * pool.length))] : null;
+  return {
+    x: m ? m.obj.x : ship.x, y: TOP_EDGE_LAUNCH_Y,
+    speedPxS: speedFor('hazard', getDifficulty(diffKey).key, tier, rng), fromCluster: false,
+  };
+}
+
+/** Spec 3.1 warm-up for the boss: no aimed shots, sparser volleys during the first WARMUP_MS. */
+export function bossWarmup(elapsedMs, aimAllowed, intervalMs) {
+  const warm = elapsedMs < WARMUP_MS;
+  return { warm, aim: !!aimAllowed && !warm, intervalMs: warm ? intervalMs / WARMUP_DENSITY : intervalMs };
 }

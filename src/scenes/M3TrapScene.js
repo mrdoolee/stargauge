@@ -8,7 +8,7 @@ import BaseMissionScene from './BaseMissionScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { MISSION_GOAL_COUNTS, M3_SWAY, FORMATION_GAP_WINDOW_MS } from '../config/balance.js';
 import { scaleSpeed } from '../logic/difficulty.js';
-import { speedFor, aimVelocity } from '../logic/speed.js';
+import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
 import { orderedJudge, predicateJudge } from '../logic/judges.js';
 import { sortHottestFirst, colorByKey } from '../logic/temperature.js';
 import {
@@ -72,6 +72,10 @@ export default class M3TrapScene extends BaseMissionScene {
         wrongMessage: trapMsg,
       },
     ];
+  }
+
+  onPhaseStart() {
+    this.formSpeed = createFormationMemo(); // formation indices restart each phase
   }
 
   setupMission() {
@@ -147,7 +151,8 @@ export default class M3TrapScene extends BaseMissionScene {
   spawnObject(_phase, slot) {
     if (!slot || !this.members?.length) return;
     const now = this.swayMs;
-    const speed = speedFor('hazard', this.diff.key, slot.tier);
+    const speed = slot.aim ? speedFor('hazard', this.diff.key, slot.tier)
+      : this.formSpeed(slot.formationIndex, () => speedFor('hazard', this.diff.key, slot.tier)); // one per formation
     let vx = slot.vx;
     let vy = speed;
     let zigzag = slot.zigzag;

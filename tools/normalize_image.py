@@ -1,6 +1,7 @@
 """Dev-time image normalizer (not part of the game bundle).
 
   python -I tools/normalize_image.py <in.png> <out.png> --size WxH [--alpha] [--fit contain|cover] [--max-kb 1024]
+  python -I tools/normalize_image.py <in.png> <out.jpg> --format jpeg [--quality 85] [--size WxH]   (opaque images only; size defaults to the input's)
   python -I tools/normalize_image.py --check-white-core <star-shape.png>
 """
 import argparse
@@ -32,6 +33,17 @@ def fit_image(img, size, fit, alpha):
     canvas = Image.new("RGBA", (tw, th), bg)
     canvas.paste(resized, ((tw - nw) // 2, (th - nh) // 2), resized)
     return canvas
+
+
+def to_jpeg(src, dst, size, quality, fit):
+    img = Image.open(src).convert("RGBA")
+    out = fit_image(img, size or img.size, fit, False)
+    flat = Image.new("RGB", out.size, (0, 0, 0))
+    flat.paste(out, mask=out.split()[3])
+    os.makedirs(os.path.dirname(os.path.abspath(dst)), exist_ok=True)
+    flat.save(dst, "JPEG", quality=quality, optimize=True, progressive=True)
+    print(f"wrote {dst} {flat.size[0]}x{flat.size[1]} {os.path.getsize(dst) / 1024:.0f} KB (jpeg q{quality})")
+    return 0
 
 
 def normalize(src, dst, size, alpha, fit, max_kb):
@@ -80,11 +92,17 @@ def main():
     ap.add_argument("--size")
     ap.add_argument("--alpha", action="store_true")
     ap.add_argument("--fit", choices=["contain", "cover"], default="cover")
+    ap.add_argument("--format", choices=["png", "jpeg"], default="png")
+    ap.add_argument("--quality", type=int, default=85)
     ap.add_argument("--max-kb", type=int, default=1024)
     ap.add_argument("--check-white-core", metavar="PNG")
     a = ap.parse_args()
     if a.check_white_core:
         return check_white_core(a.check_white_core)
+    if a.format == "jpeg":
+        if len(a.paths) != 2 or a.alpha:
+            ap.error("need <in.png> <out.jpg> (no --alpha) with --format jpeg")
+        return to_jpeg(a.paths[0], a.paths[1], parse_size(a.size) if a.size else None, a.quality, a.fit)
     if len(a.paths) != 2 or not a.size:
         ap.error("need <in.png> <out.png> --size WxH")
     return normalize(a.paths[0], a.paths[1], parse_size(a.size), a.alpha, a.fit, a.max_kb)
