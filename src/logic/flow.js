@@ -1,16 +1,18 @@
 // Pure helpers for the end of the game: playtime estimate, result summary, restart key list.
 import {
-  M1_PRACTICE_SEC, M4_TIME_LIMIT_SEC, FORMATION_GAP_MS, FORMATION_MEAN_SIZE, FORMATION_MEAN_SPAN_MS,
+  M1_PRACTICE_SEC, M4_TIME_LIMIT_SEC, FORMATION_GAP_MS,
   M1_ASTEROID_SLOT_CHANCE, MISSION_GOAL_COUNTS, SPAWN_NEEDED_GUARANTEE,
 } from '../config/balance.js';
 import { STAR_COLORS } from './temperature.js';
-import { getDifficulty, scaleInterval } from './difficulty.js';
+import { getDifficulty, formationSlotsPerSec } from './difficulty.js';
 
 /**
  * Student-pace assumptions (NOT measured: no human playtest was possible). Revisit after a field test.
  * hit = chance that a spawned *needed* target is hit correctly; read = seconds spent reading.
  */
 export const PACE = {
+  // hit.m2 0.4 -> 0.25 and retry.easy 1.3 -> 1.0 (2026-11-04): m2 formations are sparser than the old single spawns, so a normal m2
+  // must stay in the spec 4-minute band, while easy (no restarts: heat barely fills) still fits 15 minutes. Unmeasured.
   hit: { m1: 0.3, m2: 0.25 },
   read: { title: 10, briefing: 25, m1: 25, m2: 25, m3: 25, m4: 15, card: 15, picture: 20, chart: 45 },
   m3FindSec: 45, // 3-a: find the hottest of three
@@ -18,7 +20,7 @@ export const PACE = {
   m4SecPerStar: 16,
   m4Stars: 12,
   retryFactor: 1.5, // heat restarts / wrong-shot detours on the timed missions (normal)
-  retryByDifficulty: { easy: 1.0, normal: 1.5, hard: 2.0 }, // fewer / more restarts and detours
+  retryByDifficulty: { easy: 1.0, normal: 1.5, hard: 1.8 }, // fewer / more restarts and detours
   quizSec: 90,
   resultSec: 20,
 };
@@ -30,10 +32,7 @@ function m2Spawns(k) {
   return n;
 }
 
-/** Target slots per second from formation throughput (one formation per scaled gap + its own span). */
-function targetsPerSec(gapMs, diffKey, slotShare = 1) {
-  return (FORMATION_MEAN_SIZE * slotShare) / ((scaleInterval(gapMs, diffKey) + FORMATION_MEAN_SPAN_MS) / 1000);
-}
+const targetsPerSec = (gapMs, diffKey, slotShare = 1) => formationSlotsPerSec(gapMs, diffKey) * slotShare;
 
 export function estimateFlow({
   goals = MISSION_GOAL_COUNTS, gaps = FORMATION_GAP_MS, m4Limit = M4_TIME_LIMIT_SEC, practice = M1_PRACTICE_SEC, difficulty = 'normal',

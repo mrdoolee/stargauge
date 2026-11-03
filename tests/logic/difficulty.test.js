@@ -3,9 +3,11 @@ import { SHIP_HALF_HEIGHT, BEAM_SPAWN_OFFSET_Y } from '../../src/config/balance.
 import { describe, it, expect } from 'vitest';
 import {
   DIFFICULTY, DIFFICULTY_KEYS, getDifficulty, scaleSpeed, scaleInterval, scaledHeat,
-  requiredDodgeFraction, M1_HARD_GRACE_CHECK,
+  requiredDodgeFraction, heatInflowPerSec, M1_HARD_GRACE_CHECK,
 } from '../../src/logic/difficulty.js';
-import { STAR_HEAT, FURNACE_HEAT, ASTEROID_HEAT } from '../../src/config/balance.js';
+import {
+  STAR_HEAT, FURNACE_HEAT, ASTEROID_HEAT, BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_VOLLEY_MS, BOSS_FAN_SHIP_HITS,
+} from '../../src/config/balance.js';
 
 describe('DIFFICULTY table', () => {
   it('has easy/normal/hard with Korean labels', () => {
@@ -73,6 +75,13 @@ describe('m4 boss stages', () => {
       expect(e).toBeLessThanOrEqual(0.4); expect(h).toBeLessThan(0.9);
       expect(e).toBeLessThanOrEqual(n); expect(n).toBeLessThanOrEqual(h);
     }
+  });
+  it('counts the volley that fires as the window opens (ceil) and a fan as BOSS_FAN_SHIP_HITS shots', () => {
+    expect(BOSS_FAN_SHIP_HITS).toBe(1.5);
+    const volleys = Math.ceil(BOSS_ATTACK_MS[3] / (BOSS_VOLLEY_MS[3] * DIFFICULTY.normal.spawnInterval));
+    const heat = scaledHeat('star', 'blue', 'normal');
+    const expected = (volleys * (BOSS_FAN_SHIP_HITS + 1) * heat) / ((BOSS_ATTACK_MS[3] + BOSS_GAP_MS) / 1000);
+    expect(heatInflowPerSec('m4', 'normal', 3)).toBeCloseTo(expected, 6);
   });
   it('no-stage m4 is the worst stage', () => {
     for (const k of DIFFICULTY_KEYS) {

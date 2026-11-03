@@ -148,7 +148,7 @@ npm run build && npm run preview -- --host
 | 미션 1이 길다/짧다 | `MISSION_GOAL_COUNTS.m1` (8), `M1_PRACTICE_SEC` (30) |
 | 미션 1 쇳물이 너무 빨리/늦게 식는다 | `M1_FALL_DISTANCE` (700, 클수록 오래 흰색). 상단 HUD 아래(y 344)부터 식기 시작해 약 y 624까지 흰색 |
 | 미션 1 "방금 노랗게 변했는데 틀렸다"가 잦다 | `M1_WHITE_GRACE_MS` (300, 흰색에서 바뀐 뒤 이 시간 안의 명중은 정답) |
-| 미션 2 별이 한곳에 겹쳐 나온다 | `M2_SPAWN_MIN_GAP_X` (120, 직전 별과 가로로 최소 이만큼 떨어짐) |
+| 미션 2 별이 한곳에 겹쳐 나온다 | 편대 모양이 간격을 정한다 (`src/logic/formations.js`, `FORMATION_OBJECT_WIDTH`, `FORMATION_GAP_WINDOW_MS`) |
 | 미션 3 목표 수 | `MISSION_GOAL_COUNTS.m3a` (1) |
 | 미션 2에서 필요한 색이 늦게 나온다 | `SPAWN_NEEDED_GUARANTEE` (3, 작을수록 빨리 나옴) |
 | 미션 4 시간이 부족/남는다 | `M4_TIME_LIMIT_SEC` (210초) |

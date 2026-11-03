@@ -68,10 +68,12 @@ export const M2_STAR_SCALE = { min: 0.7, max: 1.5 };
 // Boss (2026-11-04): 3 stages by tagged fraction; each stage cycles attack window -> gap (no launches).
 export const BOSS_STAGE_AT = [0, 1 / 3, 2 / 3];
 export const BOSS_ATTACK_MS = { 1: 4000, 2: 4500, 3: 5000 };
-export const BOSS_GAP_MS = 3000;
-export const BOSS_VOLLEY_MS = { 1: 1400, 2: 1600, 3: 1800 }; // launch interval inside an attack window (x difficulty spawnInterval)
+export const BOSS_GAP_MS = 4000;
+export const BOSS_VOLLEY_MS = { 1: 1600, 2: 1800, 3: 2400 }; // launch interval inside an attack window (x difficulty spawnInterval)
 export const BOSS_FAN = { 2: { count: [2, 3], spreadDeg: 30 }, 3: { count: [2, 3], spreadDeg: 36 } };
-export const BOSS_FAN_SHIP_HITS = 1; // balance model: a fan is spread wider than the ship, so a standing ship takes one of it
+// Balance model: mean shots of one fan that hit a standing ship. 2-fans and far launches usually land one hit;
+// a near 3-fan (launched 100-200 px above the ship, only 32-55 px wide at the ship row) can land two.
+export const BOSS_FAN_SHIP_HITS = 1.5;
 export const BOSS_GAP_DIM_ALPHA = 0.55;
 export const M4_SCATTER_SCALE = 0.42;
 export const M4_CLUSTER_AREA = { x: 80, y: 440, w: 560, h: 340 }; // where the normalized JEWELBOX layout is placed

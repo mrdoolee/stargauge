@@ -3,7 +3,7 @@
 import {
   DIFFICULTY_MULTIPLIERS, DIFFICULTY_LABELS, STAR_HEAT, COOL_PER_SEC,
   FORMATION_GAP_MS, FORMATION_MEAN_SIZE, FORMATION_MEAN_SPAN_MS, M1_ASTEROID_SLOT_CHANCE,
-  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_VOLLEY_MS, BOSS_FAN, BOSS_FAN_SHIP_HITS, M1_BLOB_SPEED,
+  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_VOLLEY_MS, BOSS_FAN_SHIP_HITS, M1_BLOB_SPEED,
   M1_WHITE_GRACE_MS, M1_COOL_START_Y, M1_FALL_DISTANCE, FURNACE_STAGE_CUTS, BEAM_SPEED,
   SHIP_HALF_HEIGHT, BEAM_SPAWN_OFFSET_Y,
 } from '../config/balance.js';
@@ -25,6 +25,10 @@ export const scaleInterval = (ms, key) => ms * getDifficulty(key).spawnInterval;
 /** Hull heat of one ship collision at a difficulty (kind 'star'|'furnace'|'asteroid'). */
 export const scaledHeat = (kind, colorKey, key) => heatOnCollision(kind, colorKey) * getDifficulty(key).heat;
 
+/** Object slots per second of a formation mission: one formation per scaled gap plus its own span. */
+export const formationSlotsPerSec = (gapMs, key) =>
+  FORMATION_MEAN_SIZE / ((scaleInterval(gapMs, key) + FORMATION_MEAN_SPAN_MS) / 1000);
+
 /**
  * Worst-case sustained heat check (tier 0, after warm-up). If a student ignored dodging completely and every
  * hazard that reaches the ship's row hit, the heat inflow per second is computed per mission below. Cooling
@@ -35,20 +39,19 @@ export const scaledHeat = (kind, colorKey, key) => heatOnCollision(kind, colorKe
  *   or an asteroid for M1_ASTEROID_SLOT_CHANCE of the slots; m2 the mean star heat; m3 a red trap (conservative:
  *   every candidate accepted).
  * m4: boss cycle = BOSS_ATTACK_MS[stage] + BOSS_GAP_MS. One volley every scaleInterval(BOSS_VOLLEY_MS[stage]) in
- *   the attack window, each blue (30) shot hits. A fan arrives spread wider than the ship, so a standing ship takes
- *   at most BOSS_FAN_SHIP_HITS of it; stage 3 adds one aimed shot where the difficulty allows aim (not easy).
+ *   the attack window, each blue (30) shot hits. Volleys per window = ceil(attack / interval) (the first fires at the window
+ *   start). A fan lands BOSS_FAN_SHIP_HITS shots on average on a standing ship (see balance.js); stage 3 adds one aimed shot where the difficulty allows aim (not easy).
  *   With no `stage`, m4 returns the worst of the three stages.
  */
 export function heatInflowPerSec(mission, key, stage) {
   const h = (kind, c) => scaledHeat(kind, c, key);
   const meanStar = Object.keys(STAR_HEAT).reduce((a, c) => a + h('star', c), 0) / Object.keys(STAR_HEAT).length;
-  const formation = (gapMs, perSlot) =>
-    (FORMATION_MEAN_SIZE * perSlot) / ((scaleInterval(gapMs, key) + FORMATION_MEAN_SPAN_MS) / 1000);
+  const formation = (gapMs, perSlot) => formationSlotsPerSec(gapMs, key) * perSlot;
   const boss = st => {
     const attack = BOSS_ATTACK_MS[st];
-    const volleys = attack / scaleInterval(BOSS_VOLLEY_MS[st], key);
+    const volleys = Math.ceil(attack / scaleInterval(BOSS_VOLLEY_MS[st], key)); // a volley fires as the window opens
     const aimed = st === 3 && getDifficulty(key).key !== 'easy' ? 1 : 0;
-    const fan = st === 1 ? 1 : Math.min(BOSS_FAN_SHIP_HITS, (BOSS_FAN[st].count[0] + BOSS_FAN[st].count[1]) / 2);
+    const fan = st === 1 ? 1 : BOSS_FAN_SHIP_HITS;
     return (volleys * (fan + aimed) * h('star', 'blue')) / ((attack + BOSS_GAP_MS) / 1000);
   };
   switch (mission) {
