@@ -128,4 +128,16 @@ describe('escapeGapOk', () => {
     const slots = [100, 190, 280, 370, 460, 550, 640].map((x, i) => ({ delayMs: i * 1000, x }));
     expect(escapeGapOk(slots, opts)).toBe(true);
   });
+
+  it('counts a zigzag slot by its swept footprint, not plain vx drift', () => {
+    const blocker = (zigzag) => [
+      { delayMs: 0, x: 150, vx: 0, zigzag: null },
+      { delayMs: 0, x: 570, vx: 0, zigzag: null },
+      { delayMs: 0, x: 360, vx: 0, zigzag },
+    ];
+    expect(escapeGapOk(blocker(null), opts)).toBe(true);
+    expect(escapeGapOk(blocker({ amp: 80, periodMs: 1800 }), opts)).toBe(false);
+    const drift = [{ delayMs: 0, x: 360, vx: 300, zigzag: null }];
+    expect(escapeGapOk(drift, opts)).toBe(true);
+  });
 });

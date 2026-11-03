@@ -107,3 +107,21 @@ export const REACTION_FLOOR_SEC = {
   hazard: { easy: 1.2, normal: 0.7, hard: 0.5 },
 };
 export const AIM_MAX_ANGLE_DEG = 35; // aimed shots deviate at most this far from straight down
+
+// Formation shapes (src/logic/formations.js)
+export const FORMATION_LINE_STAGGER_MS = 150;
+export const FORMATION_VEE_SPACING_PX = 110;
+export const FORMATION_VEE_RANK_MS = 300;
+export const FORMATION_VEE_LEAN_PX = 60;
+export const FORMATION_DIAGONAL_STEP_PX = 100;
+export const FORMATION_DIAGONAL_STEP_MS = 300;
+export const FORMATION_DRIFT_VX = 60; // px/s sideways drift for diagonal / pincer
+export const FORMATION_PINCER_PAIR_MS = 500;
+export const FORMATION_PINCER_EDGE_JITTER_PX = 30;
+export const FORMATION_ZIGZAG_AMP_PX = 80;
+export const FORMATION_ZIGZAG_PERIOD_MS = 1800;
+export const FORMATION_ZIGZAG_STEP_MS = 300;
+export const FORMATION_EDGE_JITTER_PX = 40; // random start offset for diagonal / zigzag edge sides
+export const FORMATION_ZIGZAG_CENTER_JITTER_PX = 60;
+export const FORMATION_GAP_WINDOW_MS = 400; // slots this close in time count as the same row
+export const FORMATION_OBJECT_WIDTH = 72; // body diameter = 2 x STAR_CORE_R (36) in src/objects/starTextures.js

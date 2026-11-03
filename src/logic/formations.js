@@ -2,22 +2,28 @@
 // formation (pickFormation) and expands it into one Slot per object (buildFormation).
 // Slot = { delayMs, x, vx, aim, zigzag: { amp, periodMs } | null }. No Phaser imports.
 
+import {
+  FORMATION_LINE_STAGGER_MS,
+  FORMATION_VEE_SPACING_PX,
+  FORMATION_VEE_RANK_MS,
+  FORMATION_VEE_LEAN_PX,
+  FORMATION_DIAGONAL_STEP_PX,
+  FORMATION_DIAGONAL_STEP_MS,
+  FORMATION_DRIFT_VX,
+  FORMATION_PINCER_PAIR_MS,
+  FORMATION_PINCER_EDGE_JITTER_PX,
+  FORMATION_ZIGZAG_AMP_PX,
+  FORMATION_ZIGZAG_PERIOD_MS,
+  FORMATION_ZIGZAG_STEP_MS,
+  FORMATION_EDGE_JITTER_PX,
+  FORMATION_ZIGZAG_CENTER_JITTER_PX,
+  FORMATION_GAP_WINDOW_MS,
+  FORMATION_OBJECT_WIDTH,
+} from '../config/balance.js';
+
 export const FORMATION_IDS = ['line', 'vee', 'diagonal', 'pincer', 'zigzag', 'aimed'];
 export const EASY_FORMATION_IDS = ['line', 'vee', 'diagonal'];
 const SIDES = ['left', 'center', 'right'];
-
-const LINE_STAGGER_MS = 150;
-const VEE_SPACING_PX = 110;
-const VEE_RANK_MS = 300;
-const VEE_LEAN_PX = 60;
-const DIAGONAL_STEP_PX = 100;
-const DIAGONAL_STEP_MS = 300;
-const DRIFT_VX = 60; // px/s sideways drift for diagonal / pincer
-const PINCER_PAIR_MS = 500;
-const PINCER_EDGE_JITTER_PX = 30;
-const ZIGZAG_AMP_PX = 80;
-const ZIGZAG_PERIOD_MS = 1800;
-const ZIGZAG_STEP_MS = 300;
 
 const slot = (delayMs, x, vx = 0, extra = {}) => ({ delayMs, x, vx, aim: false, zigzag: null, ...extra });
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -43,14 +49,14 @@ function buildLine({ side, count, minX, maxX }) {
   const slots = [];
   for (let c = 0, n = 0; c < cols; c++) {
     if (c === skip) continue;
-    slots.push(slot(n++ * LINE_STAGGER_MS, minX + c * step));
+    slots.push(slot(n++ * FORMATION_LINE_STAGGER_MS, minX + c * step));
   }
   return slots;
 }
 
 function buildVee({ side, count, minX, maxX }) {
   const center = (minX + maxX) / 2;
-  const lean = side === 'left' ? -VEE_LEAN_PX : side === 'right' ? VEE_LEAN_PX : 0;
+  const lean = side === 'left' ? -FORMATION_VEE_LEAN_PX : side === 'right' ? FORMATION_VEE_LEAN_PX : 0;
   const cx = center + lean;
   // center = V (apex leads); left/right = inverted V (wings lead, apex last), leaning that way.
   const inverted = side !== 'center';
@@ -58,25 +64,25 @@ function buildVee({ side, count, minX, maxX }) {
   for (let i = 0; i < count; i++) {
     const rank = Math.ceil(i / 2);
     const dir = i === 0 ? 0 : i % 2 === 1 ? -1 : 1;
-    items.push({ rank, x: cx + dir * rank * VEE_SPACING_PX });
+    items.push({ rank, x: cx + dir * rank * FORMATION_VEE_SPACING_PX });
   }
   const maxRank = Math.max(...items.map((it) => it.rank));
   const slots = items.map((it) =>
-    slot((inverted ? maxRank - it.rank : it.rank) * VEE_RANK_MS, clamp(it.x, minX, maxX)),
+    slot((inverted ? maxRank - it.rank : it.rank) * FORMATION_VEE_RANK_MS, clamp(it.x, minX, maxX)),
   );
   return slots.sort((a, b) => a.delayMs - b.delayMs);
 }
 
 function buildDiagonal({ side, count, minX, maxX, rng }) {
   const dir = side === 'left' ? 1 : side === 'right' ? -1 : rng() < 0.5 ? 1 : -1;
-  const span = (count - 1) * DIAGONAL_STEP_PX;
+  const span = (count - 1) * FORMATION_DIAGONAL_STEP_PX;
   let start;
   if (side === 'center') start = (minX + maxX) / 2 - (dir * span) / 2;
-  else if (dir === 1) start = minX + rng() * 40;
-  else start = maxX - rng() * 40;
+  else if (dir === 1) start = minX + rng() * FORMATION_EDGE_JITTER_PX;
+  else start = maxX - rng() * FORMATION_EDGE_JITTER_PX;
   const slots = [];
   for (let i = 0; i < count; i++) {
-    slots.push(slot(i * DIAGONAL_STEP_MS, clamp(start + dir * i * DIAGONAL_STEP_PX, minX, maxX), dir * DRIFT_VX));
+    slots.push(slot(i * FORMATION_DIAGONAL_STEP_MS, clamp(start + dir * i * FORMATION_DIAGONAL_STEP_PX, minX, maxX), dir * FORMATION_DRIFT_VX));
   }
   return slots;
 }
@@ -87,25 +93,25 @@ function buildPincer({ side, count, minX, maxX, rng }) {
   for (let i = 0; i < count; i++) {
     const pair = Math.floor(i / 2);
     const isLeft = (i % 2 === 0) === leftFirst;
-    const jitter = rng() * PINCER_EDGE_JITTER_PX;
+    const jitter = rng() * FORMATION_PINCER_EDGE_JITTER_PX;
     slots.push(
       isLeft
-        ? slot(pair * PINCER_PAIR_MS, minX + jitter, DRIFT_VX)
-        : slot(pair * PINCER_PAIR_MS, maxX - jitter, -DRIFT_VX),
+        ? slot(pair * FORMATION_PINCER_PAIR_MS, minX + jitter, FORMATION_DRIFT_VX)
+        : slot(pair * FORMATION_PINCER_PAIR_MS, maxX - jitter, -FORMATION_DRIFT_VX),
     );
   }
   return slots;
 }
 
 function buildZigzag({ side, count, minX, maxX, rng }) {
-  const lo = minX + ZIGZAG_AMP_PX;
-  const hi = maxX - ZIGZAG_AMP_PX;
+  const lo = minX + FORMATION_ZIGZAG_AMP_PX;
+  const hi = maxX - FORMATION_ZIGZAG_AMP_PX;
   const cx =
-    side === 'left' ? lo + rng() * 40 : side === 'right' ? hi - rng() * 40 : (lo + hi) / 2 + (rng() - 0.5) * 60;
+    side === 'left' ? lo + rng() * FORMATION_EDGE_JITTER_PX : side === 'right' ? hi - rng() * FORMATION_EDGE_JITTER_PX : (lo + hi) / 2 + (rng() - 0.5) * FORMATION_ZIGZAG_CENTER_JITTER_PX;
   const x = clamp(cx, lo, hi);
   const slots = [];
   for (let i = 0; i < count; i++) {
-    slots.push(slot(i * ZIGZAG_STEP_MS, x, 0, { zigzag: { amp: ZIGZAG_AMP_PX, periodMs: ZIGZAG_PERIOD_MS } }));
+    slots.push(slot(i * FORMATION_ZIGZAG_STEP_MS, x, 0, { zigzag: { amp: FORMATION_ZIGZAG_AMP_PX, periodMs: FORMATION_ZIGZAG_PERIOD_MS } }));
   }
   return slots;
 }
@@ -131,19 +137,22 @@ export function buildFormation({ id, side, count, minX, maxX, rng }) {
   return build({ side, count, minX, maxX, rng });
 }
 
-export function escapeGapOk(slots, { shipWidth, minX, maxX, windowMs = 400, objectWidth = 72 }) {
+export function escapeGapOk(slots, { shipWidth, minX, maxX, windowMs = FORMATION_GAP_WINDOW_MS, objectWidth = FORMATION_OBJECT_WIDTH }) {
+  // Motion: a zigzag slot sweeps +-amp while falling, so its footprint is widened by amp.
+  // Plain vx drift is ignored on purpose: same-direction drift (diagonal) preserves the gaps
+  // between objects, and pincer's inward drift opens the wall gaps as it closes the middle.
   const need = 1.5 * shipWidth;
   const half = objectWidth / 2;
   for (const anchor of slots) {
     const group = slots
       .filter((s) => s.delayMs >= anchor.delayMs && s.delayMs <= anchor.delayMs + windowMs)
-      .map((s) => s.x)
-      .sort((a, b) => a - b);
+      .map((s) => ({ x: s.x, reach: half + (s.zigzag ? s.zigzag.amp : 0) }))
+      .sort((a, b) => a.x - b.x);
     let edge = minX; // right edge of the last blocker (the left wall to start)
     let best = 0;
-    for (const x of group) {
-      best = Math.max(best, x - half - edge);
-      edge = Math.max(edge, x + half);
+    for (const { x, reach } of group) {
+      best = Math.max(best, x - reach - edge);
+      edge = Math.max(edge, x + reach);
     }
     best = Math.max(best, maxX - edge);
     if (best < need) return false;
