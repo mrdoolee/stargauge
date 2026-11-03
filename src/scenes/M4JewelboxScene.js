@@ -7,10 +7,13 @@ import Phaser from 'phaser';
 import BaseMissionScene from './BaseMissionScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import {
-  M4_TIME_LIMIT_SEC, M4_SCATTER_INTERVAL_MS, M4_SCATTER_SPEED, M4_SCATTER_SCALE,
-  M4_CLUSTER_AREA, M4_SWAY, M4_STAR_SCALE,
+  M4_TIME_LIMIT_SEC, M4_SCATTER_SCALE, M4_CLUSTER_AREA, M4_SWAY, M4_STAR_SCALE,
+  BOSS_VOLLEY_MS, BOSS_FAN, BOSS_GAP_DIM_ALPHA,
 } from '../config/balance.js';
-import { scaleSpeed } from '../logic/difficulty.js';
+import { scaleInterval } from '../logic/difficulty.js';
+import { createRank } from '../logic/rank.js';
+import { aimVelocity } from '../logic/speed.js';
+import { bossStage, bossCycle, fanVelocities, pickLaunchSource, angleToward } from '../logic/boss.js';
 import { predicateJudge } from '../logic/judges.js';
 import { colorByKey } from '../logic/temperature.js';
 import { colorCounts, swayOffset, clusterPosition, unmarkedMisses, formatTime } from '../logic/jewelbox.js';
@@ -25,8 +28,9 @@ const TAIL = '온도는 색으로 비교해요.';
 const REVEAL_MS = 2600;
 const D = 40;
 
-const rand = (a, b) => a + Math.random() * (b - a);
-const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const SPAWN_OFFSET_Y = 30; // scattered stars appear this far below their source
+const GAP_TWEEN_MS = 300;
+const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
 const QUESTIONS = [
   {
@@ -59,7 +63,6 @@ export default class M4JewelboxScene extends BaseMissionScene {
       id: 'm4',
       judge: predicateJudge(() => true), // every cluster star is a correct target
       remaining: s => s.members.filter(m => !m.obj.marked).length,
-      spawnIntervalMs: M4_SCATTER_INTERVAL_MS,
       get instruction() {
         return `${MISSION_TEXT.m4.instruction} (남은 시간 ${formatTime(scene.timeLeft ?? M4_TIME_LIMIT_SEC)})`;
       },
@@ -72,6 +75,14 @@ export default class M4JewelboxScene extends BaseMissionScene {
     this._shownSec = Math.ceil(this.timeLeft);
     this.timedOut = false;
     this.members = [];
+    this.rank = createRank({
+      diffKey: this.diff.key,
+      restarts: this.registry.get('results')?.m4?.restarts ?? 0,
+    });
+    this.stage = 1;
+    this.stageMs = 0;
+    this.volleyMs = 0;
+    this.dimmed = false;
     JEWELBOX.forEach((s, i) => {
       const boss = !!s.isSupergiant;
       const base = clusterPosition(s, M4_CLUSTER_AREA);
@@ -92,16 +103,70 @@ export default class M4JewelboxScene extends BaseMissionScene {
     this.toast('흩어지는 청색 별은 아주 뜨거워요. 부딪히지 않게 피하세요.', { tone: 'info' });
   }
 
-  spawnObject() {
-    // A small blue star leaves the cluster and flies down. Not targetable (beams pass), hot on contact.
-    const src = pick(this.members.filter(m => !m.boss && m.star.colorKey === 'blue')) ?? this.members[0];
-    if (!src) return;
-    const vy = scaleSpeed(rand(M4_SCATTER_SPEED.min, M4_SCATTER_SPEED.max), this.diff.key);
-    const vx = Phaser.Math.Clamp((this.ship.x - src.obj.x) * 0.25, -120, 120) + rand(-30, 30);
-    this.spawnStar({
-      x: src.obj.x, y: src.obj.y + 30, colorKey: 'blue', scale: M4_SCATTER_SCALE, glow: 0.9,
-      vx, vy, targetable: false, depth: 11,
+  onCorrectHit() {
+    this.rank.onCorrect();
+  }
+
+  /** Dim (gap) or restore (attack) every unmarked cluster star. Marked stars keep their marked look. */
+  setGapDim(on) {
+    this.dimmed = on;
+    for (const m of this.members) {
+      if (m.obj.marked) continue;
+      this.tweens.killTweensOf([m.obj, m.obj.halo]);
+      this.tweens.add({ targets: m.obj, alpha: on ? BOSS_GAP_DIM_ALPHA : 1, duration: GAP_TWEEN_MS });
+      this.tweens.add({
+        targets: m.obj.halo, alpha: on ? m.obj.haloAlpha * BOSS_GAP_DIM_ALPHA : m.obj.haloAlpha, duration: GAP_TWEEN_MS,
+      });
+    }
+  }
+
+  /** Boss attack loop: stage by tagged fraction, attack/gap cycle, volleys from safe blue stars. */
+  updateBoss(dt) {
+    const tagged = this.members.filter(m => m.obj.marked).length / this.members.length;
+    const stage = bossStage(tagged);
+    if (stage !== this.stage) {
+      this.stage = stage;
+      this.stageMs = 0;
+      this.volleyMs = 0;
+    }
+    const prev = this.stageMs;
+    this.stageMs += dt;
+    const { attacking, gapJustStarted } = bossCycle(stage, this.stageMs, prev);
+    if (gapJustStarted && !this.dimmed) this.setGapDim(true);
+    else if (attacking && this.dimmed) this.setGapDim(false);
+    if (!attacking) {
+      this.volleyMs = 0;
+      return;
+    }
+    this.volleyMs -= dt;
+    if (this.volleyMs > 0) return;
+    this.volleyMs = scaleInterval(BOSS_VOLLEY_MS[stage], this.diff.key);
+    this.fireVolley(stage);
+  }
+
+  fireVolley(stage) {
+    const ship = { x: this.ship.x, y: this.ship.y };
+    const src = pickLaunchSource(this.members, ship, {
+      diffKey: this.diff.key, tier: this.rank.tier, offsetY: SPAWN_OFFSET_Y,
     });
+    if (!src) return;
+    const from = { x: src.member.obj.x, y: src.member.obj.y + SPAWN_OFFSET_Y };
+    const aim = this.rank.aimAllowed;
+    const shots = [];
+    if (stage === 1) {
+      shots.push(...fanVelocities(aim ? angleToward(from, ship) : 0, 1, 0, src.speedPxS));
+    } else {
+      const fan = BOSS_FAN[stage];
+      shots.push(...fanVelocities(aim ? angleToward(from, ship) : 0, randInt(fan.count[0], fan.count[1]),
+        fan.spreadDeg, src.speedPxS));
+      if (stage === 3 && aim) shots.push(aimVelocity(from, ship, src.speedPxS));
+    }
+    for (const v of shots) {
+      this.spawnStar({
+        x: from.x, y: from.y, colorKey: 'blue', scale: M4_SCATTER_SCALE, glow: 0.9,
+        vx: v.vx, vy: v.vy, targetable: false, depth: 11,
+      });
+    }
   }
 
   onMissionUpdate(dt) {
@@ -110,6 +175,8 @@ export default class M4JewelboxScene extends BaseMissionScene {
       m.obj.body.reset(m.base.x + swayOffset(this.elapsed, m.amp, m.period, m.phase), m.base.y);
     }
     if (this.timedOut || this.phaseDone) return;
+    this.rank.update(dt);
+    this.updateBoss(dt);
     this.timeLeft = Math.max(0, M4_TIME_LIMIT_SEC - this.elapsed / 1000);
     const sec = Math.ceil(this.timeLeft);
     if (sec !== this._shownSec) {

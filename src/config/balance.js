@@ -69,7 +69,13 @@ export const M2_SPAWN_MIN_GAP_X = 120; // px: a new star spawns at least this fa
 
 // Task 9 additions — mission 4 (jewel box cluster boss).
 export const M4_SCATTER_INTERVAL_MS = 2200; // a scattered blue star leaves the cluster this often
-export const M4_SCATTER_SPEED = { min: 230, max: 310 };
+// Boss (2026-11-04): 3 stages by tagged fraction; each stage cycles attack window -> gap (no launches).
+export const BOSS_STAGE_AT = [0, 1 / 3, 2 / 3];
+export const BOSS_ATTACK_MS = { 1: 4000, 2: 4500, 3: 5000 };
+export const BOSS_GAP_MS = 2500;
+export const BOSS_VOLLEY_MS = { 1: 1100, 2: 1300, 3: 1200 }; // launch interval inside an attack window (x difficulty spawnInterval)
+export const BOSS_FAN = { 2: { count: [2, 3], spreadDeg: 30 }, 3: { count: [2, 3], spreadDeg: 36 } };
+export const BOSS_GAP_DIM_ALPHA = 0.55;
 export const M4_SCATTER_SCALE = 0.42;
 export const M4_CLUSTER_AREA = { x: 80, y: 440, w: 560, h: 340 }; // where the normalized JEWELBOX layout is placed
 export const M4_SWAY = { amp: 26, periodMs: 5200, bossAmp: 40, bossPeriodMs: 7600 };
