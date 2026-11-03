@@ -34,12 +34,12 @@ export function fitLayout(points, box) {
 // ---- mission-3 drifting-group layout (shared by the scene and its tests) ----------------------
 
 export const SPRITE_HALF = 64; // star texture is 128 px: half-width at scale 1
-export const GROUP_SCALE = 300; // px per normalized unit while drifting
+export const GROUP_SCALE = 220;
 export const GROUP_ORIGIN_X = 185;
 export const STAR_PX = 0.9; // draw scale per unit of NAMED_STARS.size
 export const BG_PX = 0.7;
-export const TRAP_SCALE = { min: 1.2, max: 1.3 };
-export const TRAP_GAP = 40; // min clear px between a trap sprite and any constellation sprite
+export const TRAP_SCALE = { min: 1.62, max: 1.65 }; // min = Betelgeuse drawn size (1.8 x STAR_PX): the trap stays a big decoy
+export const TRAP_GAP = 20; // min clear px between a trap sprite and any constellation sprite
 export const SCREEN_EDGE = 10;
 
 /** Every constellation sprite as { id, x, half } (x relative to screen, half = half width in px). */

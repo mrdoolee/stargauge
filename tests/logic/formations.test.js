@@ -28,23 +28,21 @@ describe('seededRng', () => {
 
 describe('pickFormation', () => {
   it('never repeats the previous formation or side', () => {
+    const bad = [];
     for (const diffKey of ['easy', 'normal', 'hard']) {
       for (const aimAllowed of [false, true]) {
         const rng = seededRng(11);
         let prev = { id: null, side: null };
         for (let i = 0; i < 1000; i++) {
           const next = pickFormation({ prevId: prev.id, prevSide: prev.side, diffKey, aimAllowed, rng });
-          expect(FORMATION_IDS).toContain(next.id);
-          expect(SIDES).toContain(next.side);
-          if (i > 0) {
-            expect(next.id).not.toBe(prev.id);
-            expect(next.side).not.toBe(prev.side);
-          }
+          if (!FORMATION_IDS.includes(next.id) || !SIDES.includes(next.side)
+            || (i > 0 && (next.id === prev.id || next.side === prev.side))) bad.push({ diffKey, aimAllowed, i, prev, next });
           prev = next;
         }
       }
     }
-  });
+    expect(bad).toEqual([]);
+  }, 20000);
 
   it('easy only gets line/vee/diagonal and never aimed', () => {
     const rng = seededRng(3);

@@ -72,7 +72,7 @@ export const M4_SCATTER_INTERVAL_MS = 2200; // a scattered blue star leaves the 
 export const M4_SCATTER_SPEED = { min: 230, max: 310 };
 export const M4_SCATTER_SCALE = 0.42;
 export const M4_CLUSTER_AREA = { x: 80, y: 440, w: 560, h: 340 }; // where the normalized JEWELBOX layout is placed
-export const M4_SWAY = { amp: 26, periodMs: 5200, bossAmp: 40, bossPeriodMs: 7600 };
+export const M4_SWAY = { amp: 26, periodMs: 12000, bossAmp: 40, bossPeriodMs: 7600 };
 export const M4_STAR_SCALE = 0.9; // JEWELBOX size multiplier -> sprite scale
 
 // Difficulty (2026-10-31). Multipliers on the base values above; `normal` is 1 everywhere = the shipped feel.
@@ -134,4 +134,4 @@ export const FORMATION_GAP_MS = { m1: 2600, m2: 3200, m3: 2400, m4: 0 }; // rest
 export const RANK_GAP_SHRINK = 0.08; // rest shrinks by this fraction per tension tier
 
 // Mission 3: the constellation group sways left <-> right across the whole screen (amplitude derived from its extent)
-export const M3_SWAY = { periodMs: 9000 };
+export const M3_SWAY = { periodMs: 12000 };

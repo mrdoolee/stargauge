@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { toScreen, advanceGroup, fitLayout } from '../../src/logic/constellation.js';
-import { CONSTELLATION_POS, ORION_BACKGROUND } from '../../src/data/stars.js';
+import { CONSTELLATION_POS, ORION_BACKGROUND, NAMED_STARS } from '../../src/data/stars.js';
 
 describe('toScreen', () => {
   it('maps normalized coords with north up and east left kept', () => {
@@ -43,7 +43,7 @@ describe('fitLayout', () => {
 
 import {
   groupSprites, groupExtent, groupSwayX, groupBox, isTrapPathClear, trapKeepsEscapeGap,
-  SPRITE_HALF, TRAP_SCALE, TRAP_GAP, SCREEN_EDGE, GROUP_SCALE,
+  SPRITE_HALF, TRAP_SCALE, TRAP_GAP, SCREEN_EDGE, GROUP_SCALE, STAR_PX,
 } from '../../src/logic/constellation.js';
 import { M3_SWAY } from '../../src/config/balance.js';
 import { buildFormation, pickFormation, escapeGapOk, zigzagVx } from '../../src/logic/formations.js';
@@ -133,7 +133,7 @@ describe('trap spawning simulation', () => {
     isTrapPathClear({ x: c.x, vx: c.vx, vy: c.vy, y0: -80, t0Ms: c.t, zigzag: c.zigzag }, boxAt, FIELD));
 
   it('accepts a healthy share of candidates', () => {
-    expect(accepted.length).toBeGreaterThan(30); // the group is wide: only ~3% of random candidates fit beside it
+    expect(accepted.length).toBeGreaterThanOrEqual(0.15 * 2000);
   });
   it('no accepted trap ever overlaps the group', () => {
     for (const c of accepted) {
@@ -152,6 +152,15 @@ describe('trap spawning simulation', () => {
     const right = accepted.filter(c => c.x > 360).length / accepted.length;
     expect(left).toBeGreaterThanOrEqual(0.2);
     expect(right).toBeGreaterThanOrEqual(0.2);
+  });
+});
+
+describe('shipped trap size and geometry', () => {
+  it('trap is at least as large as Betelgeuse drawn, group stays >= 220 px per unit', () => {
+    expect(TRAP_SCALE.min).toBeGreaterThanOrEqual(NAMED_STARS.betelgeuse.size * STAR_PX - 1e-9);
+    expect(GROUP_SCALE).toBeGreaterThanOrEqual(220);
+    expect(TRAP_GAP).toBeGreaterThanOrEqual(20);
+    expect(M3_SWAY.periodMs).toBeLessThanOrEqual(12000);
   });
 });
 
