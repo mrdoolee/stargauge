@@ -33,10 +33,16 @@ async function boot() {
   const { default: M1FurnaceScene } = await import('./scenes/M1FurnaceScene.js');
   const { default: M2GaugeScene } = await import('./scenes/M2GaugeScene.js');
 
+  let colorsView = false;
   const scenes = [BootScene, TitleScene, CardScene, M1FurnaceScene, M2GaugeScene, M3TrapScene, M4JewelboxScene, ReportScene, ResultScene, HudScene];
   if (dbg.debug) {
     const { default: DebugFpsScene } = await import('./scenes/DebugFpsScene.js');
     scenes.push(DebugFpsScene); // last = drawn on top; not even imported when debug is off
+    if (new URLSearchParams(window.location.search).get('colors') === '1') {
+      const { default: DebugColorsScene } = await import('./scenes/DebugColorsScene.js'); // ?debug=1&colors=1: the 7 star colors
+      scenes.push(DebugColorsScene);
+      colorsView = true;
+    }
   }
 
   game = new Phaser.Game({
@@ -59,6 +65,7 @@ async function boot() {
       for (const [k, v] of Object.entries(debugRegistryDefaults())) game.registry.set(k, v);
       game.registry.set('debugStart', dbg.mission);
     }
+    if (colorsView) game.registry.set('debugStart', 'debugcolors');
     if (dbg.difficulty) game.registry.set('difficulty', dbg.difficulty); // ?debug=1&difficulty=easy|normal|hard
   }
 

@@ -10,6 +10,7 @@
 // always drawn at full alpha so dimming never darkens (and so shifts) a star's color.
 
 import { STAR_COLORS, FURNACE_STAGES } from '../logic/temperature.js';
+import { tintPixels, stretchLuminance, snapWhite } from './tint.js';
 
 export const STAR_TEX = 128; // texture edge (px)
 export const STAR_CORE_R = 36; // core disc radius in texture px == Arcade body radius
@@ -52,8 +53,40 @@ function drawFurnace(g, hex) {
   g.fillCircle(c, c - 18, R - 20);
 }
 
+// Generated shapes (public/img, white/gray only): the code multiplies in the palette color, so a pure-white
+// pixel (the star core) ends up exactly STAR_COLORS[i].hex.
+const STAR_CORE_WHITE = 250; // core pixels this white (art is ~253) snap to 255 so the core equals the palette color exactly
+const FURNACE_SHAPE_FILL = 0.8; // the art spans ~110 px; scaled so it matches the old code blob (~88 px, hitbox R 36)
+const FURNACE_LUM_PERCENTILE = 0.9; // brighten the gray blob so 'white' still reads white
+
+function shapePixels(scene, shapeKey, fill = 1, stretch = null) {
+  const tex = scene.textures;
+  if (!tex.exists(shapeKey)) return null;
+  const src = tex.get(shapeKey).getSourceImage();
+  const cv = document.createElement('canvas');
+  cv.width = STAR_TEX;
+  cv.height = STAR_TEX;
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  const w = src.width * fill;
+  const h = src.height * fill;
+  ctx.drawImage(src, (STAR_TEX - w) / 2, (STAR_TEX - h) / 2, w, h);
+  const data = ctx.getImageData(0, 0, STAR_TEX, STAR_TEX).data;
+  return stretch ? stretchLuminance(data, stretch) : snapWhite(data, STAR_CORE_WHITE);
+}
+
+function bakeTinted(scene, key, pixels, hex) {
+  const tex = scene.textures;
+  if (tex.exists(key)) return; // once per game
+  const ct = tex.createCanvas(key, STAR_TEX, STAR_TEX);
+  const img = new ImageData(tintPixels(pixels, hex), STAR_TEX, STAR_TEX);
+  ct.context.putImageData(img, 0, 0);
+  ct.refresh();
+}
+
 export function makeStarTextures(scene) {
   const tex = scene.textures;
+  const starPx = shapePixels(scene, 'star-shape');
+  const furnacePx = shapePixels(scene, 'furnace-shape', FURNACE_SHAPE_FILL, FURNACE_LUM_PERCENTILE);
   const g = scene.make.graphics({ x: 0, y: 0 }, false);
   const bake = (key, w, h, draw) => {
     if (tex.exists(key)) return;
@@ -63,11 +96,13 @@ export function makeStarTextures(scene) {
   };
 
   for (const c of STAR_COLORS) {
-    bake(`star-${c.key}`, STAR_TEX, STAR_TEX, () => drawCore(g, c.hex));
+    if (starPx) bakeTinted(scene, `star-${c.key}`, starPx, c.hex);
+    else bake(`star-${c.key}`, STAR_TEX, STAR_TEX, () => drawCore(g, c.hex));
     bake(`glow-${c.key}`, GLOW_TEX, GLOW_TEX, () => drawGlow(g, c.hex));
   }
   for (const s of FURNACE_STAGES) {
-    bake(`furnace-${s.key}`, STAR_TEX, STAR_TEX, () => drawFurnace(g, s.hex));
+    if (furnacePx) bakeTinted(scene, `furnace-${s.key}`, furnacePx, s.hex);
+    else bake(`furnace-${s.key}`, STAR_TEX, STAR_TEX, () => drawFurnace(g, s.hex));
   }
 
   bake('ship', 64, 76, () => {
@@ -120,6 +155,14 @@ export function makeStarTextures(scene) {
   });
 
   g.destroy();
+}
+
+export const ASTEROID_KEYS = ['asteroid-1', 'asteroid-2', 'asteroid-3'];
+export const ASTEROID_TEX = 72; // the code asteroid's edge; loaded art (128 px) is scaled to this footprint
+
+/** Loaded generated asteroid texture keys (empty -> the code-drawn 'asteroid'). */
+export function loadedAsteroidKeys(scene) {
+  return ASTEROID_KEYS.filter(k => scene.textures.exists(k));
 }
 
 /** Texture key for a pooled object's look. */

@@ -20,6 +20,7 @@ export default class M1FurnaceScene extends BaseMissionScene {
   constructor() {
     super('m1');
     this.showGauge = false;
+    this.backdropKey = 'bg-furnace'; // static furnace interior
     this.toastAt = 'low'; // toasts below the white zone, never on top of it
   }
 

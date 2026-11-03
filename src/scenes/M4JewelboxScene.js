@@ -54,6 +54,7 @@ const QUESTIONS = [
 export default class M4JewelboxScene extends BaseMissionScene {
   constructor() {
     super('m4');
+    this.backdropKey = 'bg-cluster'; // static star cluster
     this.sunRef = true; // gauge starts empty; the sun marker still helps compare colors
   }
 

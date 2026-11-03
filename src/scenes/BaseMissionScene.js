@@ -105,10 +105,17 @@ import { missionStars } from '../logic/scoring.js';
 import { MISSION_TEXT, wrongShotMessage } from '../data/copy.js';
 import { TouchControls, fireButtonRect, joystickLayout, shipMaxY, stepShip } from '../input/TouchControls.js';
 import { hasImage, addBackdrop } from '../config/assets.js';
-import { makeStarTextures, textureFor } from '../objects/starTextures.js';
+import { makeStarTextures, textureFor, loadedAsteroidKeys, ASTEROID_TEX } from '../objects/starTextures.js';
+import { createParallax, PARALLAX_SPACE } from '../objects/parallax.js';
 import { createPools, acquire, release, syncHalos } from '../objects/Pools.js';
 import { FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
+
+// Backdrop dimming: stars must stay the brightest, most saturated things on screen.
+const BACKDROP_DIM = { color: 0x05070f, alpha: 0.45 };
+// Engine flames under the ship art's three nozzles (256x304 art -> 64x76; offsets from the ship's centre, in screen px).
+const ENGINE_NOZZLES = [{ x: 0, y: 28, w: 7, h: 14 }, { x: -11, y: 23, w: 5, h: 10 }, { x: 11, y: 23, w: 5, h: 10 }];
+const ENGINE_COLOR = 0x9ffff0;
 
 const FX_RINGS = 8;
 const FX_POPS = 6; // pooled "+1" score texts
@@ -178,7 +185,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     makeStarTextures(this);
     this.pools = createPools(this);
 
-    addBackdrop(this, this.backdropKey || 'bg-space', GAME_WIDTH, GAME_HEIGHT); // no-op until the image exists
+    this.createBackground();
     this.ship = this.physics.add.image(GAME_WIDTH / 2, SHIP_START_Y, 'ship').setDepth(20);
     this.ship.body.setAllowGravity(false);
     // The code ship is 64x76 (s = 1). A loaded 'ship' image of another size is scaled to the same footprint.
@@ -192,6 +199,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     const maxY = shipMaxY({ joystick: this.joystickArea, fireRect: this.fireRect, shipHalfHeight: this.ship.displayHeight / 2 });
     this.shipBounds = { ...SHIP_BOUNDS, maxY };
     this.ship.y = Math.min(SHIP_START_Y, maxY);
+    this.createEngine();
 
     this.fxRings = [];
     for (let i = 0; i < FX_RINGS; i++) {
@@ -233,6 +241,57 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.emitHudState();
   }
 
+  /**
+   * Mission backdrop, all below gameplay. `backdropKey` (set in a subclass constructor) = one static picture;
+   * otherwise the two parallax space layers. Missing images are skipped (plain dark background).
+   */
+  createBackground() {
+    this.parallax = null;
+    let any = false;
+    if (this.backdropKey) any = !!addBackdrop(this, this.backdropKey, GAME_WIDTH, GAME_HEIGHT, -10);
+    else {
+      this.parallax = createParallax(this, PARALLAX_SPACE);
+      any = this.parallax.tiles.length > 0;
+    }
+    if (any) {
+      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, BACKDROP_DIM.color, BACKDROP_DIM.alpha).setDepth(-8);
+    }
+  }
+
+  /** Engine flame(s) under the ship: the 'ship-engine' atlas (tag 'burn') when listed in assets, else a code flicker. */
+  createEngine() {
+    this.engine = [];
+    if (hasImage(this, 'ship-engine')) {
+      try {
+        this.anims.createFromAseprite('ship-engine');
+        const sp = this.add.sprite(0, 0, 'ship-engine').setDepth(19).setOrigin(0.5, 0);
+        sp.play({ key: 'burn', repeat: -1 });
+        this.engine.push({ obj: sp, dx: 0, dy: this.ship.displayHeight / 2 - 8, code: false });
+        return;
+      } catch (e) {
+        console.warn('ship-engine atlas present but unusable; using code flame', e);
+        this.engine.forEach(x => x.obj.destroy());
+        this.engine = [];
+      }
+    }
+    ENGINE_NOZZLES.forEach((n, i) => {
+      const obj = this.add.ellipse(0, 0, n.w, n.h, ENGINE_COLOR, 0.8).setOrigin(0.5, 0).setDepth(19).setBlendMode(Phaser.BlendModes.ADD);
+      this.engine.push({ obj, dx: n.x, dy: n.y, h: n.h, phase: i * 2.1, code: true });
+    });
+  }
+
+  updateEngine(time) {
+    for (const e of this.engine) {
+      e.obj.setVisible(this.ship.visible);
+      if (!this.ship.visible) continue;
+      e.obj.setPosition(this.ship.x + e.dx, this.ship.y + e.dy);
+      if (e.code) {
+        const f = Math.sin(time * 0.03 + e.phase) * 0.5 + 0.5; // 0..1 flicker, ~5 Hz
+        e.obj.setScale(0.8 + 0.3 * f, 0.7 + 0.5 * f).setAlpha(0.55 + 0.4 * f);
+      }
+    }
+  }
+
   onShutdown() {
     this.events.off('postupdate', this.lateUpdate, this);
     this.game.events.off('hud-ready', this.emitHudState, this);
@@ -242,6 +301,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     const dt = Math.min(delta, MAX_DT_MS);
     this.controls.update();
     this.syncJoystick();
+    this.parallax?.update(dt);
     if (!this.playing) return;
 
     const v = this.controls.vector;
@@ -275,6 +335,7 @@ export default class BaseMissionScene extends Phaser.Scene {
 
   lateUpdate() {
     syncHalos(this.pools.stars);
+    this.updateEngine(this.time.now);
     this.onLateUpdate();
   }
 
@@ -453,7 +514,20 @@ export default class BaseMissionScene extends Phaser.Scene {
       keepOnMark: false, starId: null, name: '', marked: false, hitCooldownUntil: 0,
       zigzag, zigBaseVx: vx, zigAgeMs: 0,
     });
-    obj.setScale(scale);
+    // Generated art (128 px) is shown at the old 72 px footprint with the same hitbox (circle r 30 at the centre).
+    const keys = loadedAsteroidKeys(this);
+    if (keys.length) {
+      const key = keys[Math.floor(Math.random() * keys.length)];
+      obj.setTexture(key);
+      const k = ASTEROID_TEX / obj.width;
+      obj.setScale(scale * k);
+      const r = 30 / k;
+      obj.body.setCircle(r, obj.width / 2 - r, obj.height / 2 - r);
+    } else {
+      obj.setTexture('asteroid');
+      obj.setScale(scale);
+      obj.body.setCircle(30, 6, 6);
+    }
     obj.body.setVelocity(vx, vy);
     obj.body.setAngularVelocity(spin);
     return obj;

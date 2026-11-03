@@ -13,7 +13,10 @@ export default class TitleScene extends Phaser.Scene {
 
   create() {
     const cx = GAME_WIDTH / 2;
-    addBackdrop(this, 'title-art', GAME_WIDTH, GAME_HEIGHT); // no-op until the image exists
+    if (addBackdrop(this, 'title-art', GAME_WIDTH, GAME_HEIGHT)) {
+      // keep the title text and buttons readable over the picture
+      this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x05070f, 0.5).setDepth(-9);
+    }
     this.add
       .text(cx, GAME_HEIGHT * 0.3, '별빛 탐사선\n스타게이지호', {
         fontFamily: FONT,
@@ -21,13 +24,15 @@ export default class TitleScene extends Phaser.Scene {
         fontStyle: 'bold',
         color: '#ffffff',
         align: 'center',
+        stroke: '#05070f',
+        strokeThickness: 8,
       })
       .setOrigin(0.5);
 
     // Difficulty choice (kept across "처음부터 다시" in the registry; default 중간).
     let selected = getDifficulty(this.registry.get('difficulty')).key;
     this.add
-      .text(cx, GAME_HEIGHT * 0.5, '난이도를 고르세요', { fontFamily: FONT, fontSize: '30px', color: '#e8ecff' })
+      .text(cx, GAME_HEIGHT * 0.5, '난이도를 고르세요', { fontFamily: FONT, fontSize: '30px', color: '#e8ecff', stroke: '#05070f', strokeThickness: 6 })
       .setOrigin(0.5);
     const chips = {};
     const paint = () => {
