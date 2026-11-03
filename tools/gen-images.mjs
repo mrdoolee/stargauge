@@ -1,5 +1,5 @@
 // Dev-time only image generation. NOT part of the game bundle.
-//   node --env-file=.env tools/gen-images.mjs <assetId> [--ref <png>] [--dry-run]
+//   node --env-file=.env tools/gen-images.mjs <assetId> [--ref <png>] [--out <png>] [--dry-run]
 // Env: OPENAI_API_KEY (never logged), OPENAI_IMAGE_MODEL.
 // Assumptions (verify against current OpenAI docs before first real run):
 //  - POST https://api.openai.com/v1/images/generations takes JSON {model, prompt, size, background, n}.
@@ -43,10 +43,11 @@ export function redactSecrets(text, apiKey) {
 }
 
 export function parseArgs(argv) {
-  const out = { assetId: null, ref: null, dryRun: false };
+  const out = { assetId: null, ref: null, dryRun: false, out: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--ref') out.ref = argv[++i];
+    else if (a === '--out') out.out = argv[++i];
     else if (a === '--dry-run') out.dryRun = true;
     else if (!a.startsWith('--') && !out.assetId) out.assetId = a;
     else throw new Error(`unknown argument: ${a}`);
@@ -57,7 +58,7 @@ export function parseArgs(argv) {
 async function main() {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const args = parseArgs(process.argv.slice(2));
-  if (!args.assetId) throw new Error('usage: node --env-file=.env tools/gen-images.mjs <assetId> [--ref <png>] [--dry-run]');
+  if (!args.assetId) throw new Error('usage: node --env-file=.env tools/gen-images.mjs <assetId> [--ref <png>] [--out <png>] [--dry-run]');
   const manifest = JSON.parse(readFileSync(resolve(root, 'art/asset-manifest.json'), 'utf8'));
   const asset = manifest.assets.find(a => a.id === args.assetId);
   if (!asset) throw new Error(`unknown asset id "${args.assetId}". Known: ${manifest.assets.map(a => a.id).join(', ')}`);
@@ -88,7 +89,7 @@ async function main() {
   const json = await res.json();
   const b64 = json?.data?.[0]?.b64_json;
   if (!b64) throw new Error('response had no data[0].b64_json');
-  const outPath = resolve(root, 'art/raw', `${asset.id}.png`);
+  const outPath = args.out ? resolve(args.out) : resolve(root, 'art/raw', `${asset.id}.png`);
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, Buffer.from(b64, 'base64'));
   console.log(`wrote ${outPath} (model ${model}). Record it in art/PROVENANCE.md.`);

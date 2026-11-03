@@ -58,7 +58,11 @@ describe('gen-images buildRequest', () => {
     expect(find('bg-space')).toBeUndefined();
   });
   it('parseArgs', () => {
-    expect(parseArgs(['ship', '--ref', 'a.png', '--dry-run'])).toEqual({ assetId: 'ship', ref: 'a.png', dryRun: true });
+    expect(parseArgs(['ship', '--ref', 'a.png', '--dry-run'])).toEqual({ assetId: 'ship', ref: 'a.png', dryRun: true, out: null });
+  });
+  it('parseArgs --out', () => {
+    expect(parseArgs(['ship', '--out', 'x/y.png']).out).toBe('x/y.png');
+    expect(parseArgs(['ship']).out).toBeNull();
   });
 });
 
