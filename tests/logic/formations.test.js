@@ -141,3 +141,18 @@ describe('escapeGapOk', () => {
     expect(escapeGapOk(drift, opts)).toBe(true);
   });
 });
+
+import { zigzagVx } from '../../src/logic/formations.js';
+
+describe('zigzagVx', () => {
+  const z = { amp: 60, periodMs: 2000 };
+  it('null zigzag leaves vx alone', () => {
+    expect(zigzagVx(15, null, 123)).toBe(15);
+  });
+  it('t=0 is baseVx + amp*2pi*1000/period', () => {
+    expect(zigzagVx(10, z, 0)).toBeCloseTo(10 + (60 * 2 * Math.PI * 1000) / 2000, 6);
+  });
+  it('t=period/4 equals baseVx', () => {
+    expect(zigzagVx(10, z, 500)).toBeCloseTo(10, 6);
+  });
+});

@@ -29,6 +29,16 @@ const slot = (delayMs, x, vx = 0, extra = {}) => ({ delayMs, x, vx, aim: false, 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const pickFrom = (list, rng) => list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
 
+/**
+ * Zigzag sway: vx (px/s) at tMs after spawn. x offset = amp*sin(2*pi*t/period), so vx is its derivative
+ * plus the slot's base drift. zigzag null -> baseVx.
+ */
+export function zigzagVx(baseVx, zigzag, tMs) {
+  if (!zigzag) return baseVx;
+  const w = (2 * Math.PI) / zigzag.periodMs;
+  return baseVx + zigzag.amp * w * 1000 * Math.cos(w * tMs);
+}
+
 export function pickFormation({ prevId = null, prevSide = null, diffKey, aimAllowed, rng }) {
   let ids = diffKey === 'easy' ? EASY_FORMATION_IDS : FORMATION_IDS;
   if (diffKey === 'easy' || !aimAllowed) ids = ids.filter((id) => id !== 'aimed');

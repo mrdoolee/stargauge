@@ -10,6 +10,22 @@ export function pickSpawnColor({ needed, all, sinceNeeded, rng }) {
   return pick(all, rng);
 }
 
+/**
+ * Colors for one formation (one per slot). If no slot holds a needed color and this would be the
+ * SPAWN_NEEDED_GUARANTEE-th formation without one, a random slot is swapped to a needed color.
+ * sinceNeeded resets to 0 when a needed color is present, else +1.
+ */
+export function fillFormationColors({ slotCount, needed, all, sinceNeeded, rng }) {
+  const colors = [];
+  for (let i = 0; i < slotCount; i++) colors.push(pick(all, rng));
+  let has = colors.some(c => needed.includes(c));
+  if (!has && needed.length > 0 && slotCount > 0 && sinceNeeded + 1 >= SPAWN_NEEDED_GUARANTEE) {
+    colors[Math.min(slotCount - 1, Math.floor(rng() * slotCount))] = pick(needed, rng);
+    has = true;
+  }
+  return { colors, sinceNeeded: has ? 0 : sinceNeeded + 1 };
+}
+
 export class Spawner {
   constructor({ intervalMs }) {
     this.intervalMs = intervalMs;

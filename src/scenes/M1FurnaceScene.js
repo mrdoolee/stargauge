@@ -3,11 +3,12 @@
 // (or left white at most M1_WHITE_GRACE_MS ago). Cooling starts below the HUD band, so the white
 // window is on screen (y ~344-624). After an overheat restart the practice is skipped.
 import BaseMissionScene from './BaseMissionScene.js';
-import { GAME_WIDTH } from '../config/game.js';
 import {
-  M1_PRACTICE_SEC, M1_ASTEROID_INTERVAL_MS, M1_BLOB_SPEED, MISSION_GOAL_COUNTS,
+  M1_PRACTICE_SEC, M1_ASTEROID_SLOT_CHANCE, M1_BLOB_SPEED, MISSION_GOAL_COUNTS,
 } from '../config/balance.js';
-import { scaleSpeed, scaleInterval } from '../logic/difficulty.js';
+import { GAME_WIDTH } from '../config/game.js';
+import { scaleSpeed } from '../logic/difficulty.js';
+import { speedFor, aimVelocity } from '../logic/speed.js';
 import { predicateJudge } from '../logic/judges.js';
 import { furnaceStageAt, furnaceFallFraction, countsAsWhite, practiceToastDue } from '../logic/furnace.js';
 import { MISSION_TEXT } from '../data/copy.js';
@@ -25,6 +26,7 @@ export default class M1FurnaceScene extends BaseMissionScene {
   buildPhases() {
     const test = {
       id: 'm1',
+      waves: true,
       judge: predicateJudge(t => this.isWhiteHit(t.obj)),
       remaining: s => MISSION_GOAL_COUNTS.m1 - s.phaseHits,
     };
@@ -59,23 +61,35 @@ export default class M1FurnaceScene extends BaseMissionScene {
 
   onPhaseStart(phase) {
     this.phaseMs = 0;
-    this.asteroidAcc = 0;
     if (!phase.practice) {
       this.toast('이제 진짜예요! 흰색일 때만 쏘고, 부딪히면 선체 온도가 올라가요.', { tone: 'info' });
     }
   }
 
-  spawnObject() {
+  spawnObject(phase, slot) {
+    if (!slot) {
+      // Practice: timer spawner, no formations.
+      const o = this.spawnStar({
+        x: rand(70, GAME_WIDTH - 70), y: SPAWN_Y, colorKey: 'white', kind: 'furnace',
+        scale: rand(0.9, 1.3), glow: 0.7, vy: scaleSpeed(rand(M1_BLOB_SPEED.min, M1_BLOB_SPEED.max), this.diff.key),
+      });
+      if (o) o.whiteEndedAt = null; // pooled object: clear the previous blob's value
+      return;
+    }
+    // Test: aimed slots and a share of the others become asteroids; the rest are furnace blobs.
+    if (slot.aim || Math.random() < M1_ASTEROID_SLOT_CHANCE) {
+      const speed = speedFor('hazard', this.diff.key, slot.tier);
+      let vx = slot.vx;
+      let vy = speed;
+      if (slot.aim) ({ vx, vy } = aimVelocity({ x: slot.x, y: SPAWN_Y }, { x: this.ship.x, y: this.ship.y }, speed));
+      this.spawnAsteroid({ x: slot.x, y: SPAWN_Y, vx, vy, scale: rand(0.9, 1.3), zigzag: slot.zigzag });
+      return;
+    }
     const o = this.spawnStar({
-      x: rand(70, GAME_WIDTH - 70),
-      y: SPAWN_Y,
-      colorKey: 'white',
-      kind: 'furnace',
-      scale: rand(0.9, 1.3),
-      glow: 0.7,
-      vy: scaleSpeed(rand(M1_BLOB_SPEED.min, M1_BLOB_SPEED.max), this.diff.key),
+      x: slot.x, y: SPAWN_Y, colorKey: 'white', kind: 'furnace', scale: rand(0.9, 1.3), glow: 0.7,
+      vx: slot.vx, vy: scaleSpeed(rand(M1_BLOB_SPEED.min, M1_BLOB_SPEED.max), this.diff.key), zigzag: slot.zigzag,
     });
-    if (o) o.whiteEndedAt = null; // pooled object: clear the previous blob's value
+    if (o) o.whiteEndedAt = null;
   }
 
   onMissionUpdate(dt) {
@@ -89,15 +103,7 @@ export default class M1FurnaceScene extends BaseMissionScene {
     }
     if (this.phaseDone) return;
     this.phaseMs += dt;
-    if (this.phase.practice) {
-      if (this.phaseMs >= M1_PRACTICE_SEC * 1000) this.completePhase();
-    } else {
-      this.asteroidAcc += dt;
-      if (this.asteroidAcc >= scaleInterval(M1_ASTEROID_INTERVAL_MS, this.diff.key)) {
-        this.asteroidAcc = 0;
-        this.spawnAsteroid({ x: rand(70, GAME_WIDTH - 70), y: SPAWN_Y, vx: rand(-40, 40), vy: scaleSpeed(rand(220, 300), this.diff.key), scale: rand(0.9, 1.3) });
-      }
-    }
+    if (this.phase.practice && this.phaseMs >= M1_PRACTICE_SEC * 1000) this.completePhase();
   }
 
   onCorrectHit(obj, result) {

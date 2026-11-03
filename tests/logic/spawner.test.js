@@ -66,3 +66,40 @@ describe('spawnXAwayFrom', () => {
     expect(M2_SPAWN_MIN_GAP_X).toBeGreaterThanOrEqual(120);
   });
 });
+
+import { fillFormationColors } from '../../src/logic/spawner.js';
+
+describe('fillFormationColors', () => {
+  const ALL = ['blue', 'blueWhite', 'white', 'yellowWhite', 'yellow', 'orange', 'red'];
+  const rng0 = () => 0; // always picks index 0 -> 'blue' (not needed below)
+  it('one color per slot, all drawn from `all`', () => {
+    const { colors } = fillFormationColors({ slotCount: 5, needed: ['red'], all: ALL, sinceNeeded: 0, rng: Math.random });
+    expect(colors).toHaveLength(5);
+    for (const c of colors) expect(ALL).toContain(c);
+  });
+  it('forces a needed color once 3 formations in a row had none', () => {
+    let since = 0;
+    let streak = 0;
+    for (let n = 0; n < 200; n++) {
+      const r = fillFormationColors({ slotCount: 3, needed: ['red'], all: ALL, sinceNeeded: since, rng: Math.random });
+      const has = r.colors.includes('red');
+      streak = has ? 0 : streak + 1;
+      expect(streak).toBeLessThanOrEqual(3);
+      since = r.sinceNeeded;
+    }
+  });
+  it('sinceNeeded+1 >= guarantee swaps exactly one random slot to a needed color', () => {
+    const r = fillFormationColors({ slotCount: 4, needed: ['red'], all: ALL, sinceNeeded: 2, rng: rng0 });
+    expect(r.colors.filter(c => c === 'red')).toHaveLength(1);
+    expect(r.sinceNeeded).toBe(0);
+  });
+  it('resets sinceNeeded to 0 when a needed color is present, else +1', () => {
+    expect(fillFormationColors({ slotCount: 3, needed: ['blue'], all: ALL, sinceNeeded: 0, rng: rng0 }).sinceNeeded).toBe(0);
+    expect(fillFormationColors({ slotCount: 3, needed: ['red'], all: ALL, sinceNeeded: 0, rng: rng0 }).sinceNeeded).toBe(1);
+  });
+  it('empty needed never forces', () => {
+    const r = fillFormationColors({ slotCount: 3, needed: [], all: ALL, sinceNeeded: 9, rng: rng0 });
+    expect(r.colors).toEqual(['blue', 'blue', 'blue']);
+    expect(r.sinceNeeded).toBe(10);
+  });
+});

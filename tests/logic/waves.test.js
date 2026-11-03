@@ -89,3 +89,24 @@ describe('WaveDirector', () => {
     expect(Array.isArray(dir.update(500))).toBe(true);
   });
 });
+
+describe('WaveDirector formation fields', () => {
+  it('slots carry formationIndex, formationSize and slotIndex', () => {
+    const dir = new WaveDirector({ ...base, diffKey: 'normal', rng: seededRng(11) });
+    const em = run(dir, 40000).map(e => e.slot);
+    expect(em.length).toBeGreaterThan(6);
+    const byForm = new Map();
+    for (const s of em) {
+      if (!byForm.has(s.formationIndex)) byForm.set(s.formationIndex, []);
+      byForm.get(s.formationIndex).push(s);
+    }
+    expect([...byForm.keys()].slice(0, 3)).toEqual([0, 1, 2]);
+    for (const [, list] of byForm) {
+      expect(list.map(s => s.slotIndex)).toEqual(list.map((_, i) => i));
+      for (const s of list) expect(s.formationSize).toBeGreaterThanOrEqual(list.length);
+    }
+    for (const [i, list] of byForm) {
+      if (i < byForm.size - 1) expect(list).toHaveLength(list[0].formationSize);
+    }
+  });
+});

@@ -17,6 +17,7 @@ export class WaveDirector {
     this._rng = rng;
     this._rank = createRank({ diffKey, restarts });
     this._elapsed = 0;
+    this._formCount = 0;
     this._prev = { id: null, side: null };
     this._form = null; // { slots, next, t, meta }
     this._gapLeft = this._effectiveGap();
@@ -42,7 +43,7 @@ export class WaveDirector {
     if (warmingUp) count = Math.max(1, Math.ceil(count * WARMUP_DENSITY));
     const slots = buildFormation({ ...pick, count, minX: this._minX, maxX: this._maxX, rng: this._rng });
     slots.sort((a, b) => a.delayMs - b.delayMs);
-    this._form = { slots, next: 0, t: 0, meta: { formationId: pick.id, tier, aimAllowed } };
+    this._form = { slots, next: 0, t: 0, meta: { formationId: pick.id, tier, aimAllowed, formationIndex: this._formCount++, formationSize: slots.length } };
   }
 
   /** Advance dtMs; returns the SpawnSlots to spawn now (delay order). */
@@ -62,7 +63,7 @@ export class WaveDirector {
       f.t += remaining;
       remaining = 0;
       while (f.next < f.slots.length && f.slots[f.next].delayMs <= f.t) {
-        out.push({ ...f.slots[f.next], ...f.meta });
+        out.push({ ...f.slots[f.next], ...f.meta, slotIndex: f.next });
         f.next += 1;
       }
       if (f.next < f.slots.length) break;

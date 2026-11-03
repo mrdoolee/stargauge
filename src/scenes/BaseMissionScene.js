@@ -32,7 +32,8 @@
  *                                   // created lazily with diff, registry results.<id>.restarts and
  *                                   // gapMs = scaleInterval(FORMATION_GAP_MS[missionId]). Not updated in phases without waves.
  *                                   // spawnObject(phase, slot) runs once per slot: slot = { delayMs, x, vx, aim,
- *                                   // zigzag: {amp, periodMs} | null, formationId, tier, aimAllowed }. A correct hit feeds director.onCorrect().
+ *                                   // zigzag: {amp, periodMs} | null, formationId, tier, aimAllowed,
+   *                                   // formationIndex, formationSize, slotIndex }. Pass slot.zigzag to spawnStar/spawnAsteroid. A correct hit feeds director.onCorrect().
  *     waveBounds: { minX, maxX },   // optional; formation x range (default 70 .. GAME_WIDTH - 70)
  *   }
  * Judge target passed to phase.judge.judge(target) and wrongShotMessage:
@@ -97,6 +98,7 @@ import {
 import { HeatMeter } from '../logic/heat.js';
 import { getDifficulty, scaledHeat, scaleInterval } from '../logic/difficulty.js';
 import { StarGauge } from '../logic/gauge.js';
+import { zigzagVx } from '../logic/formations.js';
 import { Spawner } from '../logic/spawner.js';
 import { WaveDirector } from '../logic/waves.js';
 import { missionStars } from '../logic/scoring.js';
@@ -255,8 +257,20 @@ export default class BaseMissionScene extends Phaser.Scene {
     if (this.director && this.phase?.waves && !this.phaseDone) {
       for (const slot of this.director.update(dt)) this.spawnObject(this.phase, slot);
     }
+    this.updateZigzag(dt);
     this.onMissionUpdate(dt, time);
     this.cull();
+  }
+
+  /** Zigzag objects (spawned with `zigzag`) sway: vx = zigzagVx(baseVx, zigzag, age). Marked objects stay still. */
+  updateZigzag(dt) {
+    for (const group of [this.pools.stars, this.pools.asteroids]) {
+      for (const o of group.members) {
+        if (!o.active || !o.zigzag || o.marked) continue;
+        o.zigAgeMs += dt;
+        o.body.setVelocityX(zigzagVx(o.zigBaseVx, o.zigzag, o.zigAgeMs));
+      }
+    }
   }
 
   lateUpdate() {
@@ -404,19 +418,20 @@ export default class BaseMissionScene extends Phaser.Scene {
    * @param {object} o
    *   x, y, colorKey (required); kind 'star'|'furnace' (default 'star'); scale (size, default 1);
    *   glow 0..1 (halo brightness, default 0.6); vx, vy (px/s, default 0, 200);
-   *   targetable (true), collides (true), persistent (false), keepOnMark (false), starId, name, depth.
+   *   targetable (true), collides (true), persistent (false), keepOnMark (false), starId, name, depth,
+   *   zigzag ({ amp, periodMs } | null, default null: the base sways vx around `vx`, see zigzagVx).
    * @returns pooled object or null when the pool is exhausted.
    */
   spawnStar({
     x, y, colorKey, kind = 'star', scale = 1, glow = 0.6, vx = 0, vy = 200,
     targetable = true, collides = true, persistent = false, keepOnMark = false,
-    starId = null, name = '', depth = 10,
+    starId = null, name = '', depth = 10, zigzag = null,
   }) {
     const obj = acquire(this.pools.stars, x, y);
     if (!obj) return null;
     Object.assign(obj, {
       kind, colorKey, targetable, collides, persistent, keepOnMark, starId, name,
-      marked: false, hitCooldownUntil: 0,
+      marked: false, hitCooldownUntil: 0, zigzag, zigBaseVx: vx, zigAgeMs: 0,
     });
     obj.setTexture(textureFor(kind, colorKey)).setScale(scale).setDepth(depth);
     obj.body.setVelocity(vx, vy);
@@ -430,12 +445,13 @@ export default class BaseMissionScene extends Phaser.Scene {
     return obj;
   }
 
-  spawnAsteroid({ x, y, vx = 0, vy = 260, scale = 1, spin = 60 }) {
+  spawnAsteroid({ x, y, vx = 0, vy = 260, scale = 1, spin = 60, zigzag = null }) {
     const obj = acquire(this.pools.asteroids, x, y);
     if (!obj) return null;
     Object.assign(obj, {
       kind: 'asteroid', colorKey: null, targetable: false, collides: true, persistent: false,
       keepOnMark: false, starId: null, name: '', marked: false, hitCooldownUntil: 0,
+      zigzag, zigBaseVx: vx, zigAgeMs: 0,
     });
     obj.setScale(scale);
     obj.body.setVelocity(vx, vy);

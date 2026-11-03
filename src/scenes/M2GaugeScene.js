@@ -1,11 +1,10 @@
 // Mission 2 — 스타게이지 보정. 2-a: 태양보다 뜨거운 별, 2-b: 태양보다 차가운 별.
 // The gauge persists across the two phases (same scene) and resets on an overheat restart.
 import BaseMissionScene from './BaseMissionScene.js';
-import { GAME_WIDTH } from '../config/game.js';
-import { scaleSpeed } from '../logic/difficulty.js';
-import { M2_STAR_SPEED, M2_STAR_SCALE, M2_SPAWN_MIN_GAP_X } from '../config/balance.js';
+import { M2_STAR_SCALE } from '../config/balance.js';
+import { speedFor, aimVelocity } from '../logic/speed.js';
 import { predicateJudge } from '../logic/judges.js';
-import { pickSpawnColor, spawnXAwayFrom } from '../logic/spawner.js';
+import { fillFormationColors } from '../logic/spawner.js';
 import { STAR_COLORS, hotterThanSun, coolerThanSun } from '../logic/temperature.js';
 import { MISSION_TEXT } from '../data/copy.js';
 
@@ -33,34 +32,40 @@ export default class M2GaugeScene extends BaseMissionScene {
 
   buildPhases() {
     return [
-      { id: 'm2a', judge: predicateJudge(t => hotterThanSun(t.colorKey)), remaining: s => s.unfilled('m2a').length },
-      { id: 'm2b', judge: predicateJudge(t => coolerThanSun(t.colorKey)), remaining: s => s.unfilled('m2b').length },
+      { id: 'm2a', judge: predicateJudge(t => hotterThanSun(t.colorKey)), waves: true, remaining: s => s.unfilled('m2a').length },
+      { id: 'm2b', judge: predicateJudge(t => coolerThanSun(t.colorKey)), waves: true, remaining: s => s.unfilled('m2b').length },
     ];
-  }
-
-  setupMission() {
-    this.lastSpawnX = null;
   }
 
   onPhaseStart() {
     this.sinceNeeded = 0;
+    this.formColors = null;
+    this.formIndex = -1;
   }
 
-  spawnObject(phase) {
-    const needed = this.unfilled(phase.id);
-    const colorKey = pickSpawnColor({ needed, all: ALL, sinceNeeded: this.sinceNeeded, rng: Math.random });
-    this.sinceNeeded = needed.includes(colorKey) ? 0 : this.sinceNeeded + 1;
-    // Size and brightness are random and independent of color. x keeps clear of the previous star.
-    const x = spawnXAwayFrom(this.lastSpawnX, { min: 70, max: GAME_WIDTH - 70, minGap: M2_SPAWN_MIN_GAP_X });
-    this.lastSpawnX = x;
+  /** One star per formation slot. Colors are drawn once per formation (needed-color guarantee). */
+  spawnObject(phase, slot) {
+    if (!slot) return;
+    if (slot.formationIndex !== this.formIndex) {
+      this.formIndex = slot.formationIndex;
+      const r = fillFormationColors({
+        slotCount: slot.formationSize, needed: this.unfilled(phase.id), all: ALL,
+        sinceNeeded: this.sinceNeeded, rng: Math.random,
+      });
+      this.formColors = r.colors;
+      this.sinceNeeded = r.sinceNeeded;
+    }
+    const colorKey = this.formColors[slot.slotIndex] ?? ALL[Math.floor(Math.random() * ALL.length)];
+    const y = -60;
+    const speed = speedFor('target', this.diff.key, slot.tier);
+    let vx = slot.vx;
+    let vy = speed;
+    if (slot.aim) ({ vx, vy } = aimVelocity({ x: slot.x, y }, { x: this.ship.x, y: this.ship.y }, speed));
+    // Size and brightness are random and independent of color.
     this.spawnStar({
-      x,
-      y: -60,
-      colorKey,
+      x: slot.x, y, colorKey, vx, vy, zigzag: slot.zigzag,
       scale: rand(M2_STAR_SCALE.min, M2_STAR_SCALE.max),
       glow: rand(0.25, 1),
-      vy: scaleSpeed(rand(M2_STAR_SPEED.min, M2_STAR_SPEED.max), this.diff.key),
-      vx: rand(-25, 25),
     });
   }
 

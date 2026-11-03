@@ -61,6 +61,7 @@ export const M1_WHITE_GRACE_MS = 300; // a hit still counts as white this long a
 export const M1_PRACTICE_TOAST_GAP_MS = 6000; // practice feedback toast: first time, then at most this often
 export const FURNACE_STAGE_CUTS = [0.4, 0.62, 0.82]; // fall fraction where white->yellow->orange->red
 export const M1_ASTEROID_INTERVAL_MS = 4000;
+export const M1_ASTEROID_SLOT_CHANCE = 0.2; // m1 test phase: chance a non-aimed formation slot is a straight-falling asteroid
 export const M1_BLOB_SPEED = { min: 150, max: 210 };
 export const M2_STAR_SPEED = { min: 170, max: 250 };
 export const M2_STAR_SCALE = { min: 0.7, max: 1.5 };
