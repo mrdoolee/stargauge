@@ -57,6 +57,23 @@ describe('gen-images buildRequest', () => {
     for (const id of ['captain-base', 'star-shape', 'furnace-shape', 'bg-space-far', 'bg-space-near', 'bg-cluster', 'briefing-m1', 'briefing-m2', 'briefing-m3', 'briefing-m4']) expect(find(id), id).toBeTruthy();
     expect(find('bg-space')).toBeUndefined();
   });
+  it('drone and boss are style-A enemy sprites with the exclusion list, no star colors, facing down', () => {
+    for (const [id, size] of [['drone', '128x128'], ['boss', '512x320']]) {
+      const a = find(id);
+      expect(a, id).toBeTruthy();
+      expect(a.technical.target_size, id).toBe(size);
+      expect(a.technical.alpha, id).toBe(true);
+      expect(a.prompt, id).toMatch(/NO text/);
+      expect(a.prompt, id).toMatch(/NO letters/);
+      expect(a.prompt, id).toMatch(/NO logos/);
+      expect(a.prompt, id).toMatch(/not pixel art/i);
+      expect(a.prompt, id).toMatch(/no WWII/i);
+      expect(a.prompt, id).toMatch(/pointing down|facing down/i);
+      expect(a.prompt, id).toMatch(/do not use blue, white-yellow, yellow, orange or red as main colors/i);
+      expect(a.prompt, id).toMatch(/art\/raw\/ship-style-a\.png/);
+    }
+    expect(find('boss').prompt).toMatch(/gray metal armor plates/i);
+  });
   it('parseArgs', () => {
     expect(parseArgs(['ship', '--ref', 'a.png', '--dry-run'])).toEqual({ assetId: 'ship', ref: 'a.png', dryRun: true, out: null, promptSuffix: '' });
   });

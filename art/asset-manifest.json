@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "art_direction_brief": "art/art-direction-brief.md",
-  "status": "stills generated 2026-11-04 (16 assets, public/img/); captain-base and fire-button not yet generated",
+  "status": "stills generated 2026-11-04 (18 assets incl. drone, boss, public/img/); captain-base and fire-button not yet generated",
   "assets": [
     {
       "id": "ship",
@@ -179,6 +179,78 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
+        "technical_checks_passed": true,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "drone",
+      "role": "shielded enemy drone (m3)",
+      "path": "public/img/drone.png",
+      "status": "generated",
+      "technical": {
+        "target_size": "128x128",
+        "alpha": true,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1024",
+        "background": "transparent"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Top-down view of a single small hostile space drone for a modern vertical-scrolling shooter game, pointing down (its nose faces the bottom of the image, toward the player), centered and fully inside the frame, transparent background, no stars or sparkles around it. Angular sharp arrowhead silhouette with swept-back wings and a small glowing eye, clearly an enemy and clearly NOT round and NOT a glowing star. Main colors dull steel gray #6b7280 and dark magenta-purple #6d2a7a with a small magenta eye light; do not use blue, white-yellow, yellow, orange or red as main colors. Original design. Match the approved reference art/raw/ship-style-a.png. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "2026-11-04",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": true,
+        "in_engine_reviewed": true,
+        "technical_checks_passed": true,
+        "approved_by": ""
+      }
+    },
+    {
+      "id": "boss",
+      "role": "boss ship (m4)",
+      "path": "public/img/boss.png",
+      "status": "generated",
+      "technical": {
+        "target_size": "512x320",
+        "alpha": true,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1536x1024",
+        "background": "transparent"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Top-down view of a single huge hostile boss warship for a modern vertical-scrolling shooter game, pointing down (its bow and twin cannons face the bottom of the image, toward the player), wide and symmetrical, centered and fully inside the frame, transparent background, no stars or sparkles around it. A broad angular hull built from big visible gray metal armor plates with rivets and panel lines (plain gray metal only, no colored armor), a dark magenta-purple underlayer and two heavy cannons at the front, clearly an enemy and clearly NOT round. Main colors gray metal #7b8493 and dark magenta-purple #5a2468; do not use blue, white-yellow, yellow, orange or red as main colors. Original design. Match the approved reference art/raw/ship-style-a.png. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "2026-11-04",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": true,
+        "in_engine_reviewed": true,
         "technical_checks_passed": true,
         "approved_by": ""
       }

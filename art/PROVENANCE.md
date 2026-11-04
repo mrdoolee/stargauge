@@ -15,6 +15,8 @@ All generated with OpenAI Images API, model `gpt-image-2.5-sunburst` (from OPENA
 | furnace-shape | gpt-image-2.5-sunburst | 2026-11-04 | grayscale molten metal drop, tinted by code | no |
 | bg-space-far | gpt-image-2.5-sunburst | 2026-11-04 | faint dark navy-indigo nebula, no stars | no |
 | bg-space-near | gpt-image-2.5-sunburst | 2026-11-04 | faint transparent dust/nebula wisps overlay, no stars | no |
+| drone | gpt-image-2.5-sunburst | 2026-11-04 | small hostile top-down drone, angular, steel gray + dark magenta-purple, nose down. 1 call, 0 retries. Trimmed to alpha bbox (alpha>=128), fitted into 115x115 inside a 128x128 canvas so the 80 px on-screen canvas (scale 0.625) shows 72 px of art and keeps the enemy hitbox radius. Raw: art/raw/drone.png (git-ignored) | yes |
+| boss | gpt-image-2.5-sunburst | 2026-11-04 | huge top-down boss warship, gray metal armor plates + dark magenta, twin cannons facing down, request 1536x1024. 2 calls (1 retry): try 1 was tall 1024x1024 and nose-up (art/raw/boss.try1-tall-up.png); try 2 with a "rotated 180 degrees, wide" suffix kept. Trimmed to bbox, contain-fit into 512x320 (178 KB). Raw: art/raw/boss.png (git-ignored) | yes |
 | bg-furnace | gpt-image-2.5-sunburst | 2026-11-04 | dark charcoal furnace-chamber plating. First try with ref drew a ship inside, rejected (raw kept as bg-furnace.try1-ship.png); regenerated without ref | no (retry); yes (rejected try) |
 | bg-cluster | gpt-image-2.5-sunburst | 2026-11-04 | abstract navy/violet painterly nebula, no stars | no |
 | title-art | gpt-image-2.5-sunburst | 2026-11-04 | mint-and-silver ship flying up through navy/teal nebula, top and bottom thirds open | yes |

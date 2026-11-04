@@ -1,7 +1,7 @@
 // Generated art in public/img/. Stars stay code-drawn forever (color accuracy). IMAGE_ASSETS lists ONLY files that
 // actually exist in public/img/, so nothing 404s. To adopt another image: put the PNG in public/img/ and add
 // { key, path: 'img/<file>.png' } here. Opaque backgrounds/title/briefing art are JPEG (q85) to keep the boot download small. Loaded keys: ship (256x304, scaled to the 64x76 footprint),
-// asteroid-1..3, star-shape, furnace-shape (grayscale, tinted by code), bg-space-far, bg-space-near, bg-furnace,
+// asteroid-1..3, drone (128x128, shown on the 80 px enemy footprint), boss (512x320, 300 px wide on screen), star-shape, furnace-shape (grayscale, tinted by code), bg-space-far, bg-space-near, bg-furnace,
 // bg-cluster, title-art, glass-craft, briefing-m1..m4. Scenes read them by key (some are wired in later tasks).
 // Code-baked textures (starTextures.js) skip baking when a loaded texture already has the same key.
 export const IMAGE_ASSETS = [
@@ -9,6 +9,8 @@ export const IMAGE_ASSETS = [
   { key: 'asteroid-1', path: 'img/asteroid-1.png' },
   { key: 'asteroid-2', path: 'img/asteroid-2.png' },
   { key: 'asteroid-3', path: 'img/asteroid-3.png' },
+  { key: 'drone', path: 'img/drone.png' },
+  { key: 'boss', path: 'img/boss.png' },
   { key: 'star-shape', path: 'img/star-shape.png' },
   { key: 'furnace-shape', path: 'img/furnace-shape.png' },
   { key: 'bg-space-far', path: 'img/bg-space-far.jpg' },
