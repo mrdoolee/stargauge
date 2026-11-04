@@ -36,7 +36,17 @@ export const bossArmorColor = (stage, diffKey) => BOSS_ARMOR[getDifficulty(diffK
 
 /** One beam hit on a shielded enemy: pierce costs 1 hp. */
 export function resolveBeamOnEnemy({ charge, shieldKey, hp }) {
-  if (!canPierce(charge, shieldKey)) return { pierced: false, hp, down: false };
+  if (shieldKey && !canPierce(charge, shieldKey)) return { pierced: false, hp, down: false };
   const next = Math.max(0, hp - 1);
   return { pierced: true, hp: next, down: next === 0 };
+}
+
+/**
+ * What the engine does with a beam-vs-enemy result. keepAlive = the scene's onEnemyPierced hook returned true.
+ * 'blocked' | 'pierced' (alive, hp lowered) | 'down' (explode + release + onEnemyDown) | 'kept' (hp 0 but the scene keeps it).
+ */
+export function enemyHitOutcome({ res, keepAlive }) {
+  if (!res.pierced) return 'blocked';
+  if (!res.down) return 'pierced';
+  return keepAlive ? 'kept' : 'down';
 }

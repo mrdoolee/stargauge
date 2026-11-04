@@ -35,6 +35,8 @@
  *                                   // zigzag: {amp, periodMs} | null, formationId, tier, aimAllowed,
    *                                   // formationIndex, formationSize, slotIndex }. Pass slot.zigzag to spawnStar/spawnAsteroid. A correct hit feeds director.onCorrect().
  *     waveBounds: { minX, maxX },   // optional; formation x range (default 70 .. GAME_WIDTH - 70)
+ *     blockedToast: false,          // optional (chargeMode phases); false = no engine hint toast on a blocked hit (default: shown, first
+ *                                   // BLOCKED_TOAST_MAX per run). this.blockedHits counts every blocked hit either way.
  *     chargeMode: true,             // optional; shooting a star MEASURES it: ring + fade (markObject, never destroyed) and
  *                                   // the beam is charged with its color (setCharge). No score, no wrong shot, no gauge fill,
  *                                   // judge ignored. Hook onStarMeasured(obj). Set showGauge true so the HUD shows the charge cell.
@@ -45,7 +47,9 @@
  * Optional hooks: onPhaseStart(phase), onMissionUpdate(dtMs, time), onLateUpdate() (after physics —
  * position labels here), onCorrectHit(obj, result, phase), onWrongHit(obj, result, phase),
  * onShipHit(obj, heat), onStarMeasured(obj) (chargeMode), onEnemyDown(enemy) (hp hit 0, already released),
- * onEnemyBlocked(enemy) (beam charge too weak for its shield; wrongShots already +1), practiceTone(obj) ('correct' | 'neutral', default 'correct': a practice hit
+ * onEnemyPierced(enemy, res) (every pierce, hp already lowered, enemy still active; return true to KEEP it: then no
+ * explosion, no release, no onEnemyDown, and the scene owns what follows, e.g. reset hp + setEnemyShield(next armor) + its fx),
+ * onEnemyBlocked(enemy) (beam charge too weak for its shield; wrongShots and this.blockedHits already +1), practiceTone(obj) ('correct' | 'neutral', default 'correct': a practice hit
  * (judge null) on a 'neutral' object gets a soft mark — no "+1", no correct chime — and onCorrectHit
  * receives { correct: true, practice: true, neutral: true }).
  *
@@ -65,7 +69,9 @@
  *   spawnEnemy({ x, y, vx=0, vy=0, shieldKey=null, hp=1, kind='drone', texture='drone', scale=1 }) -> enemy|null
  *     (pool POOL_ENEMIES; fields kind, shieldKey, hp, maxHp, colorKey null, collides, hitCooldownUntil; obj.shield = ring image
  *     shield-<shieldKey> kept over it). Not a star: a beam that pierces (resolveBeamOnEnemy: charge level >= shield level)
- *     costs 1 hp; hp 0 => small explosion, releaseEnemy, onEnemyDown(enemy). Blocked => bounce spark + shield flash +
+ *     costs 1 hp (an enemy with shieldKey null is always pierced); then onEnemyPierced(enemy, res); hp 0 (unless the hook kept it) =>
+ *     explosion, releaseEnemy, onEnemyDown(enemy) (receives the ALREADY RELEASED enemy: inactive, shield hidden, x/y still readable).
+ *     Setting enemy.collides = false disables the ship overlap for that enemy. Blocked => bounce spark + shield flash +
  *     wrongShots += 1 + onEnemyBlocked(enemy) (+ a short hint toast, at most BLOCKED_TOAST_MAX per run).
  *   releaseEnemy(enemy), setEnemyShield(enemy, shieldKey|null) (recolor / drop the shield).
  *   spawnBullet({ x, y, vx, vy }) -> bullet|null (pool POOL_BULLETS; never targetable by beams).
@@ -121,7 +127,7 @@ import { StarGauge } from '../logic/gauge.js';
 import { zigzagVx } from '../logic/formations.js';
 import { Spawner } from '../logic/spawner.js';
 import { WaveDirector } from '../logic/waves.js';
-import { initialCharge, resolveBeamOnEnemy } from '../logic/charge.js';
+import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome } from '../logic/charge.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { missionStars } from '../logic/scoring.js';
 import { MISSION_TEXT, wrongShotMessage } from '../data/copy.js';
@@ -180,6 +186,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   onShipHit(_obj, _heat) {}
   onStarMeasured(_obj) {}
   onEnemyDown(_enemy) {}
+  onEnemyPierced(_enemy, _res) { return false; }
   onEnemyBlocked(_enemy) {}
   practiceTone(_obj) { return 'correct'; }
 
@@ -205,7 +212,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.heat = new HeatMeter();
     this.gauge = new StarGauge(this.gaugePrefill());
     this.charge = initialCharge();
-    this.blockedToasts = 0;
+    this.blockedHits = 0;
 
     this.playing = false;
     this.restarting = false;
@@ -915,11 +922,17 @@ export default class BaseMissionScene extends Phaser.Scene {
     const bx = beam.x;
     const by = beam.y;
     release(beam);
-    if (!this.phase || this.phaseDone || this.restarting) return;
+    const phase = this.phase;
+    if (!phase || this.phaseDone || this.restarting) return;
     const res = resolveBeamOnEnemy({ charge: this.charge, shieldKey: enemy.shieldKey, hp: enemy.hp });
     if (res.pierced) {
       enemy.hp = res.hp;
-      if (res.down) {
+      const keep = this.onEnemyPierced(enemy, res) === true;
+      const outcome = enemyHitOutcome({ res, keepAlive: keep });
+      if (outcome === 'kept') {
+        this.sparkAt(bx, by, this.chargeHex() ?? 0xffffff);
+        sfx.play('correct');
+      } else if (outcome === 'down') {
         this.explodeAt(enemy.x, enemy.y, enemy.displayWidth / ENEMY_TEX, this.chargeHex() ?? 0xffffff);
         sfx.play('clear');
         this.releaseEnemy(enemy);
@@ -933,11 +946,11 @@ export default class BaseMissionScene extends Phaser.Scene {
       }
     } else {
       this.wrongShots += 1;
+      this.blockedHits += 1;
       this.sparkAt(bx, by, 0xffffff);
       this.flashShield(enemy);
       sfx.play('wrong');
-      if (this.blockedToasts < BLOCKED_TOAST_MAX) {
-        this.blockedToasts += 1;
+      if (phase.blockedToast !== false && this.blockedHits <= BLOCKED_TOAST_MAX) {
         this.toast(this.charge
           ? '방어막을 뚫기엔 빔이 약해요. 더 뜨거운(푸른쪽) 별을 맞혀 충전해요!'
           : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'wrong' });
