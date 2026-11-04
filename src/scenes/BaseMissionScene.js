@@ -6,7 +6,7 @@
  *     constructor() { super('m2'); this.sunRef = true; }   // scene key; missionId defaults to the key
  *     gaugePrefill() { return ['yellow']; }                // optional, default []
  *     buildPhases() { return [ {...phase}, ... ]; }        // REQUIRED, called from init() every run
- *     setupMission() {}                                     // optional: build fixed objects (cluster, constellation)
+ *     setupMission() {}                                     // optional: build fixed objects (fixed enemies, backdrops)
  *     spawnObject(phase, slot) {}                           // each Spawner tick of the phase (slot undefined), or each emitted
  *                                                           // WaveDirector slot when phase.waves (see below)
  *     onPhaseComplete(phase) {}                             // REQUIRED decision: advancePhase() / completeMission(...)
@@ -95,7 +95,7 @@
  *   results.<missionId> = { stars, wrongShots, restarts }. Reset to zeros on a fresh start
  *   (data.restarted falsy); restarts accumulate across heat restarts; stars/wrongShots are
  *   written by completeMission() from the finishing attempt (wrongShots count per attempt).
- *   'muted' (HUD; mirrored into sfx.setMuted). gaugeFinal / orionTagged are written by the subclasses that own them.
+ *   'muted' (HUD; mirrored into sfx.setMuted). gaugeFinal / measuredCounts are written by the subclasses that own them.
  *
  * ── HUD events (this.game.events) ── see HudScene.js for payloads.
  */

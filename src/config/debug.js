@@ -20,7 +20,7 @@ export function parseDebug(search) {
 
 /** Registry values earlier missions would have written, so a jump straight to m3/m4/report/result works. */
 export function debugRegistryDefaults() {
-  return { results: {}, gaugeFinal: [...ALL_COLOR_KEYS], orionTagged: [] };
+  return { results: {}, gaugeFinal: [...ALL_COLOR_KEYS] };
 }
 
 /**

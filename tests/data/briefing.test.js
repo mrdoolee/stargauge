@@ -27,21 +27,31 @@ describe('BRIEFING', () => {
     expect(BRIEFING.m2.goal).toBe('태양보다 뜨거운 별만 쏘고, 나머지는 피하세요.');
     expect(BRIEFING.m2.bullets[2]).toBe('태양은 황색 별이에요. 태양을 기준으로 비교해요.');
     expect(BRIEFING.m3.line).toBe('크고 밝다고 뜨거운 게 아니야. 색을 봐!');
-    expect(BRIEFING.m3.goal).toBe('세 별 중 가장 뜨거운 별을 찾아 쏘세요.');
-    expect(BRIEFING.m4.line).toBe('마지막 임무야. 성단의 별을 모두 측정해!');
-    expect(BRIEFING.m4.bullets[2]).toBe('실제 성단을 바탕으로 단순화했어요.');
-    expect(BRIEFING.m4.goal).toBe('시간 안에 성단의 별을 모두 표시하세요. 흩어지는 청색 별은 피하세요.');
+    expect(BRIEFING.m3.bullets).toEqual([
+      '별을 측정하면 그 별의 표면 온도만큼 빔이 충전돼요.',
+      '별의 크기와 밝기는 표면 온도와 관계없어요.',
+      '드론의 방어막보다 뜨거운 색으로 충전해야 뚫려요.',
+    ]);
+    expect(BRIEFING.m3.goal).toBe('뜨거운 별로 빔을 충전해서 방해 드론을 격추하세요.');
+    expect(BRIEFING.m4.line).toBe('마지막 임무야. 보스 함선의 장갑을 뚫어!');
+    expect(BRIEFING.m4.bullets).toEqual([
+      '장갑 색보다 뜨거운 색의 별로 충전해야 뚫려요.',
+      '보스가 쉬는 틈에는 탄이 오지 않아요.',
+      '단계가 오를수록 장갑이 더 뜨거운 색으로 바뀌어요.',
+    ]);
+    expect(BRIEFING.m4.goal).toBe('제한 시간 안에 보스 함선을 물리치세요. 날아오는 탄은 피하세요.');
     expect(BRIEFING.m1.title).toBe('용광로 탈출');
     expect(BRIEFING.m2.title).toBe('스타게이지 보정');
     expect(BRIEFING.m3.title).toBe('밝기의 함정');
-    expect(BRIEFING.m4.title).toBe('보석상자 성단');
-    expect(['m1', 'm2', 'm3', 'm4'].map(m => BRIEFING[m].expression)).toEqual(['normal', 'serious', 'surprised', 'smile']);
+    expect(BRIEFING.m4.title).toBe('보스 함선');
+    expect(['m1', 'm2', 'm3', 'm4'].map(m => BRIEFING[m].expression)).toEqual(['normal', 'serious', 'surprised', 'serious']);
   });
 
   it('briefings never give away a mission answer', () => {
-    const t = all(BRIEFING.m3);
-    for (const name of ['리겔', '시리우스', '베텔게우스']) expect(t).not.toContain(name);
-    expect(all(BRIEFING.m4)).not.toContain('청색 별이 많');
+    for (const m of ['m3', 'm4']) {
+      for (const name of ['리겔', '시리우스', '베텔게우스', '오리온', '큰개자리', '보석상자']) expect(all(BRIEFING[m])).not.toContain(name);
+    }
+    expect(all(BRIEFING.m4)).not.toContain('청색'); // the answer to m4 question 1
   });
 
   it('expressions are known', () => {

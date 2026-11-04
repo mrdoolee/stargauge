@@ -2,7 +2,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
-import { drawOrionFigure } from '../objects/orionFigure.js';
+import { STAR_COLORS } from '../logic/temperature.js';
 import { buildResultSummary, clearRunKeys } from '../logic/flow.js';
 import { armButton } from '../ui/button.js';
 import { getDifficulty } from '../logic/difficulty.js';
@@ -18,8 +18,8 @@ export default class ResultScene extends Phaser.Scene {
     this.leaving = false;
     const sum = buildResultSummary({
       results: this.registry.get('results') ?? {},
-      orionTagged: this.registry.get('orionTagged') ?? [],
       gaugeFinal: this.registry.get('gaugeFinal'),
+      measuredCounts: this.registry.get('measuredCounts'),
     });
     this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x05070f, 1);
     this.add.text(cx, 70, '탐사 완료! 결과', {
@@ -54,16 +54,32 @@ export default class ResultScene extends Phaser.Scene {
     const view = createGaugeView(this, { x: x0, y: 580, cellW, cellH: 50, gap, colorLabels: true, fontSize: 24 });
     view.setFilled(sum.gauge);
 
-    // Orion thumbnail (real colors, tagged stars ringed)
-    this.add.text(cx, 710, '내가 찾은 오리온자리', { fontFamily: FONT, fontSize: '30px', color: '#e8ecff' }).setOrigin(0.5);
-    drawOrionFigure(this, {
-      box: { x: 190, y: 750, w: 340, h: 380 }, depth: 5, tagged: sum.orionTagged, k: 0.6, lineWidth: 3,
-    });
+    // m4 measurement chart: how many stars of each color the student measured (omitted without data)
+    if (sum.measuredCounts) this.drawMeasuredChart(sum.measuredCounts);
 
     const btn = this.add.text(cx, 1210, '처음부터 다시', {
       fontFamily: FONT, fontSize: '40px', color: '#05070f', backgroundColor: '#8fd3ff', padding: { x: 60, y: 18 },
     }).setOrigin(0.5);
     armButton(btn, () => this.restart());
+  }
+
+  /** Bar chart, STAR_COLORS order (hottest first); bar colour = the star colour. y 690..1150. */
+  drawMeasuredChart(counts) {
+    this.add.text(cx, 700, '내가 측정한 별의 색', { fontFamily: FONT, fontSize: '30px', color: '#e8ecff' }).setOrigin(0.5);
+    const baseY = 1090;
+    const maxH = 280;
+    const slot = 88;
+    const x0 = cx - (counts.length * slot) / 2;
+    const max = Math.max(1, ...counts.map(c => c.count));
+    counts.forEach((c, i) => {
+      const col = STAR_COLORS.find(sc => sc.key === c.key);
+      const x = x0 + i * slot + slot / 2;
+      const h = c.count > 0 ? Math.max(8, (c.count / max) * maxH) : 0;
+      if (h > 0) this.add.rectangle(x, baseY - h / 2, slot - 18, h, col.hex, 1).setStrokeStyle(2, 0xffffff, 0.35);
+      this.add.text(x, baseY - h - 6, String(c.count), { fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5, 1);
+      this.add.text(x, baseY + 10, col.label, { fontFamily: FONT, fontSize: '22px', color: '#e8ecff' }).setOrigin(0.5, 0);
+    });
+    this.add.rectangle(cx, baseY, counts.length * slot, 3, 0xe8ecff, 0.7);
   }
 
   restart() {

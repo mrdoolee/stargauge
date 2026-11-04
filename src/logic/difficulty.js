@@ -5,7 +5,7 @@ import {
   FORMATION_GAP_MS, FORMATION_MEAN_SIZE, FORMATION_MEAN_SPAN_MS, M1_ASTEROID_SLOT_CHANCE,
   BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_VOLLEY_MS, BOSS_FAN_SHIP_HITS, M1_BLOB_SPEED,
   M1_WHITE_GRACE_MS, M1_COOL_START_Y, M1_FALL_DISTANCE, FURNACE_STAGE_CUTS, BEAM_SPEED,
-  SHIP_HALF_HEIGHT, BEAM_SPAWN_OFFSET_Y,
+  SHIP_HALF_HEIGHT, BEAM_SPAWN_OFFSET_Y, M3_STAR_POOL, DRONE_MAX_ON_SCREEN, DRONE_FIRE_MS, CHARGE_STAR_HIT_SHARE,
 } from '../config/balance.js';
 import { shipMaxY } from '../input/TouchControls.js';
 import { heatOnCollision } from './heat.js';
@@ -34,11 +34,12 @@ export const formationSlotsPerSec = (gapMs, key) =>
  * hazard that reaches the ship's row hit, the heat inflow per second is computed per mission below. Cooling
  * removes COOL_PER_SEC. requiredDodgeFraction is the share of those hits the student must avoid to stay at or
  * below the cooling rate (0 = may ignore all, 1 = must dodge every one).
- * m1/m2/m3: a formation of FORMATION_MEAN_SIZE objects arrives every scaleInterval(FORMATION_GAP_MS) plus the
+ * m1/m2/m3/m4: a formation of FORMATION_MEAN_SIZE objects arrives every scaleInterval(FORMATION_GAP_MS) plus the
  *   formation's own FORMATION_MEAN_SPAN_MS. Heat per slot: m1 a blob that reaches the ship row red (FURNACE red),
- *   or an asteroid for M1_ASTEROID_SLOT_CHANCE of the slots; m2 the mean star heat; m3 a red trap (conservative:
- *   every candidate accepted).
- * m4: boss cycle = BOSS_ATTACK_MS[stage] + BOSS_GAP_MS. One volley every scaleInterval(BOSS_VOLLEY_MS[stage]) in
+ *   or an asteroid for M1_ASTEROID_SLOT_CHANCE of the slots; m2 the mean star heat over the 7 colors; m3 the mean
+ *   star heat over the M3_STAR_POOL weights (charge stars, x CHARGE_STAR_HIT_SHARE) PLUS the drone bullets: DRONE_MAX_ON_SCREEN drones each
+ *   firing every DRONE_FIRE_MS, one asteroid-heat hit per bullet (all drones present, every bullet lands).
+ * m4: the charge-star formations (mean star heat over the 7 colors at FORMATION_GAP_MS.m4, x CHARGE_STAR_HIT_SHARE) PLUS the boss. Boss cycle = BOSS_ATTACK_MS[stage] + BOSS_GAP_MS. One volley every scaleInterval(BOSS_VOLLEY_MS[stage]) in
  *   the attack window, each blue (30) shot hits. Volleys per window = ceil(attack / interval) (the first fires at the window
  *   start). A fan lands BOSS_FAN_SHIP_HITS shots on average on a standing ship (see balance.js); stage 3 adds one aimed shot where the difficulty allows aim (not easy).
  *   With no `stage`, m4 returns the worst of the three stages.
@@ -47,6 +48,9 @@ export function heatInflowPerSec(mission, key, stage) {
   const h = (kind, c) => scaledHeat(kind, c, key);
   const meanStar = Object.keys(STAR_HEAT).reduce((a, c) => a + h('star', c), 0) / Object.keys(STAR_HEAT).length;
   const formation = (gapMs, perSlot) => formationSlotsPerSec(gapMs, key) * perSlot;
+  const chargeStars = (gapMs, perSlot) => formation(gapMs, perSlot) * CHARGE_STAR_HIT_SHARE;
+  const poolStar = M3_STAR_POOL.reduce((a, c) => a + h('star', c), 0) / M3_STAR_POOL.length;
+  const droneBullets = DRONE_MAX_ON_SCREEN * (1000 / DRONE_FIRE_MS[getDifficulty(key).key]) * h('asteroid');
   const boss = st => {
     const attack = BOSS_ATTACK_MS[st];
     const volleys = Math.ceil(attack / scaleInterval(BOSS_VOLLEY_MS[st], key)); // a volley fires as the window opens
@@ -58,8 +62,8 @@ export function heatInflowPerSec(mission, key, stage) {
     case 'm1': return formation(FORMATION_GAP_MS.m1,
       (1 - M1_ASTEROID_SLOT_CHANCE) * h('furnace', 'red') + M1_ASTEROID_SLOT_CHANCE * h('asteroid'));
     case 'm2': return formation(FORMATION_GAP_MS.m2, meanStar);
-    case 'm3': return formation(FORMATION_GAP_MS.m3, h('star', 'red'));
-    case 'm4': return stage ? boss(stage) : Math.max(boss(1), boss(2), boss(3));
+    case 'm3': return chargeStars(FORMATION_GAP_MS.m3, poolStar) + droneBullets;
+    case 'm4': return chargeStars(FORMATION_GAP_MS.m4, meanStar) + (stage ? boss(stage) : Math.max(boss(1), boss(2), boss(3)));
     default: throw new Error(`Unknown mission: ${mission}`);
   }
 }

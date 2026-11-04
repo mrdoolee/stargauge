@@ -31,7 +31,8 @@ describe('debugRegistryDefaults', () => {
   it('provides what later scenes read', () => {
     const d = debugRegistryDefaults();
     expect(d.gaugeFinal).toEqual(ALL_COLOR_KEYS);
-    expect(d.orionTagged).toEqual([]);
+    expect(d).not.toHaveProperty('orionTagged');
+    expect(d.measuredCounts).toBeUndefined();
     expect(d.results).toEqual({});
   });
 });
