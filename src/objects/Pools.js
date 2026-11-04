@@ -1,7 +1,7 @@
 // Fixed-size object pools (Arcade groups). Everything is pre-warmed in create(), so
 // play never creates or destroys a star, beam or asteroid — it acquires and releases.
 //
-//   const pools = createPools(scene);     // { stars, beams, asteroids }
+//   const pools = createPools(scene);     // { stars, beams, asteroids, enemies, bullets }
 //   const s = acquire(pools.stars);        // inactive member or null when the pool is full
 //   release(s);                            // hide + disable body (+ its halo)
 //
@@ -11,8 +11,11 @@
 // not allocate (Group.getChildren() copies a Set into a new array every call).
 
 import Phaser from 'phaser';
-import { POOL_STARS, POOL_BEAMS, POOL_ASTEROIDS, BEAM_BODY_W, BEAM_BODY_H } from '../config/balance.js';
-import { STAR_TEX, STAR_CORE_R } from './starTextures.js';
+import {
+  POOL_STARS, POOL_BEAMS, POOL_ASTEROIDS, POOL_ENEMIES, POOL_BULLETS, BEAM_BODY_W, BEAM_BODY_H,
+  ENEMY_BODY_R, BULLET_BODY_R,
+} from '../config/balance.js';
+import { STAR_TEX, STAR_CORE_R, ENEMY_TEX } from './starTextures.js';
 
 function makePool(scene, { key, size, depth, setup }) {
   const group = scene.physics.add.group({
@@ -60,7 +63,24 @@ export function createPools(scene) {
     depth: 10,
     setup: obj => obj.body.setCircle(30, 6, 6),
   });
-  return { stars, beams, asteroids };
+  // Enemies own a shield ring image (`obj.shield`, shield-<colorKey>) kept on top of them by syncShields.
+  const enemies = makePool(scene, {
+    key: 'drone',
+    size: POOL_ENEMIES,
+    depth: 11,
+    setup: obj => {
+      const off = ENEMY_TEX / 2 - ENEMY_BODY_R;
+      obj.body.setCircle(ENEMY_BODY_R, off, off);
+      obj.shield = scene.add.image(-1000, -1000, 'shield-white').setDepth(11.5).setVisible(false);
+    },
+  });
+  const bullets = makePool(scene, {
+    key: 'bullet',
+    size: POOL_BULLETS,
+    depth: 11,
+    setup: obj => obj.body.setCircle(BULLET_BODY_R, 12 - BULLET_BODY_R, 12 - BULLET_BODY_R),
+  });
+  return { stars, beams, asteroids, enemies, bullets };
 }
 
 /** First inactive member, enabled at (x, y); null when every member is in use. */
@@ -83,11 +103,22 @@ export function release(obj) {
     obj.scene?.tweens.killTweensOf(obj.halo);
     obj.halo.setVisible(false);
   }
+  if (obj.shield) {
+    obj.scene?.tweens.killTweensOf(obj.shield);
+    obj.shield.setVisible(false);
+  }
 }
 
 /** Keep each active star's halo glued to it (call after physics has moved things). */
 export function syncHalos(group) {
   for (const s of group.members) {
     if (s.active && s.halo.visible) s.halo.setPosition(s.x, s.y);
+  }
+}
+
+/** Keep each active enemy's shield ring glued to it. */
+export function syncShields(group) {
+  for (const e of group.members) {
+    if (e.active && e.shield.visible) e.shield.setPosition(e.x, e.y);
   }
 }

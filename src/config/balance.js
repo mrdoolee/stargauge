@@ -39,6 +39,11 @@ export const BEAM_BODY_H = 32; // brief: >= 24 (20 px travelled per 60 Hz step <
 export const POOL_STARS = 48;
 export const POOL_BEAMS = 16;
 export const POOL_ASTEROIDS = 12;
+export const POOL_ENEMIES = 8; // shielded drones + the boss ship
+export const POOL_BULLETS = 48; // enemy bullets (never targetable by beams)
+export const ENEMY_BODY_R = 34; // enemy hitbox radius for an 80 px enemy texture (scales with sprite scale)
+export const BULLET_BODY_R = 8;
+export const BLOCKED_TOAST_MAX = 3; // "beam too weak" hints shown per run; later blocked hits only bounce
 export const CULL_MARGIN = 120; // release pooled objects this far past the screen edge
 export const COLLISION_COOLDOWN_MS = 1000; // persistent objects (boss, constellation) re-hit delay
 export const MARK_FADE_MS = 450; // correct-star mark ring + fade before returning to the pool

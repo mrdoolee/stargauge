@@ -15,6 +15,11 @@ import { tintPixels, stretchLuminance, snapWhite } from './tint.js';
 export const STAR_TEX = 128; // texture edge (px)
 export const STAR_CORE_R = 36; // core disc radius in texture px == Arcade body radius
 export const GLOW_TEX = 192;
+export const ENEMY_TEX = 80; // drone / boss texture edge (px); body radius ENEMY_BODY_R at this size
+export const SHIELD_TEX = 128; // shield ring edge (px)
+const SHIELD_RING_R = 56; // ring radius in texture px
+const SHIELD_RING_W = 8; // ring thickness in texture px
+const BULLET_COLOR = 0xff5fd2; // pink: not one of the 7 star colors
 
 const SHIP_COLOR = 0x7ef2d4; // mint: not one of the 7 star colors
 const SHIP_TRIM = 0xd9e2ea; // silver
@@ -83,6 +88,35 @@ function bakeTinted(scene, key, pixels, hex) {
   ct.refresh();
 }
 
+/** Texture key of the shield ring for a STAR_COLORS key. */
+export const shieldTextureKey = colorKey => `shield-${colorKey}`;
+
+/** White ring, RGBA bytes (size x size): rgb 255 everywhere, soft 1.5 px edge in alpha. Tint it with tintPixels. */
+export function ringPixels(size = SHIELD_TEX, radius = SHIELD_RING_R, width = SHIELD_RING_W) {
+  const out = new Uint8ClampedArray(size * size * 4);
+  const c = (size - 1) / 2;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const d = Math.abs(Math.hypot(x - c, y - c) - radius);
+      const a = Math.max(0, Math.min(1, (width / 2 - d) / 1.5 + 0.5));
+      const i = (y * size + x) * 4;
+      out[i] = 255;
+      out[i + 1] = 255;
+      out[i + 2] = 255;
+      out[i + 3] = Math.round(a * 255);
+    }
+  }
+  return out;
+}
+
+function bakeShield(scene, key, hex) {
+  const tex = scene.textures;
+  if (tex.exists(key)) return; // once per game
+  const ct = tex.createCanvas(key, SHIELD_TEX, SHIELD_TEX);
+  ct.context.putImageData(new ImageData(tintPixels(ringPixels(), hex), SHIELD_TEX, SHIELD_TEX), 0, 0);
+  ct.refresh();
+}
+
 export function makeStarTextures(scene) {
   const tex = scene.textures;
   const starPx = shapePixels(scene, 'star-shape');
@@ -100,6 +134,7 @@ export function makeStarTextures(scene) {
     else bake(`star-${c.key}`, STAR_TEX, STAR_TEX, () => drawCore(g, c.hex));
     bake(`glow-${c.key}`, GLOW_TEX, GLOW_TEX, () => drawGlow(g, c.hex));
   }
+  for (const c of STAR_COLORS) bakeShield(scene, shieldTextureKey(c.key), c.hex);
   for (const s of FURNACE_STAGES) {
     if (furnacePx) bakeTinted(scene, `furnace-${s.key}`, furnacePx, s.hex);
     else bake(`furnace-${s.key}`, STAR_TEX, STAR_TEX, () => drawFurnace(g, s.hex));
@@ -144,6 +179,36 @@ export function makeStarTextures(scene) {
     g.fillStyle(0x4c505a, 1);
     g.fillCircle(26, 28, 8);
     g.fillCircle(46, 48, 6);
+  });
+  bake('drone', ENEMY_TEX, ENEMY_TEX, () => {
+    // angular drone: dark steel arrowhead body with swept wings and a red eye (no round star-like silhouette)
+    g.fillStyle(0x59627a, 1);
+    g.fillTriangle(40, 76, 4, 22, 20, 12); // left wing
+    g.fillTriangle(40, 76, 76, 22, 60, 12); // right wing
+    g.fillStyle(0x8a94ad, 1);
+    g.fillTriangle(40, 78, 22, 20, 58, 20); // hull
+    g.fillStyle(0x3a4156, 1);
+    g.fillRect(34, 8, 12, 14); // top fin
+    g.fillStyle(0xff3b3b, 1);
+    g.fillRect(35, 34, 10, 6); // eye
+  });
+  bake('boss', ENEMY_TEX, ENEMY_TEX, () => {
+    // boss ship: broad armored hull, twin cannons
+    g.fillStyle(0x4a5068, 1);
+    g.fillPoints([{ x: 40, y: 78 }, { x: 4, y: 40 }, { x: 10, y: 14 }, { x: 70, y: 14 }, { x: 76, y: 40 }], true);
+    g.fillStyle(0x7a849e, 1);
+    g.fillPoints([{ x: 40, y: 70 }, { x: 16, y: 38 }, { x: 22, y: 20 }, { x: 58, y: 20 }, { x: 64, y: 38 }], true);
+    g.fillStyle(0x2c3144, 1);
+    g.fillRect(14, 2, 8, 20);
+    g.fillRect(58, 2, 8, 20);
+    g.fillStyle(0xff3b3b, 1);
+    g.fillRect(28, 34, 24, 8); // visor
+  });
+  bake('bullet', 24, 24, () => {
+    g.fillStyle(BULLET_COLOR, 1);
+    g.fillPoints([{ x: 12, y: 1 }, { x: 22, y: 12 }, { x: 12, y: 23 }, { x: 2, y: 12 }], true);
+    g.fillStyle(0xffffff, 0.9);
+    g.fillPoints([{ x: 12, y: 7 }, { x: 17, y: 12 }, { x: 12, y: 17 }, { x: 7, y: 12 }], true);
   });
   bake('fx-ring', 128, 128, () => {
     g.lineStyle(6, 0xffffff, 1);

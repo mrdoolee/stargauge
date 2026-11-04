@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { tintPixels, stretchLuminance, snapWhite } from '../../src/objects/tint.js';
 import { STAR_COLORS, FURNACE_STAGES } from '../../src/logic/temperature.js';
+import { shieldTextureKey } from '../../src/objects/starTextures.js';
 
 const ch = hex => [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
 
@@ -50,5 +51,21 @@ describe('snapWhite', () => {
     expect([...out]).toEqual([255, 255, 255, 200, 240, 255, 255, 255, 10, 10, 10, 255]);
     expect(out).not.toBe(src);
     expect(src[0]).toBe(253);
+  });
+});
+
+describe('shield ring', () => {
+  it.each(STAR_COLORS.map(c => [c.key, c.hex]))('shield ring tint keeps the palette (%s)', (_k, hex) => {
+    // a white ring pixel array (opaque ring pixels + a transparent one)
+    const ring = new Uint8ClampedArray([255, 255, 255, 255, 255, 255, 255, 180, 0, 0, 0, 0]);
+    const out = tintPixels(ring, hex);
+    expect([...out.slice(0, 3)]).toEqual(ch(hex));
+    expect([...out.slice(4, 7)]).toEqual(ch(hex));
+    expect(out[7]).toBe(180);
+    expect(out[11]).toBe(0);
+  });
+  it('shieldTextureKey names one texture per color', () => {
+    expect(shieldTextureKey('blue')).toBe('shield-blue');
+    expect(new Set(STAR_COLORS.map(c => shieldTextureKey(c.key))).size).toBe(7);
   });
 });

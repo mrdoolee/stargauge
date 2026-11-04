@@ -7,6 +7,7 @@
 //   'goal-changed'  { remaining: number|null }             null hides the counter
 //   'gauge-changed' { filled: string[], visible: boolean } filled STAR_COLORS keys
 //   'heat-changed'  { value, max, ratio }                  hull heat (ratio 0..1)
+//   'charge-changed' { colorKey: string|null }             beam charge: that gauge cell gets a bright border + "빔 충전" label; null clears
 //   'sun-ref'       boolean                                show the 태양 marker (mission 2+)
 //   'toast'         { text, colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert',
 //                     at?: 'top'|'low' }  'low' = below m1's white zone (HUD_TOAST_LOW_Y)
@@ -44,6 +45,7 @@ const GAUGE_Y = 116;
 
 export const HUD_EVENTS = [
   'instruction', 'goal-changed', 'gauge-changed', 'heat-changed', 'sun-ref', 'toast', 'mission-start', 'mission-end', 'ship-hit',
+  'charge-changed',
 ];
 
 export default class HudScene extends Phaser.Scene {
@@ -73,6 +75,8 @@ export default class HudScene extends Phaser.Scene {
       'gauge-changed': g => {
         this.gauge.setFilled(g?.filled ?? []);
         for (const o of this.gaugeObjects) o.setVisible(g?.visible !== false);
+        this.gaugeVisible = g?.visible !== false;
+        this.setCharge(this.chargeKey);
         this.sunMarker.setVisible(this.sunOn && g?.visible !== false);
       },
       'heat-changed': h => this.setHeat(h?.ratio ?? 0),
@@ -84,7 +88,9 @@ export default class HudScene extends Phaser.Scene {
       'mission-start': m => {
         if (m?.key !== this.activeKey) for (const b of this.hudButtons) b.rearm(); // a new mission screen
         this.activeKey = m?.key ?? null;
+        this.setCharge(null); // a new mission starts uncharged (the mission re-emits its charge right after)
       },
+      'charge-changed': c => this.setCharge(c?.colorKey ?? null),
       'ship-hit': () => this.flashHeatBar(),
       'mission-end': () => {
         this.closePause(false);
@@ -225,6 +231,28 @@ export default class HudScene extends Phaser.Scene {
     const label = this.add.text(sx, top + 30, '태양', { ...TXT, color: '#ffd23f' }).setOrigin(0.5);
     this.sunMarker = this.add.container(0, 0, [mg, label]).setVisible(false);
     this.sunOn = false;
+
+    // Beam-charge highlight: bright thick border on the charged colour's cell + a small label above it.
+    this.chargeBox = this.add.graphics().setVisible(false);
+    this.chargeLabel = this.add
+      .text(0, GAUGE_Y - 6, '빔 충전', { ...TXT, fontSize: '22px', fontStyle: 'bold', color: '#ffffff' })
+      .setOrigin(0.5, 1)
+      .setVisible(false);
+    this.chargeKey = null;
+    this.gaugeVisible = true;
+  }
+
+  /** Highlight the gauge cell of the beam's charge colour (null = none). Hidden together with the gauge. */
+  setCharge(colorKey) {
+    this.chargeKey = colorKey ?? null;
+    const show = !!this.chargeKey && this.gaugeVisible;
+    this.chargeBox.clear().setVisible(show);
+    this.chargeLabel.setVisible(show);
+    if (!show) return;
+    const cx = this.gauge.cellCenterX(this.chargeKey);
+    this.chargeBox.lineStyle(7, 0xffffff, 1);
+    this.chargeBox.strokeRoundedRect(cx - CELL_W / 2 - 5, GAUGE_Y - 5, CELL_W + 10, CELL_H + 10, 11);
+    this.chargeLabel.setX(cx);
   }
 
   createInstruction() {
