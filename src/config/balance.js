@@ -57,7 +57,7 @@ export const HUD_BAND_BOTTOM = HUD_PANEL_H + HUD_INSTRUCTION_H; // 344
 export const HUD_TOAST_LOW_Y = 660; // top of a 'low' toast (m1: keeps the white zone 344-624 clear)
 
 // Task 7 additions — mission 1 (furnace) and mission 2 (star gauge).
-export const M1_PRACTICE_SEC = 30; // no asteroids / no ship-collision heat during this time
+export const M1_PRACTICE_SEC = 15; // no asteroids / no ship-collision heat during this time
 // Cooling is measured from below the HUD band (a blob is white while hidden under the HUD and for
 // 0.4 * 700 = 280 px after it, i.e. visibly white from y 344 to ~624; yellow ~624, orange ~778, red ~918).
 export const M1_COOL_START_Y = HUD_BAND_BOTTOM; // fall fraction starts counting here
@@ -67,6 +67,8 @@ export const M1_PRACTICE_TOAST_GAP_MS = 6000; // practice feedback toast: first 
 export const FURNACE_STAGE_CUTS = [0.4, 0.62, 0.82]; // fall fraction where white->yellow->orange->red
 export const M1_ASTEROID_SLOT_CHANCE = 0.2; // m1 test phase: chance a non-aimed formation slot is a straight-falling asteroid
 export const M1_BLOB_SPEED = { min: 150, max: 210 };
+export const M1_BLOB_START_WEIGHTS = { white: 0.4, yellow: 0.25, orange: 0.2, red: 0.15 }; // m1 blob starting color odds (only white scores)
+export const M1_WHITE_GUARANTEE = 3; // after this many non-white starts in a row the next blob starts white
 export const M2_STAR_SCALE = { min: 0.7, max: 1.5 };
 
 // Task 9 additions — mission 4 (jewel box cluster boss).

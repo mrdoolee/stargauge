@@ -65,9 +65,9 @@ describe('estimateFlow vs the spec split', () => {
       expect(sec).toBeLessThanOrEqual(target * 1.3);
     });
   }
-  it('keeps the practice window at the spec 30 s', async () => {
+  it('shortens the practice window to 15 s (teacher: boring)', async () => {
     const { M1_PRACTICE_SEC } = await import('../../src/config/balance.js');
-    expect(M1_PRACTICE_SEC).toBe(30);
+    expect(M1_PRACTICE_SEC).toBe(15);
   });
 });
 

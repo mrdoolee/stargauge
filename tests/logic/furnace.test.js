@@ -75,3 +75,41 @@ describe('practiceToastDue', () => {
     expect(M1_PRACTICE_TOAST_GAP_MS).toBeGreaterThanOrEqual(3000);
   });
 });
+
+import { pickBlobStart, stageStartFraction } from '../../src/logic/furnace.js';
+import { M1_BLOB_START_WEIGHTS, M1_WHITE_GUARANTEE } from '../../src/config/balance.js';
+
+describe('pickBlobStart (mixed starting colors)', () => {
+  it('forces white after M1_WHITE_GUARANTEE non-white starts in a row', () => {
+    const rng = () => 0.99; // always the last (red) bucket
+    let sinceWhite = 0;
+    for (let i = 0; i < M1_WHITE_GUARANTEE; i++) {
+      const r = pickBlobStart({ sinceWhite, rng });
+      expect(r.stage).toBe('red');
+      sinceWhite = r.sinceWhite;
+    }
+    const forced = pickBlobStart({ sinceWhite, rng });
+    expect(forced.stage).toBe('white');
+    expect(forced.sinceWhite).toBe(0);
+  });
+  it('matches the weights over many draws', () => {
+    const counts = { white: 0, yellow: 0, orange: 0, red: 0 };
+    const N = 10000;
+    // Independent draws (sinceWhite 0 each time): the weighting itself, without the white guarantee's nudge.
+    for (let i = 0; i < N; i++) counts[pickBlobStart({ sinceWhite: 0 }).stage] += 1;
+    for (const k of Object.keys(counts)) expect(Math.abs(counts[k] / N - M1_BLOB_START_WEIGHTS[k])).toBeLessThan(0.03);
+  });
+});
+
+describe('stageStartFraction', () => {
+  it('maps stages to the cut points', () => {
+    expect(stageStartFraction('white')).toBe(0);
+    expect(stageStartFraction('yellow')).toBe(FURNACE_STAGE_CUTS[0]);
+    expect(stageStartFraction('orange')).toBe(FURNACE_STAGE_CUTS[1]);
+    expect(stageStartFraction('red')).toBe(FURNACE_STAGE_CUTS[2]);
+  });
+  it('a yellow start is never judged white', () => {
+    expect(furnaceStageAt(stageStartFraction('yellow'))).toBe('yellow');
+    expect(countsAsWhite('yellow', null)).toBe(false);
+  });
+});

@@ -1,4 +1,4 @@
-// Mission 1 — 용광로 탈출. Teach (instruction) -> practice (30 s, no asteroids, no collision heat)
+// Mission 1 — 용광로 탈출. Teach (instruction) -> practice (15 s, no asteroids, no collision heat)
 // -> test (collisions on, a few asteroids). Correct = the blob is 'white' at the moment of the hit
 // (or left white at most M1_WHITE_GRACE_MS ago). Cooling starts below the HUD band, so the white
 // window is on screen (y ~344-624). After an overheat restart the practice is skipped.
@@ -10,7 +10,9 @@ import { GAME_WIDTH } from '../config/game.js';
 import { scaleSpeed } from '../logic/difficulty.js';
 import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
 import { predicateJudge } from '../logic/judges.js';
-import { furnaceStageAt, furnaceFallFraction, countsAsWhite, practiceToastDue } from '../logic/furnace.js';
+import {
+  furnaceStageAt, furnaceFallFraction, countsAsWhite, practiceToastDue, pickBlobStart, stageStartFraction,
+} from '../logic/furnace.js';
 import { MISSION_TEXT } from '../data/copy.js';
 
 const SPAWN_Y = -60;
@@ -48,6 +50,20 @@ export default class M1FurnaceScene extends BaseMissionScene {
   setupMission() {
     this.clockMs = 0; // mission-local clock (only advances while playing, so pause never eats the grace window)
     this.lastPracticeToast = { white: null, cooled: null };
+    this.sinceWhite = 0; // non-white blob starts since the last white one (one counter per run)
+  }
+
+  /** Spawn a blob that starts in a weighted random stage (it keeps cooling as it falls). */
+  spawnBlob(props) {
+    const pick = pickBlobStart({ sinceWhite: this.sinceWhite });
+    this.sinceWhite = pick.sinceWhite;
+    const o = this.spawnStar({ ...props, colorKey: pick.stage, kind: 'furnace', glow: 0.7 });
+    if (o) {
+      o.coolOffset = stageStartFraction(pick.stage);
+      // Pooled object: reset. A blob that never was white can never count as "just left white".
+      o.whiteEndedAt = pick.stage === 'white' ? null : -Infinity;
+    }
+    return o;
   }
 
   /** White now, or white until at most M1_WHITE_GRACE_MS ago. */
@@ -72,11 +88,10 @@ export default class M1FurnaceScene extends BaseMissionScene {
   spawnObject(phase, slot) {
     if (!slot) {
       // Practice: timer spawner, no formations.
-      const o = this.spawnStar({
-        x: rand(70, GAME_WIDTH - 70), y: SPAWN_Y, colorKey: 'white', kind: 'furnace',
-        scale: rand(0.9, 1.3), glow: 0.7, vy: scaleSpeed(rand(M1_BLOB_SPEED.min, M1_BLOB_SPEED.max), this.diff.key),
+      this.spawnBlob({
+        x: rand(70, GAME_WIDTH - 70), y: SPAWN_Y,
+        scale: rand(0.9, 1.3), vy: scaleSpeed(rand(M1_BLOB_SPEED.min, M1_BLOB_SPEED.max), this.diff.key),
       });
-      if (o) o.whiteEndedAt = null; // pooled object: clear the previous blob's value
       return;
     }
     // Test: aimed slots and a share of the others become asteroids; the rest are furnace blobs.
@@ -90,12 +105,11 @@ export default class M1FurnaceScene extends BaseMissionScene {
       this.spawnAsteroid({ x: slot.x, y: SPAWN_Y, vx, vy, scale: rand(0.9, 1.3), zigzag: slot.zigzag });
       return;
     }
-    const o = this.spawnStar({
-      x: slot.x, y: SPAWN_Y, colorKey: 'white', kind: 'furnace', scale: rand(0.9, 1.3), glow: 0.7,
+    this.spawnBlob({
+      x: slot.x, y: SPAWN_Y, scale: rand(0.9, 1.3),
       vx: slot.vx, zigzag: slot.zigzag,
       vy: this.blobSpeed(slot.formationIndex, () => scaleSpeed(rand(M1_BLOB_SPEED.min, M1_BLOB_SPEED.max), this.diff.key)),
     });
-    if (o) o.whiteEndedAt = null;
   }
 
   onMissionUpdate(dt) {
@@ -103,7 +117,7 @@ export default class M1FurnaceScene extends BaseMissionScene {
     // Cooling: stage follows the distance fallen below the HUD; colorKey is what heat and the judge read.
     for (const o of this.pools.stars.members) {
       if (!o.active || o.kind !== 'furnace' || o.marked) continue;
-      const stage = furnaceStageAt(furnaceFallFraction(o.y));
+      const stage = furnaceStageAt(Math.min(1, furnaceFallFraction(o.y) + (o.coolOffset || 0)));
       if (o.colorKey === 'white' && stage !== 'white') o.whiteEndedAt = this.clockMs;
       this.setObjectColor(o, stage);
     }

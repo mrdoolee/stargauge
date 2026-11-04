@@ -1,6 +1,6 @@
 // Pure helpers for the end of the game: playtime estimate, result summary, restart key list.
 import {
-  M1_PRACTICE_SEC, M4_TIME_LIMIT_SEC, FORMATION_GAP_MS,
+  M1_PRACTICE_SEC, M4_TIME_LIMIT_SEC, FORMATION_GAP_MS, M1_BLOB_START_WEIGHTS,
   M1_ASTEROID_SLOT_CHANCE, MISSION_GOAL_COUNTS, SPAWN_NEEDED_GUARANTEE,
 } from '../config/balance.js';
 import { STAR_COLORS } from './temperature.js';
@@ -13,7 +13,7 @@ import { getDifficulty, formationSlotsPerSec } from './difficulty.js';
 export const PACE = {
   // hit.m2 0.4 -> 0.25 and retry.easy 1.3 -> 1.0 (2026-11-04): m2 formations are sparser than the old single spawns, so a normal m2
   // must stay in the spec 4-minute band, while easy (no restarts: heat barely fills) still fits 15 minutes. Unmeasured.
-  hit: { m1: 0.3, m2: 0.25 },
+  hit: { m1: 0.4, m2: 0.25 }, // m1 0.3 -> 0.4 (2026-11-04): only 40% of blobs are white now (mixed start colors), so the per-white hit chance is higher than per-blob; keeps m1 in the spec band. Unmeasured.
   read: { title: 10, briefing: 25, m1: 25, m2: 25, m3: 25, m4: 15, card: 15, picture: 20, chart: 45 },
   m3FindSec: 45, // 3-a: find the hottest of three
   m3OrderSec: 60, // 3-b: three ordered shots
@@ -40,7 +40,7 @@ export function estimateFlow({
   const P = PACE;
   const d = getDifficulty(difficulty);
   const retry = P.retryByDifficulty[d.key];
-  const m1 = P.read.m1 + practice + (goals.m1 / P.hit.m1) / targetsPerSec(gaps.m1, d.key, 1 - M1_ASTEROID_SLOT_CHANCE) * retry + P.read.card;
+  const m1 = P.read.m1 + practice + (goals.m1 / P.hit.m1) / targetsPerSec(gaps.m1, d.key, (1 - M1_ASTEROID_SLOT_CHANCE) * M1_BLOB_START_WEIGHTS.white) * retry + P.read.card;
   const m2spawns = m2Spawns(4) + m2Spawns(2); // 2-a: 4 hotter colors, 2-b: 2 cooler colors
   const m2 = P.read.m2 + (m2spawns / P.hit.m2) / targetsPerSec(gaps.m2, d.key) * retry + P.read.card;
   const m3 = P.read.m3 + P.m3FindSec + P.m3OrderSec + P.read.picture;
