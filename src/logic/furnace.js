@@ -57,3 +57,15 @@ export function stageStartFraction(stageKey) {
   if (stageKey === 'red') return FURNACE_STAGE_CUTS[2];
   return 0;
 }
+
+/**
+ * Long-run share of blobs that start white, including the guarantee (after `guarantee` non-white starts the
+ * next is forced white): a cycle is 0..guarantee non-whites then one white, so share = 1 / sum(q^k, k=0..guarantee).
+ */
+export function effectiveWhiteShare({ weights = M1_BLOB_START_WEIGHTS, guarantee = M1_WHITE_GUARANTEE } = {}) {
+  const total = Object.values(weights).reduce((s, v) => s + v, 0);
+  const q = 1 - weights.white / total;
+  let sum = 0;
+  for (let k = 0; k <= guarantee; k++) sum += q ** k;
+  return 1 / sum;
+}

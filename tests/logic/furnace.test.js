@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { furnaceStageAt } from '../../src/logic/furnace.js';
-import { FURNACE_STAGE_CUTS } from '../../src/config/balance.js';
+import {
+  furnaceStageAt, furnaceFallFraction, countsAsWhite, practiceToastDue, pickBlobStart, stageStartFraction,
+  effectiveWhiteShare,
+} from '../../src/logic/furnace.js';
+import {
+  FURNACE_STAGE_CUTS, M1_COOL_START_Y, M1_WHITE_GRACE_MS, M1_PRACTICE_TOAST_GAP_MS, HUD_BAND_BOTTOM,
+  M1_BLOB_START_WEIGHTS, M1_WHITE_GUARANTEE,
+} from '../../src/config/balance.js';
 
 describe('furnaceStageAt', () => {
   it('starts white and ends red', () => {
@@ -28,11 +34,6 @@ describe('furnaceStageAt', () => {
     }
   });
 });
-
-import { furnaceFallFraction, countsAsWhite, practiceToastDue } from '../../src/logic/furnace.js';
-import {
-  M1_COOL_START_Y, M1_WHITE_GRACE_MS, M1_PRACTICE_TOAST_GAP_MS, HUD_BAND_BOTTOM,
-} from '../../src/config/balance.js';
 
 describe('furnaceFallFraction (cooling measured from below the HUD)', () => {
   it('stays 0 while the blob is still under the HUD band', () => {
@@ -76,9 +77,6 @@ describe('practiceToastDue', () => {
   });
 });
 
-import { pickBlobStart, stageStartFraction } from '../../src/logic/furnace.js';
-import { M1_BLOB_START_WEIGHTS, M1_WHITE_GUARANTEE } from '../../src/config/balance.js';
-
 describe('pickBlobStart (mixed starting colors)', () => {
   it('forces white after M1_WHITE_GUARANTEE non-white starts in a row', () => {
     const rng = () => 0.99; // always the last (red) bucket
@@ -111,5 +109,22 @@ describe('stageStartFraction', () => {
   it('a yellow start is never judged white', () => {
     expect(furnaceStageAt(stageStartFraction('yellow'))).toBe('yellow');
     expect(countsAsWhite('yellow', null)).toBe(false);
+  });
+});
+
+describe('effectiveWhiteShare', () => {
+  it('matches a seeded simulation of pickBlobStart (~0.46 for the shipped values)', () => {
+    let seed = 12345;
+    const rng = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+    let sinceWhite = 0;
+    let whites = 0;
+    const N = 200000;
+    for (let i = 0; i < N; i++) {
+      const r = pickBlobStart({ sinceWhite, rng });
+      if (r.stage === 'white') whites += 1;
+      sinceWhite = r.sinceWhite;
+    }
+    expect(effectiveWhiteShare({})).toBeCloseTo(whites / N, 2);
+    expect(effectiveWhiteShare({})).toBeGreaterThan(M1_BLOB_START_WEIGHTS.white);
   });
 });

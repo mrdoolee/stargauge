@@ -56,9 +56,9 @@ export default class M1FurnaceScene extends BaseMissionScene {
   /** Spawn a blob that starts in a weighted random stage (it keeps cooling as it falls). */
   spawnBlob(props) {
     const pick = pickBlobStart({ sinceWhite: this.sinceWhite });
-    this.sinceWhite = pick.sinceWhite;
     const o = this.spawnStar({ ...props, colorKey: pick.stage, kind: 'furnace', glow: 0.7 });
     if (o) {
+      this.sinceWhite = pick.sinceWhite; // advance only when the blob really spawned
       o.coolOffset = stageStartFraction(pick.stage);
       // Pooled object: reset. A blob that never was white can never count as "just left white".
       o.whiteEndedAt = pick.stage === 'white' ? null : -Infinity;
