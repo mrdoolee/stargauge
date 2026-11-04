@@ -143,3 +143,20 @@ export const FORMATION_MEAN_SPAN_MS = 700;
 
 // Mission 3: the constellation group sways left <-> right across the whole screen (amplitude derived from its extent)
 export const M3_SWAY = { periodMs: 12000 };
+
+// Missions 3/4 shooter: star-charged beam vs. colored shields (charge level = temperature color, 7 steps)
+export const DRONE_SHIELDS = {
+  easy: { yellowWhite: 0.4, white: 0.6 },
+  normal: { white: 0.6, blueWhite: 0.4 },
+  hard: { white: 0.4, blueWhite: 0.4, blue: 0.2 },
+};
+export const M3_DRONE_GOAL = { easy: 5, normal: 6, hard: 8 };
+export const BOSS_ARMOR = {
+  easy: ['yellow', 'yellowWhite', 'white'],
+  normal: ['yellowWhite', 'white', 'blueWhite'],
+  hard: ['yellowWhite', 'white', 'blueWhite'],
+};
+export const BOSS_HP = [6, 8, 10];
+export const M3_STAR_POOL = ['red', 'red', 'red', 'orange', 'orange', 'orange', 'yellow', 'yellowWhite', 'white', 'blueWhite', 'blue']; // weight = repeats
+export const M3_DECOY_SCALE = { min: 1.4, max: 1.8 }; // red / orange stars
+export const M3_STAR_SCALE = { min: 0.55, max: 0.85 }; // the other stars
