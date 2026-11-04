@@ -167,3 +167,8 @@ export const BOSS_HP = [6, 8, 10];
 export const M3_STAR_POOL = ['red', 'red', 'red', 'orange', 'orange', 'orange', 'yellow', 'yellowWhite', 'white', 'blueWhite', 'blue']; // weight = repeats
 export const M3_DECOY_SCALE = { min: 1.4, max: 1.8 }; // red / orange stars
 export const M3_STAR_SCALE = { min: 0.55, max: 0.85 }; // the other stars
+export const DRONE_WAVE_MS = { easy: 6000, normal: 5000, hard: 4000 }; // gap between drone waves (per difficulty; no spawnInterval scaling)
+export const DRONE_MAX_ON_SCREEN = 3;
+export const DRONE_FIRE_MS = { easy: 2600, normal: 2000, hard: 1500 };
+export const DRONE_BAND_Y = { min: 380, max: 560 }; // hover rows
+export const DRONE_SPEED_X = 90; // px/s patrol
