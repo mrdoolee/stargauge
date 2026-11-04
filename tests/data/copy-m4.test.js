@@ -45,12 +45,10 @@ function wrapLines(text, width) {
 }
 
 describe('MISSION_TEXT.m4 HUD band', () => {
-  const line = `${MISSION_TEXT.m4.instruction} (남은 시간 ${formatTime(210)})`;
+  const line = `${MISSION_TEXT.m4.instruction} (${formatTime(210)})`;
 
-  it('says plainly to SHOOT the cluster stars to mark them, and to avoid the scattered blue ones', () => {
-    expect(MISSION_TEXT.m4.instruction).toBe('성단의 별을 모두 쏴서 표시! 흩어지는 청색 별은 피해요');
-    expect(MISSION_TEXT.m4.instruction).toContain('쏴서 표시');
-    expect(MISSION_TEXT.m4.instruction).toContain('청색');
+  it('says to charge with hot stars and pierce the boss armor, and to dodge bullets', () => {
+    expect(MISSION_TEXT.m4.instruction).toBe('뜨거운 별로 충전해서 보스 함선의 장갑을 뚫으세요! 탄은 피해요');
   });
 
   it('instruction + timer suffix fits two lines at 30 px in the 532 px band', () => {

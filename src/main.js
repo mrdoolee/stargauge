@@ -27,7 +27,7 @@ async function boot() {
   const { default: BriefingScene } = await import('./scenes/BriefingScene.js');
   const { default: CardScene } = await import('./scenes/CardScene.js');
   const { default: M3DroneScene } = await import('./scenes/M3DroneScene.js');
-  const { default: M4JewelboxScene } = await import('./scenes/M4JewelboxScene.js');
+  const { default: M4BossScene } = await import('./scenes/M4BossScene.js');
   const { default: ReportScene } = await import('./scenes/ReportScene.js');
   const { default: ResultScene } = await import('./scenes/ResultScene.js');
   const { default: HudScene } = await import('./scenes/HudScene.js');
@@ -35,7 +35,7 @@ async function boot() {
   const { default: M2GaugeScene } = await import('./scenes/M2GaugeScene.js');
 
   let colorsView = false;
-  const scenes = [BootScene, TitleScene, BriefingScene, CardScene, M1FurnaceScene, M2GaugeScene, M3DroneScene, M4JewelboxScene, ReportScene, ResultScene, HudScene];
+  const scenes = [BootScene, TitleScene, BriefingScene, CardScene, M1FurnaceScene, M2GaugeScene, M3DroneScene, M4BossScene, ReportScene, ResultScene, HudScene];
   if (dbg.debug) {
     const { default: DebugFpsScene } = await import('./scenes/DebugFpsScene.js');
     scenes.push(DebugFpsScene); // last = drawn on top; not even imported when debug is off

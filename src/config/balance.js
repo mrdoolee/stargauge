@@ -142,7 +142,7 @@ export const FORMATION_OBJECT_WIDTH = 72; // body diameter = 2 x STAR_CORE_R (36
 // Wave director (src/logic/waves.js)
 export const WARMUP_MS = 12000; // first seconds of a run: thinner formations, no aimed shots
 export const WARMUP_DENSITY = 0.7; // formation count multiplier while warming up (ceil, min 1)
-export const FORMATION_GAP_MS = { m1: 2100, m2: 4000, m3: 2400, m4: 0 }; // rest between formations (scaled by difficulty spawnInterval)
+export const FORMATION_GAP_MS = { m1: 2100, m2: 4000, m3: 2400, m4: 2400 }; // rest between formations (scaled by difficulty spawnInterval)
 export const RANK_GAP_SHRINK = 0.08; // rest shrinks by this fraction per tension tier
 // Balance-model constants (difficulty.js / flow.js): formations are 3..5 objects; slot delays span ~0.7 s on average.
 export const FORMATION_MEAN_SIZE = 4;
@@ -172,3 +172,13 @@ export const DRONE_MAX_ON_SCREEN = 3;
 export const DRONE_FIRE_MS = { easy: 2600, normal: 2000, hard: 1500 };
 export const DRONE_BAND_Y = { min: 380, max: 560 }; // hover rows
 export const DRONE_SPEED_X = 90; // px/s patrol
+
+// Mission 4 boss ship (2026-11-04). The boss is not a star: it can be shot down. Armor color rises with stages (BOSS_ARMOR).
+// BOSS_POS.y 430: the 300 px hull spans y 280..580, so everything below the HUD band (344) is visible and the muzzle
+// (y 550) is far enough above the ship row (900) for canLaunch at every speed band (bullet speed is capped when the ship moves up).
+export const BOSS_POS = { x: 360, y: 430 };
+export const BOSS_SWAY = { amp: 160, periodMs: 6000 };
+export const BOSS_HIT_FLASH_MS = 120;
+export const BOSS_WIDTH_PX = 300; // on-screen hull width (the 80 px art is scaled up)
+export const BOSS_MUZZLE_DY = 120; // bullets start this far below the boss centre
+export const BOSS_MIN_SHOT_SPEED = 150; // a volley is skipped if the safe-distance cap is below this (ship right under the muzzle)

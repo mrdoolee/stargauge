@@ -1,9 +1,9 @@
 // Mission 4 boss logic (pure): stage by tagged fraction, attack/gap cycle, fans, safe launch sources.
 import {
-  BOSS_STAGE_AT, BOSS_ATTACK_MS, BOSS_GAP_MS, REACTION_FLOOR_SEC, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY,
+  BOSS_STAGE_AT, BOSS_ATTACK_MS, BOSS_GAP_MS, REACTION_FLOOR_SEC, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY, BOSS_HP, BOSS_MIN_SHOT_SPEED,
 } from '../config/balance.js';
 import { getDifficulty } from './difficulty.js';
-import { speedBand, speedFor } from './speed.js';
+import { speedBand, speedFor, canLaunch } from './speed.js';
 
 const MAX_FAN_ANGLE_DEG = 85; // keeps vy > 0 whatever the caller passes
 
@@ -92,4 +92,26 @@ export function pickLaunchOrigin(members, ship, { diffKey, tier = 0, rng = Math.
 export function bossWarmup(elapsedMs, aimAllowed, intervalMs) {
   const warm = elapsedMs < WARMUP_MS;
   return { warm, aim: !!aimAllowed && !warm, intervalMs: warm ? intervalMs / WARMUP_DENSITY : intervalMs };
+}
+
+/**
+ * After a pierce: hp left -> same stage; hp 0 -> next stage with its full hp (BOSS_HP[stage]);
+ * hp 0 on the last stage -> cleared.
+ */
+export function bossStageFromHp({ stage, hp }) {
+  if (hp > 0) return { stage, hp, cleared: false };
+  if (stage >= BOSS_HP.length) return { stage, hp: 0, cleared: true };
+  return { stage: stage + 1, hp: BOSS_HP[stage], cleared: false };
+}
+
+/**
+ * Speed of one boss bullet fired from fromY at a ship on shipY: the hazard speed for the tier, capped so the
+ * reaction floor holds (canLaunch). null when even the capped speed is below BOSS_MIN_SHOT_SPEED.
+ */
+export function bossShotSpeed({ fromY, shipY, diffKey, tier = 0, rng = Math.random }) {
+  const key = getDifficulty(diffKey).key;
+  const cap = 0.999 * (shipY - fromY) / REACTION_FLOOR_SEC.hazard[key]; // 0.1% margin: no float edge
+  const v = Math.min(speedFor('hazard', key, tier, rng), cap);
+  if (!(v >= BOSS_MIN_SHOT_SPEED)) return null;
+  return canLaunch({ fromY, shipY, speedPxS: v, category: 'hazard', diffKey: key }) ? v : null;
 }

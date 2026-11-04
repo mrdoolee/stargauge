@@ -151,3 +151,55 @@ describe('bossWarmup', () => {
     expect(bossWarmup(WARMUP_MS + 1, false, 1600).aim).toBe(false);
   });
 });
+
+import { bossStageFromHp, bossShotSpeed } from '../../src/logic/boss.js';
+import { bossArmorColor, chargeLevel } from '../../src/logic/charge.js';
+import { speedFor } from '../../src/logic/speed.js';
+import { BOSS_HP, BOSS_POS, BOSS_MUZZLE_DY, BOSS_SWAY, HUD_BAND_BOTTOM, BOSS_WIDTH_PX } from '../../src/config/balance.js';
+
+describe('bossStageFromHp', () => {
+  it('stays on the stage while hp is left', () => {
+    expect(bossStageFromHp({ stage: 1, hp: 3 })).toEqual({ stage: 1, hp: 3, cleared: false });
+  });
+  it('hp 0 advances to the next stage with its full hp', () => {
+    expect(bossStageFromHp({ stage: 1, hp: 0 })).toEqual({ stage: 2, hp: BOSS_HP[1], cleared: false });
+    expect(bossStageFromHp({ stage: 2, hp: 0 })).toEqual({ stage: 3, hp: BOSS_HP[2], cleared: false });
+  });
+  it('stage 3 at hp 0 is cleared', () => {
+    expect(bossStageFromHp({ stage: 3, hp: 0 })).toEqual({ stage: 3, hp: 0, cleared: true });
+  });
+});
+
+describe('boss armor', () => {
+  it('never gets cooler from stage to stage, on every difficulty', () => {
+    for (const d of ['easy', 'normal', 'hard']) {
+      const lv = [1, 2, 3].map(s => chargeLevel(bossArmorColor(s, d)));
+      expect(lv[1]).toBeGreaterThanOrEqual(lv[0]);
+      expect(lv[2]).toBeGreaterThanOrEqual(lv[1]);
+    }
+  });
+});
+
+describe('boss position', () => {
+  it('is visible below the HUD band and swings inside the screen', () => {
+    expect(BOSS_POS.y).toBeGreaterThan(HUD_BAND_BOTTOM);
+    expect(BOSS_POS.x - BOSS_SWAY.amp - BOSS_WIDTH_PX / 2).toBeGreaterThanOrEqual(0);
+    expect(BOSS_POS.x + BOSS_SWAY.amp + BOSS_WIDTH_PX / 2).toBeLessThanOrEqual(720);
+  });
+  it('bossShotSpeed from the muzzle is canLaunch-safe at ship y 900 for every difficulty and tier (max speed)', () => {
+    const fromY = BOSS_POS.y + BOSS_MUZZLE_DY;
+    for (const diffKey of ['easy', 'normal', 'hard']) for (let tier = 0; tier < 4; tier++) {
+      const v = bossShotSpeed({ fromY, shipY: SHIP_START_Y, diffKey, tier, rng: () => 0.9999 });
+      expect(v).not.toBeNull();
+      expect(canLaunch({ fromY, shipY: SHIP_START_Y, speedPxS: v, category: 'hazard', diffKey })).toBe(true);
+      expect(v).toBeLessThanOrEqual(speedFor('hazard', diffKey, tier, () => 0.9999) + 1e-6);
+    }
+  });
+  it('bossShotSpeed is capped (not skipped) when the ship is close, and null when it is right under the muzzle', () => {
+    const fromY = BOSS_POS.y + BOSS_MUZZLE_DY;
+    const v = bossShotSpeed({ fromY, shipY: fromY + 200, diffKey: 'hard', tier: 3, rng: () => 0.9999 });
+    expect(v).toBeGreaterThan(0);
+    expect(canLaunch({ fromY, shipY: fromY + 200, speedPxS: v, category: 'hazard', diffKey: 'hard' })).toBe(true);
+    expect(bossShotSpeed({ fromY, shipY: fromY + 20, diffKey: 'hard', tier: 3 })).toBeNull();
+  });
+});
