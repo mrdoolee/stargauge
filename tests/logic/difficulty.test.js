@@ -7,7 +7,7 @@ import {
 } from '../../src/logic/difficulty.js';
 import {
   STAR_HEAT, FURNACE_HEAT, ASTEROID_HEAT, BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_VOLLEY_MS, BOSS_FAN_SHIP_HITS,
-  FORMATION_GAP_MS, M3_STAR_POOL, DRONE_MAX_ON_SCREEN, DRONE_FIRE_MS, CHARGE_STAR_HIT_SHARE,
+  FORMATION_GAP_MS, M3_STAR_POOL, DRONE_MAX_ON_SCREEN, DRONE_FIRE_MS, MISSED_STAR_SHARE, DRONE_ALIVE_DUTY,
 } from '../../src/config/balance.js';
 
 describe('DIFFICULTY table', () => {
@@ -70,17 +70,33 @@ describe('worst-case heat inflow', () => {
 });
 
 describe('m3 drone model', () => {
-  it('= charge-star formations (pool-weighted mean star heat) + drone bullets at asteroid heat', () => {
+  it('= missed charge stars (pool-weighted mean star heat x MISSED_STAR_SHARE) + drone bullets x alive duty at asteroid heat', () => {
     for (const k of DIFFICULTY_KEYS) {
       const poolStar = M3_STAR_POOL.reduce((a, c) => a + scaledHeat('star', c, k), 0) / M3_STAR_POOL.length;
-      const stars = formationSlotsPerSec(FORMATION_GAP_MS.m3, k) * poolStar * CHARGE_STAR_HIT_SHARE;
-      const bullets = DRONE_MAX_ON_SCREEN * (1000 / DRONE_FIRE_MS[k]) * scaledHeat('asteroid', null, k);
+      const stars = formationSlotsPerSec(FORMATION_GAP_MS.m3, k) * poolStar * MISSED_STAR_SHARE;
+      const bullets = DRONE_MAX_ON_SCREEN * DRONE_ALIVE_DUTY * (1000 / DRONE_FIRE_MS[k]) * scaledHeat('asteroid', null, k);
       expect(heatInflowPerSec('m3', k)).toBeCloseTo(stars + bullets, 6);
     }
   });
   it('firing faster raises the required dodge (drones fire faster on harder difficulties)', () => {
     expect(DRONE_FIRE_MS.easy).toBeGreaterThan(DRONE_FIRE_MS.normal);
     expect(DRONE_FIRE_MS.normal).toBeGreaterThan(DRONE_FIRE_MS.hard);
+  });
+});
+
+describe('m3/m4 shooter density stays up (not fitted by thinning the game)', () => {
+  it('knobs stay in the agreed shooter ranges', async () => {
+    const b = await import('../../src/config/balance.js');
+    expect(b.DRONE_FIRE_MS.easy).toBeLessThanOrEqual(4500);
+    expect(b.DRONE_MAX_ON_SCREEN).toBeGreaterThanOrEqual(3);
+    expect(b.FORMATION_GAP_MS.m3).toBeLessThanOrEqual(2800);
+    expect(b.FORMATION_GAP_MS.m4).toBeLessThanOrEqual(3000);
+    expect(b.BOSS_GAP_MS).toBeLessThanOrEqual(4500);
+    expect(b.MISSED_STAR_SHARE).toBe(0.25);
+    expect(b.DRONE_ALIVE_DUTY).toBe(0.6);
+  });
+  it('hard is clearly denser than normal on m3 and m4', () => {
+    for (const m of ['m3', 'm4']) expect(heatInflowPerSec(m, 'hard')).toBeGreaterThan(heatInflowPerSec(m, 'normal') * 1.25);
   });
 });
 
@@ -98,7 +114,7 @@ describe('m4 boss stages', () => {
     const heat = scaledHeat('star', 'blue', 'normal');
     const boss = (volleys * (BOSS_FAN_SHIP_HITS + 1) * heat) / ((BOSS_ATTACK_MS[3] + BOSS_GAP_MS) / 1000);
     const meanStar = Object.keys(STAR_HEAT).reduce((a, c) => a + scaledHeat('star', c, 'normal'), 0) / 7;
-    const stars = formationSlotsPerSec(FORMATION_GAP_MS.m4, 'normal') * meanStar * CHARGE_STAR_HIT_SHARE;
+    const stars = formationSlotsPerSec(FORMATION_GAP_MS.m4, 'normal') * meanStar * MISSED_STAR_SHARE;
     expect(heatInflowPerSec('m4', 'normal', 3)).toBeCloseTo(boss + stars, 6);
   });
   it('no-stage m4 is the worst stage', () => {

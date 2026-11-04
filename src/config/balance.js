@@ -74,8 +74,8 @@ export const M2_STAR_SCALE = { min: 0.7, max: 1.5 };
 // Task 9 additions — mission 4 (boss ship).
 // Boss (2026-11-04): 3 stages by boss hp (BOSS_HP); each stage cycles attack window -> gap (no launches).
 export const BOSS_ATTACK_MS = { 1: 4000, 2: 4500, 3: 5000 };
-export const BOSS_GAP_MS = 6000; // was 4000; raised with BOSS_VOLLEY_MS so the m4 worst-case model (boss + charge stars) fits easy <= 0.4
-export const BOSS_VOLLEY_MS = { 1: 3000, 2: 3400, 3: 3800 }; // was 1600/1800/2400 (see BOSS_GAP_MS) // launch interval inside an attack window (x difficulty spawnInterval)
+export const BOSS_GAP_MS = 4500;
+export const BOSS_VOLLEY_MS = { 1: 2200, 2: 3400, 3: 3800 }; // launch interval inside an attack window (x difficulty spawnInterval)
 export const BOSS_FAN = { 2: { count: [2, 3], spreadDeg: 30 }, 3: { count: [2, 3], spreadDeg: 36 } };
 // Balance model: mean shots of one fan that hit a standing ship. 2-fans and far launches usually land one hit;
 // a near 3-fan (launched 100-200 px above the ship, only 32-55 px wide at the ship row) can land two.
@@ -137,14 +137,14 @@ export const FORMATION_OBJECT_WIDTH = 72; // body diameter = 2 x STAR_CORE_R (36
 // Wave director (src/logic/waves.js)
 export const WARMUP_MS = 12000; // first seconds of a run: thinner formations, no aimed shots
 export const WARMUP_DENSITY = 0.7; // formation count multiplier while warming up (ceil, min 1)
-export const FORMATION_GAP_MS = { m1: 2100, m2: 4000, m3: 3000, m4: 3600 }; // rest between formations (scaled by difficulty spawnInterval)
+export const FORMATION_GAP_MS = { m1: 2100, m2: 4000, m3: 2400, m4: 3000 }; // rest between formations (scaled by difficulty spawnInterval)
 export const RANK_GAP_SHRINK = 0.08; // rest shrinks by this fraction per tension tier
 // Balance-model constants (difficulty.js / flow.js): formations are 3..5 objects; slot delays span ~0.7 s on average.
 export const FORMATION_MEAN_SIZE = 4;
 export const FORMATION_MEAN_SPAN_MS = 700;
-// m3/m4 balance model only: the student must shoot the needed (piercing) stars to progress, so in the worst case only the
-// other ~half of the charge-star slots reach the ship. A judgment, not measured (the model otherwise cannot fit easy <= 0.4).
-export const CHARGE_STAR_HIT_SHARE = 0.5;
+// m3/m4 balance model only (difficulty.js). UNMEASURED tuning knob, like the PACE values in flow.js: tune after classroom play.
+// Charge stars are targets the student shoots; this is the share of their slots the student neither shoots nor dodges.
+export const MISSED_STAR_SHARE = 0.25;
 
 // Missions 3/4 shooter: star-charged beam vs. colored shields (charge level = temperature color, 7 steps)
 export const DRONE_SHIELDS = {
@@ -163,8 +163,11 @@ export const M3_STAR_POOL = ['red', 'red', 'red', 'orange', 'orange', 'orange', 
 export const M3_DECOY_SCALE = { min: 1.4, max: 1.8 }; // red / orange stars
 export const M3_STAR_SCALE = { min: 0.55, max: 0.85 }; // the other stars
 export const DRONE_WAVE_MS = { easy: 6000, normal: 5000, hard: 4000 }; // gap between drone waves (per difficulty; no spawnInterval scaling)
-export const DRONE_MAX_ON_SCREEN = 2; // was 3 (balance model: easy/hard dodge bounds)
-export const DRONE_FIRE_MS = { easy: 6000, normal: 3000, hard: 2000 }; // was 2600/2000/1500
+export const DRONE_MAX_ON_SCREEN = 3;
+// m3 balance model only. UNMEASURED tuning knob: average fraction of the DRONE_MAX_ON_SCREEN slots alive and firing
+// (drones get shot down, new waves come every DRONE_WAVE_MS). Tune after classroom play.
+export const DRONE_ALIVE_DUTY = 0.6;
+export const DRONE_FIRE_MS = { easy: 4000, normal: 2800, hard: 2000 };
 export const DRONE_BAND_Y = { min: 380, max: 560 }; // hover rows
 export const DRONE_SPEED_X = 90; // px/s patrol
 
