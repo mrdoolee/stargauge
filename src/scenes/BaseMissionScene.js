@@ -120,6 +120,7 @@ import {
   FORMATION_GAP_MS,
   BLOCKED_TOAST_MAX,
   ENEMY_BODY_R,
+  BOSS_ART,
 } from '../config/balance.js';
 import { HeatMeter } from '../logic/heat.js';
 import { getDifficulty, scaledHeat, scaleInterval } from '../logic/difficulty.js';
@@ -880,7 +881,14 @@ export default class BaseMissionScene extends Phaser.Scene {
     });
     obj.setTexture(texture).setScale(scale);
     const r = ENEMY_BODY_R * (obj.width / ENEMY_TEX); // hitbox follows the art size (a loaded image of another size keeps the footprint)
-    obj.body.setCircle(r, obj.width / 2 - r, obj.height / 2 - r);
+    if (kind === 'boss' && obj.width === BOSS_ART.canvasW && obj.height === BOSS_ART.canvasH) {
+      // loaded boss art: rectangle fitted to the hull's alpha bbox (center on the hull, not the canvas)
+      const h = BOSS_ART.hull;
+      obj.body.setSize(h.w, h.h, false);
+      obj.body.setOffset(h.x, h.y);
+    } else {
+      obj.body.setCircle(r, obj.width / 2 - r, obj.height / 2 - r); // drones (and the code placeholder boss); also restores the circle on pool reuse
+    }
     obj.body.setVelocity(vx, vy);
     this.setEnemyShield(obj, shieldKey);
     return obj;

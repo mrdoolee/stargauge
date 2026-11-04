@@ -178,5 +178,7 @@ export const BOSS_POS = { x: 360, y: 430 };
 export const BOSS_SWAY = { amp: 160, periodMs: 6000 };
 export const BOSS_HIT_FLASH_MS = 120;
 export const BOSS_WIDTH_PX = 300; // on-screen hull width (the 80 px art is scaled up)
-export const BOSS_MUZZLE_DY = 120; // bullets start this far below the boss centre
+// Hull alpha bbox of public/img/boss.png (512x320 canvas, alpha >= 128), in texture px: Arcade rectangle body + muzzle.
+export const BOSS_ART = { canvasW: 512, canvasH: 320, hull: { x: 6, y: 0, w: 500, h: 320 } };
+export const BOSS_MUZZLE_DY = 94; // bullets start this far below the boss centre = hull bottom ((0+320-160) * 300/512)
 export const BOSS_MIN_SHOT_SPEED = 150; // a volley is skipped if the safe-distance cap is below this (ship right under the muzzle)

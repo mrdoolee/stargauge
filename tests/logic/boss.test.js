@@ -58,7 +58,7 @@ describe('bossWarmup', () => {
 import { bossStageFromHp, bossShotSpeed } from '../../src/logic/boss.js';
 import { bossArmorColor, chargeLevel } from '../../src/logic/charge.js';
 import { speedFor } from '../../src/logic/speed.js';
-import { BOSS_HP, BOSS_POS, BOSS_MUZZLE_DY, BOSS_SWAY, HUD_BAND_BOTTOM, BOSS_WIDTH_PX } from '../../src/config/balance.js';
+import { BOSS_HP, BOSS_POS, BOSS_MUZZLE_DY, BOSS_SWAY, HUD_BAND_BOTTOM, BOSS_WIDTH_PX, BOSS_ART } from '../../src/config/balance.js';
 
 describe('bossStageFromHp', () => {
   it('stays on the stage while hp is left', () => {
@@ -104,6 +104,16 @@ describe('boss position', () => {
     expect(v).toBeGreaterThan(0);
     expect(canLaunch({ fromY, shipY: fromY + 200, speedPxS: v, category: 'hazard', diffKey: 'hard' })).toBe(true);
     expect(bossShotSpeed({ fromY, shipY: fromY + 20, diffKey: 'hard', tier: 3 })).toBeNull();
+  });
+});
+
+describe('boss hull box', () => {
+  it('muzzle sits at the hull bottom and the hull stays inside the canvas', () => {
+    const k = BOSS_WIDTH_PX / BOSS_ART.canvasW;
+    const h = BOSS_ART.hull;
+    expect(h.x + h.w).toBeLessThanOrEqual(BOSS_ART.canvasW);
+    expect(h.y + h.h).toBeLessThanOrEqual(BOSS_ART.canvasH);
+    expect(Math.abs((h.y + h.h - BOSS_ART.canvasH / 2) * k - BOSS_MUZZLE_DY)).toBeLessThan(1);
   });
 });
 
