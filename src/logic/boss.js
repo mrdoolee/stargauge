@@ -1,21 +1,32 @@
 // Mission 4 boss logic (pure): attack/gap cycle, fans, aim, warm-up, hp stages, safe bullet speed, sway, timer text.
 import {
-  BOSS_ATTACK_MS, BOSS_GAP_MS, REACTION_FLOOR_SEC, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY, BOSS_HP, BOSS_MIN_SHOT_SPEED, BOSS_VOLLEY_MS,
-  BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT,
+  BOSS_ATTACK_MS, BOSS_GAP_MS, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY, BOSS_HP, BOSS_MIN_SHOT_SPEED, BOSS_VOLLEY_MS,
+  BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, BOSS_FAN, BOSS_ESCORTS,
 } from '../config/balance.js';
-import { scaleInterval } from './difficulty.js';
+import { scaleInterval, getDifficulty } from './difficulty.js';
 import { cappedShotSpeed } from './speed.js';
 import { bossArmorColor, hitsToDown } from './charge.js';
 
+export const BOSS_STAGES = BOSS_HP.normal.length;
 const MAX_FAN_ANGLE_DEG = 85; // keeps vy > 0 whatever the caller passes
 
+/** Per-difficulty balance tables (unknown key -> normal). */
+export const bossHp = (stage, diffKey) => BOSS_HP[getDifficulty(diffKey).key][stage - 1];
+export const bossGapMs = diffKey => BOSS_GAP_MS[getDifficulty(diffKey).key];
+/** Fan of a stage-2/3 volley { count: [min, max], spreadDeg }; null in stage 1 (one straight shot). */
+export const bossFan = (stage, diffKey) => BOSS_FAN[getDifficulty(diffKey).key][stage] ?? null;
+/** Scaled launch interval inside an attack window of this stage. */
+export const bossVolleyMs = (stage, diffKey) => scaleInterval(BOSS_VOLLEY_MS[getDifficulty(diffKey).key][stage], diffKey);
+/** Escort drones the boss wants on screen in this stage (0 in stage 1 / unknown stage). */
+export const escortTarget = (stage, diffKey) => BOSS_ESCORTS[getDifficulty(diffKey).key][stage] ?? 0;
+
 /**
- * Attack (BOSS_ATTACK_MS[stage]) then gap (BOSS_GAP_MS), repeating, from tInStageMs = 0.
+ * Attack (BOSS_ATTACK_MS[stage]) then gap (BOSS_GAP_MS[difficulty]), repeating, from tInStageMs = 0.
  * gapJustStarted is true when an attack->gap boundary lies in (prevTMs, tMs]; pass the previous frame's time.
  */
-export function bossCycle(stage, tInStageMs, prevTMs = null) {
+export function bossCycle(stage, tInStageMs, prevTMs = null, diffKey = 'normal') {
   const attack = BOSS_ATTACK_MS[stage];
-  const period = attack + BOSS_GAP_MS;
+  const period = attack + bossGapMs(diffKey);
   const t = Math.max(0, tInStageMs);
   const gapStarts = x => Math.floor((x - attack) / period) + 1; // boundaries at attack + k*period, k >= 0
   return {
@@ -51,13 +62,13 @@ export function bossWarmup(elapsedMs, aimAllowed, intervalMs) {
 }
 
 /**
- * After a pierce: hp left -> same stage; hp 0 -> next stage with its full hp (BOSS_HP[stage]);
+ * After a pierce: hp left -> same stage; hp 0 -> next stage with its full hp (bossHp of that stage and difficulty);
  * hp 0 on the last stage -> cleared.
  */
-export function bossStageFromHp({ stage, hp }) {
+export function bossStageFromHp({ stage, hp, diffKey = 'normal' }) {
   if (hp > 0) return { stage, hp, cleared: false };
-  if (stage >= BOSS_HP.length) return { stage, hp: 0, cleared: true };
-  return { stage: stage + 1, hp: BOSS_HP[stage], cleared: false };
+  if (stage >= BOSS_STAGES) return { stage, hp: 0, cleared: true };
+  return { stage: stage + 1, hp: bossHp(stage + 1, diffKey), cleared: false };
 }
 
 /**
@@ -66,10 +77,10 @@ export function bossStageFromHp({ stage, hp }) {
  */
 export function bossFightSec(diffKey) {
   let sec = 0;
-  BOSS_HP.forEach((hp, i) => {
-    const armor = bossArmorColor(i + 1, diffKey);
-    sec += BOSS_STAGE_FIND_SEC + hitsToDown(armor, armor, hp) * M3_SEC_PER_SHOT;
-  });
+  for (let st = 1; st <= BOSS_STAGES; st++) {
+    const armor = bossArmorColor(st, diffKey);
+    sec += BOSS_STAGE_FIND_SEC + hitsToDown(armor, armor, bossHp(st, diffKey)) * M3_SEC_PER_SHOT;
+  }
   return sec;
 }
 
@@ -82,7 +93,7 @@ export function bossShotSpeed({ fromY, shipY, diffKey, tier = 0, rng = Math.rand
 }
 
 /** After a stage change: no volley until one full (difficulty-scaled) volley interval of the new stage has passed. */
-export const stageChangeVolleyMs = (stage, diffKey) => scaleInterval(BOSS_VOLLEY_MS[stage], diffKey);
+export const stageChangeVolleyMs = (stage, diffKey) => bossVolleyMs(stage, diffKey);
 
 /** Horizontal sway offset (px) at time tMs. */
 export function swayOffset(tMs, amp, periodMs, phase = 0) {

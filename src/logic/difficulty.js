@@ -3,7 +3,7 @@
 import {
   DIFFICULTY_MULTIPLIERS, DIFFICULTY_LABELS, STAR_HEAT, COOL_PER_SEC,
   FORMATION_GAP_MS, FORMATION_MEAN_SIZE, FORMATION_MEAN_SPAN_MS, M1_ASTEROID_SLOT_CHANCE,
-  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_VOLLEY_MS, BOSS_FAN_SHIP_HITS, M1_BLOB_SPEED,
+  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_VOLLEY_MS, BOSS_FAN_SHIP_HITS, BOSS_AIMED_FROM_STAGE, BOSS_ESCORTS, BOSS_ESCORT_FIRE_MS, M4_STAR_POOL, M1_BLOB_SPEED,
   M1_WHITE_GRACE_MS, M1_COOL_START_Y, M1_FALL_DISTANCE, FURNACE_STAGE_CUTS, BEAM_SPEED,
   SHIP_HALF_HEIGHT, BEAM_SPAWN_OFFSET_Y, M3_STAR_POOL, DRONE_MAX_ON_SCREEN, DRONE_FIRE_MS, MISSED_STAR_SHARE, DRONE_ALIVE_DUTY,
 } from '../config/balance.js';
@@ -39,9 +39,12 @@ export const formationSlotsPerSec = (gapMs, key) =>
  *   or an asteroid for M1_ASTEROID_SLOT_CHANCE of the slots; m2 the mean star heat over the 7 colors; m3 the mean
  *   star heat over the M3_STAR_POOL weights (charge stars, x MISSED_STAR_SHARE: the rest are shot or dodged) PLUS the drone bullets: DRONE_MAX_ON_SCREEN x DRONE_ALIVE_DUTY drones
  *   each firing every DRONE_FIRE_MS, one asteroid-heat hit per bullet (every bullet lands).
- * m4: the charge-star formations (mean star heat over the 7 colors at FORMATION_GAP_MS.m4, x MISSED_STAR_SHARE) PLUS the boss. Boss cycle = BOSS_ATTACK_MS[stage] + BOSS_GAP_MS. One volley every scaleInterval(BOSS_VOLLEY_MS[stage]) in
+ * m4: the charge-star formations (mean star heat over the M4_STAR_POOL weights at FORMATION_GAP_MS.m4, x MISSED_STAR_SHARE) PLUS the boss PLUS the escort drones.
+ *   Boss cycle = BOSS_ATTACK_MS[stage] + BOSS_GAP_MS[difficulty]. One volley every scaleInterval(BOSS_VOLLEY_MS[difficulty][stage]) in
  *   the attack window, each blue (30) shot hits. Volleys per window = ceil(attack / interval) (the first fires at the window
- *   start). A fan lands BOSS_FAN_SHIP_HITS shots on average on a standing ship (see balance.js); stage 3 adds one aimed shot where the difficulty allows aim (not easy).
+ *   start). A fan lands BOSS_FAN_SHIP_HITS shots on average on a standing ship (see balance.js); from BOSS_AIMED_FROM_STAGE a volley adds one aimed shot where the
+ *   difficulty allows aim (not easy). Escorts: BOSS_ESCORTS[difficulty][stage] drones x DRONE_ALIVE_DUTY (the same UNMEASURED share of the time they are alive and firing as
+ *   the m3 drones) each firing every BOSS_ESCORT_FIRE_MS, one asteroid-heat hit per bullet (every bullet lands, like m3).
  *   With no `stage`, m4 returns the worst of the three stages.
  */
 export function heatInflowPerSec(mission, key, stage) {
@@ -50,20 +53,24 @@ export function heatInflowPerSec(mission, key, stage) {
   const formation = (gapMs, perSlot) => formationSlotsPerSec(gapMs, key) * perSlot;
   const chargeStars = (gapMs, perSlot) => formation(gapMs, perSlot) * MISSED_STAR_SHARE;
   const poolStar = M3_STAR_POOL.reduce((a, c) => a + h('star', c), 0) / M3_STAR_POOL.length;
-  const droneBullets = DRONE_MAX_ON_SCREEN * DRONE_ALIVE_DUTY * (1000 / DRONE_FIRE_MS[getDifficulty(key).key]) * h('asteroid');
+  const poolStar4 = M4_STAR_POOL.reduce((a, c) => a + h('star', c), 0) / M4_STAR_POOL.length;
+  const dk = getDifficulty(key).key;
+  const droneBullets = DRONE_MAX_ON_SCREEN * DRONE_ALIVE_DUTY * (1000 / DRONE_FIRE_MS[dk]) * h('asteroid');
   const boss = st => {
     const attack = BOSS_ATTACK_MS[st];
-    const volleys = Math.ceil(attack / scaleInterval(BOSS_VOLLEY_MS[st], key)); // a volley fires as the window opens
-    const aimed = st === 3 && getDifficulty(key).key !== 'easy' ? 1 : 0;
+    const volleys = Math.ceil(attack / scaleInterval(BOSS_VOLLEY_MS[dk][st], key)); // a volley fires as the window opens
+    const aimed = dk !== 'easy' && st >= BOSS_AIMED_FROM_STAGE ? 1 : 0;
     const fan = st === 1 ? 1 : BOSS_FAN_SHIP_HITS;
-    return (volleys * (fan + aimed) * h('star', 'blue')) / ((attack + BOSS_GAP_MS) / 1000);
+    const shots = (volleys * (fan + aimed) * h('star', 'blue')) / ((attack + BOSS_GAP_MS[dk]) / 1000);
+    const escorts = BOSS_ESCORTS[dk][st] * DRONE_ALIVE_DUTY * (1000 / BOSS_ESCORT_FIRE_MS[dk]) * h('asteroid');
+    return shots + escorts;
   };
   switch (mission) {
     case 'm1': return formation(FORMATION_GAP_MS.m1,
       (1 - M1_ASTEROID_SLOT_CHANCE) * h('furnace', 'red') + M1_ASTEROID_SLOT_CHANCE * h('asteroid'));
     case 'm2': return formation(FORMATION_GAP_MS.m2, meanStar);
     case 'm3': return chargeStars(FORMATION_GAP_MS.m3, poolStar) + droneBullets;
-    case 'm4': return chargeStars(FORMATION_GAP_MS.m4, meanStar) + (stage ? boss(stage) : Math.max(boss(1), boss(2), boss(3)));
+    case 'm4': return chargeStars(FORMATION_GAP_MS.m4, poolStar4) + (stage ? boss(stage) : Math.max(boss(1), boss(2), boss(3)));
     default: throw new Error(`Unknown mission: ${mission}`);
   }
 }
