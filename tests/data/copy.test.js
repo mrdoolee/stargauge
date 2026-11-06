@@ -12,7 +12,7 @@ describe('copy', () => {
     ['m1', 'm2a', 'm2b', 'm3', 'm4'].forEach(p => {
       ['blue', 'blueWhite', 'white', 'yellowWhite', 'yellow', 'orange', 'red'].forEach(k => {
         const m = wrongShotMessage(p, { colorKey: k });
-        if (!/태양과 같아서/.test(m)) expect(m.endsWith('온도는 색으로 비교해요.')).toBe(true); // the yellow star message has no room for the tail
+        expect(m.endsWith('온도는 색으로 비교해요.')).toBe(true);
         expect(m).not.toMatch(/\d|켈빈/);
       });
     });

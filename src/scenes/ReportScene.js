@@ -87,7 +87,7 @@ export default class ReportScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: '32px', color: '#8fd3ff',
     }).setOrigin(0.5));
     this.addUi(this.add.text(cx, L.prompt.top, q.prompt, {
-      fontFamily: FONT, fontSize: '38px', fontStyle: 'bold', color: '#ffffff', align: 'center', lineSpacing: 10,
+      fontFamily: FONT, fontSize: '36px', fontStyle: 'bold', color: '#ffffff', align: 'center', lineSpacing: 10,
       wordWrap: { width: GAME_WIDTH - 40, useAdvancedWrap: true },
     }).setOrigin(0.5, 0));
 
