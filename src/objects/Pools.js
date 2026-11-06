@@ -13,8 +13,11 @@
 import Phaser from 'phaser';
 import {
   POOL_STARS, POOL_BEAMS, POOL_ASTEROIDS, POOL_ENEMIES, POOL_BULLETS, BEAM_BODY_W, BEAM_BODY_H,
-  ENEMY_BODY_R, BULLET_BODY_R,
+  ENEMY_BODY_R, BULLET_BODY_R, HUD_BAND_BOTTOM,
 } from '../config/balance.js';
+import { hpBarY } from '../logic/enemyHp.js';
+
+export const HP_BAR_H = 8; // small enemy hp bar height (px); width = the enemy's display width
 import { STAR_TEX, STAR_CORE_R, ENEMY_TEX } from './starTextures.js';
 
 function makePool(scene, { key, size, depth, setup }) {
@@ -142,7 +145,7 @@ export function syncShields(group) {
 export function syncHpBars(group) {
   for (const e of group.members) {
     if (!e.active || !e.hpBar.visible) continue;
-    const y = e.y + e.hpBarOffY;
+    const y = hpBarY(e.y, e.hpBarOffY, HP_BAR_H, HUD_BAND_BOTTOM);
     e.hpBarBack.setPosition(e.x, y);
     e.hpBar.setPosition(e.x - e.hpBarW / 2, y);
   }

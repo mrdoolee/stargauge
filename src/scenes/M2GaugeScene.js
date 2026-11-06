@@ -78,6 +78,7 @@ export default class M2GaugeScene extends BaseMissionScene {
       // Clear the field, then a centre banner while the gauge's correct range slides from the hot side to the cool side.
       this.startTransition({
         ...BANNER_TEXT.m2,
+        instruction: MISSION_TEXT.m2b.instruction,
         gaugeTarget: { from: HOTTER_KEYS, to: COOLER_KEYS },
         onDone: () => this.advancePhase(),
       });

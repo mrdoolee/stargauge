@@ -14,3 +14,17 @@ describe('hpBarFraction', () => {
     expect(hpBarFraction(1, -2)).toBe(0);
   });
 });
+
+import { hpBarY } from '../../src/logic/enemyHp.js';
+
+describe('hpBarY', () => {
+  it('sits above the enemy when it stays below the HUD band', () => {
+    expect(hpBarY(600, -60, 8, 344)).toBe(540);
+  });
+  it('flips below the enemy when the top position would reach the HUD band', () => {
+    expect(hpBarY(380, -60, 8, 344)).toBe(440);
+  });
+  it('stays above when the bar top is exactly on the band edge', () => {
+    expect(hpBarY(408, -60, 8, 344)).toBe(348 - 0); // 348 - 4 = 344 top
+  });
+});

@@ -21,6 +21,7 @@
  *     judge: predicateJudge(...) | orderedJudge(...) | null,  // null = practice: hits just mark
  *     practice: true,               // optional marker for subclasses (e.g. m1 skips it on a restart)
  *     remaining: scene => number,   // optional; goal counter. <= 0 auto-completes the phase
+ *         hideGoal: scene => bool,      // optional; true keeps the counter hidden (the goal still auto-completes)
  *     instruction: '...',           // optional override of MISSION_TEXT[id].instruction
  *     spawnIntervalMs: 900,         // optional; default SPAWN_INTERVAL_MS[missionId]; 0 = no spawner
  *     collisions: true,             // optional; false = ship passes through everything (m1 practice)
@@ -134,7 +135,7 @@ import {
   COLLISION_COOLDOWN_MS,
   MARK_FADE_MS,
   RESTART_DELAY_MS,
-  TRANSITION_CLEAR_MS,
+  TRANSITION_CLEAR_MS, HUD_BAND_BOTTOM,
   FORMATION_GAP_MS,
   BLOCKED_TOAST_MAX,
   ENEMY_BODY_R,
@@ -157,8 +158,8 @@ import {
   makeStarTextures, textureFor, loadedAsteroidKeys, ASTEROID_TEX, ENEMY_TEX, shieldTextureKey,
 } from '../objects/starTextures.js';
 import { createParallax, PARALLAX_SPACE } from '../objects/parallax.js';
-import { hpBarFraction } from '../logic/enemyHp.js';
-import { createPools, acquire, release, syncHalos, syncShields, syncHpBars } from '../objects/Pools.js';
+import { hpBarFraction, hpBarY } from '../logic/enemyHp.js';
+import { createPools, acquire, release, syncHalos, syncShields, syncHpBars, HP_BAR_H } from '../objects/Pools.js';
 import { FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
 
@@ -177,7 +178,6 @@ const FX_BURSTS = 4; // pooled explosion / spark bursts: 1 ring + FX_BITS sparks
 const FX_BITS = 6;
 const EXPLODE_MS = 280; // downed enemy burst (<= 300 ms)
 const SPARK_MS = 160;
-const HP_BAR_H = 8; // small enemy hp bar height (px); width = the enemy's display width
 const HP_BAR_GAP = 8; // gap between the shield ring's top and the bar
 const HP_BAR_TWEEN_MS = 120;
 const SHIELD_ALPHA = 1; // exact palette color: no dimming over the dark backdrop
@@ -457,6 +457,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   currentInstruction() {
     const p = this.phase;
     if (!p) return '';
+    if (this.transition?.shown && this.transition.instruction) return this.transition.instruction; // the next stage's text while its banner is up
     return p.instruction ?? MISSION_TEXT[p.id]?.instruction ?? '';
   }
 
@@ -479,9 +480,10 @@ export default class BaseMissionScene extends Phaser.Scene {
   emitGoal() {
     const p = this.phase;
     const remaining = p?.remaining ? Math.max(0, p.remaining(this)) : null;
-    if (remaining !== this._lastRemaining) {
-      this._lastRemaining = remaining;
-      this.game.events.emit('goal-changed', { remaining });
+    const shown = p?.hideGoal?.(this) ? null : remaining; // hideGoal: the counter stays hidden (m4 after the fight)
+    if (shown !== this._lastRemaining) {
+      this._lastRemaining = shown;
+      this.game.events.emit('goal-changed', { remaining: shown });
     }
     return remaining;
   }
@@ -571,13 +573,14 @@ export default class BaseMissionScene extends Phaser.Scene {
 
   /**
    * Stage transition (see the header): clear the field, show the centre banner, then onDone().
-   * @param {{ title: string, body?: string, emphasis?: string, gaugeTarget?: {from: string[], to: string[]}, onDone: () => void }} o
+   * @param {{ title: string, body?: string, emphasis?: string, instruction?: string, gaugeTarget?: {from: string[], to: string[]}, onDone: () => void }} o
+   *   instruction = the strip text switched to when the banner appears (the next stage's).
    */
-  startTransition({ title, body, emphasis, gaugeTarget, onDone }) {
+  startTransition({ title, body, emphasis, instruction, gaugeTarget, onDone }) {
     if (this.transition || this.restarting || this.finished) return;
     this.spawner = null; // the joystick stays live (the ship may move); fire() is ignored while this.transition is set
     this.transition = {
-      st: { step: 'clear', ms: 0 }, shown: false, copy: { title, body, emphasis }, gaugeTarget, onDone,
+      st: { step: 'clear', ms: 0 }, shown: false, copy: { title, body, emphasis }, instruction, gaugeTarget, onDone,
     };
     this.clearField();
   }
@@ -627,6 +630,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     if (!t.shown) {
       t.shown = true;
       this.showBanner(t.copy);
+      if (t.instruction) this.setInstruction(t.instruction);
       if (t.gaugeTarget) this.setGaugeTarget(t.gaugeTarget.to, t.gaugeTarget.from);
     }
     if (t.st.step !== 'done') return;
@@ -1127,7 +1131,7 @@ export default class BaseMissionScene extends Phaser.Scene {
       } else {
         this.sparkAt(bx, by, beamHex);
         sfx.play('correct');
-        if (enemy.hpBarOn) this.popScore(enemy.x, enemy.y + enemy.hpBarOffY - 14, `-${res.damage}`, '#ffffff');
+        if (enemy.hpBarOn) this.popScore(enemy.x, Math.max(HUD_BAND_BOTTOM + 14, hpBarY(enemy.y, enemy.hpBarOffY, HP_BAR_H, HUD_BAND_BOTTOM) - 14), `-${res.damage}`, '#ffffff');
         this.tweens.killTweensOf(enemy);
         enemy.setAlpha(1);
         this.tweens.add({ targets: enemy, alpha: 0.4, duration: 60, yoyo: true, onComplete: () => enemy.setAlpha(1) });

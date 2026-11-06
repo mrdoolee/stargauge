@@ -54,9 +54,9 @@ const STRIP_TEXT_W = GAME_WIDTH - 2 * M - 140; // left text area; the right ~140
 const STRIP_FONT = 30;
 const STRIP_FONT_SMALL = 26; // one step down when the text would not fit the 96 px strip
 const STRIP_TONES = {
-  info: { stroke: 0x8fd3ff, text: '#8fd3ff' },
-  alert: { stroke: 0xffd23f, text: '#ffd23f' },
-  wrong: { stroke: 0xff8a7a, text: '#ffb3a8' },
+  info: { stroke: 0x8fd3ff, text: '#ffffff' },
+  alert: { stroke: 0xffd23f, text: '#ffffff' },
+  wrong: { stroke: 0xff8a7a, text: '#ffffff' },
 };
 const LADDER_W = 31; // furnace ladder (4 cells) in the strip's top-right: x 560..696, above the goal label
 const LADDER_GAP = 3;
@@ -75,7 +75,7 @@ const BANNER_TITLE_PX = 56;
 const BANNER_BODY_PX = 40;
 const BANNER_BODY_LINE_H = 56;
 const BANNER_BODY_SEGS = 6; // pooled body text pieces: up to 2 lines x 3 pieces (before / emphasis / after)
-const BANNER_ACCENT = '#8fd3ff'; // the banner's own UI cyan (never a star/temperature colour)
+const BANNER_EMPH_PX = 46; // banner emphasis = bold white + bigger (no hue: colour means temperature here)
 const TARGET_TWEEN_MS = 800;
 const TARGET_COLOR = 0x8fd3ff;
 
@@ -562,7 +562,8 @@ export default class HudScene extends Phaser.Scene {
       for (const part of parts) {
         const t = this.bannerSegs[seg++];
         if (!t) break;
-        t.setText(part.text).setColor(part.emph ? BANNER_ACCENT : '#e8ecff').setFontStyle(part.emph ? 'bold' : 'normal').setVisible(true);
+        t.setText(part.text).setColor(part.emph ? '#ffffff' : '#e8ecff').setFontStyle(part.emph ? 'bold' : 'normal')
+          .setFontSize(part.emph ? BANNER_EMPH_PX : BANNER_BODY_PX).setVisible(true);
         used.push(t);
         w += t.width;
       }

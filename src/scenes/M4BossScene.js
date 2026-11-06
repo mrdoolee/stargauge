@@ -8,7 +8,7 @@ import BaseMissionScene from './BaseMissionScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import {
   M4_TIME_LIMIT_SEC, M3_STAR_SCALE, BLOCKED_TOAST_MAX, BOSS_HP, BOSS_POS, BOSS_SWAY, BOSS_HIT_FLASH_MS,
-  BOSS_WIDTH_PX, BOSS_MUZZLE_DY, BOSS_VOLLEY_MS, BOSS_FAN,
+  TRANSITION_CLEAR_MS, BOSS_WIDTH_PX, BOSS_MUZZLE_DY, BOSS_VOLLEY_MS, BOSS_FAN,
 } from '../config/balance.js';
 import { scaleInterval } from '../logic/difficulty.js';
 import { createRank } from '../logic/rank.js';
@@ -29,7 +29,7 @@ const STAGES = BOSS_HP.length;
 const GAP_TINT = 0x8fa0c8;
 const HIT_TINT = 0xff9a9a;
 const GAP_TOAST_MAX = 2; // "지금이 기회!" shows for the first gaps of each stage only
-const FLEE_MS = 1400;
+const FLEE_MS = TRANSITION_CLEAR_MS; // the boss is gone before the flee banner appears
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -64,6 +64,7 @@ export default class M4BossScene extends BaseMissionScene {
     return [{
       id: 'm4', chargeMode: true, waves: true, blockedToast: false,
       remaining: s => (s.bossDown ? 0 : STAGES - s.stage + 1), // boss stages left
+      hideGoal: s => s.bossDown || s.timedOut, // no counter once the fight is over
       get instruction() {
         return `${MISSION_TEXT.m4.instruction} (${formatTime(scene.timeLeft ?? M4_TIME_LIMIT_SEC)})`;
       },
@@ -199,6 +200,7 @@ export default class M4BossScene extends BaseMissionScene {
     this.bossDown = true;
     this.boss = null;
     this.emitBoss(false);
+    this.emitGoal(); // hides the counter the boss gauge just gave back
   }
 
   flashBoss() {
@@ -295,6 +297,7 @@ export default class M4BossScene extends BaseMissionScene {
     this.timedOut = true;
     this.phaseDone = true;
     this.emitBoss(false);
+    this.emitGoal();
     const b = this.boss;
     if (b?.active) {
       b.body.setVelocity(0, 0);
