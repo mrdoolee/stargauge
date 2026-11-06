@@ -7,7 +7,7 @@
 // Bus graph:  osc -> note gain -> (sfx | ui bus) -> master -> destination.
 //             music element -> per-track gain (src/audio/bgm.js) -> music bus -> master.
 // The music bus shares the context and the master, so mute (master 0) silences music too.
-//   sfx.listen(fn)  // fn() after every gesture unlock and every setMuted(): lets bgm start/sync
+//   sfx.listen(fn)  // fn('unlock') after every gesture unlock, fn('mute') after every setMuted(): lets bgm start/sync
 
 /** Linear bus gains. Master is low so a full classroom is not loud. */
 export const GAINS = { master: 0.25, sfx: 0.8, ui: 0.9, music: 0.3 };
@@ -90,15 +90,15 @@ export class Sfx {
   setMuted(v) {
     this._muted = !!v;
     if (this.buses) this.buses.master.gain.value = this._muted ? 0 : GAINS.master;
-    this._notify();
+    this._notify('mute');
   }
 
   /** Subscribe to unlock/mute changes (bgm). Listener errors are swallowed. */
   listen(fn) { this._listeners.push(fn); }
 
-  _notify() {
+  _notify(kind) {
     for (const fn of this._listeners) {
-      try { fn(); } catch { /* audio must never break gameplay */ }
+      try { fn(kind); } catch { /* audio must never break gameplay */ }
     }
   }
 
@@ -137,7 +137,7 @@ export class Sfx {
   /** Attach one-shot-ish gesture listeners that unlock audio. */
   installUnlock(target) {
     if (!target?.addEventListener) return;
-    const go = () => { this.unlock(); this._notify(); };
+    const go = () => { this.unlock(); this._notify('unlock'); };
     for (const ev of ['pointerdown', 'touchend', 'keydown']) target.addEventListener(ev, go, { passive: true });
   }
 

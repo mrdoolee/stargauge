@@ -58,7 +58,8 @@ export class Bgm {
     this.tracks = {}; // key -> { el, gain, sourced, stopTimer }
     this.reasons = new Set();
     this.started = false; // first gesture seen: tracks may only start after it
-    sfx.listen?.(() => { this.started = true; this.sync(); });
+    // Only a gesture unlock opens the gate (the HUD's setMuted at create must not).
+    sfx.listen?.(kind => { if (kind === 'unlock') this.started = true; this.sync(); });
   }
 
   request(track) {
@@ -143,7 +144,7 @@ export class Bgm {
   }
 
   _sync() {
-    const suspended = this.reasons.size > 0;
+    const suspended = this.reasons.size > 0 || !!this.sfx.muted; // muted: stop streaming too (tablet battery); unmute resumes
     if (suspended) {
       for (const k of Object.keys(this.tracks)) this._stop(k, false);
       return;
@@ -156,11 +157,12 @@ export class Bgm {
     const t = this._track(this.current);
     if (!t) return;
     if (t.stopTimer != null) { this.clearTimer(t.stopTimer); t.stopTimer = null; }
+    const wasSourced = t.sourced;
     const gain = this._wire(t);
-    t.el.muted = !gain && !!this.sfx.muted; // fallback mute; with WebAudio the master handles it
-    if (t.el.paused) {
-      if (gain) this._fade(t, 1, FADE_MS, 0); // fade in on start / resume
-      this._play(t);
+    const newlyWired = !!gain && !wasSourced; // a freshly wired gain starts at 0: it must be faded in even if the element already plays
+    if (t.el.paused || newlyWired) {
+      if (gain) this._fade(t, 1, FADE_MS, 0); // fade in on start / resume / late wiring
+      if (t.el.paused) this._play(t);
     } else if (gain && action === 'switch') {
       this._fade(t, 1, FADE_MS); // switching back to a track that was still fading out
     }

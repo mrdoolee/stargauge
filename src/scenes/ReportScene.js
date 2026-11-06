@@ -1,6 +1,5 @@
 // Mission 5 — 귀환 보고서. Three quiz questions, one at a time. Tap a choice -> immediate correct/incorrect
 // + explanation, then "다음". Saves registry results.quiz = gradeQuiz(answers) and goes to 'result'.
-import { bgm } from '../audio/bgm.js';
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { QUIZ, gradeQuiz } from '../data/quiz.js';
@@ -9,6 +8,7 @@ import { reportLayout, REPORT_L } from '../logic/reportLayout.js';
 import { hasImage } from '../config/assets.js';
 import { drawGlassCraft } from '../objects/glassCraft.js';
 import { armButton } from '../ui/button.js';
+import { bgm } from '../audio/bgm.js';
 
 const Q2_LAYOUT = reportLayout(QUIZ.find(q => q.id === 'q2').choices.length, true);
 

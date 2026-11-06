@@ -55,11 +55,12 @@ function setup({ withCtx = true, rejectPlay = false } = {}) {
       audios[url] = a;
       return a;
     },
-    setTimer: (fn, ms) => { timers.push({ fn, ms }); return timers.length; },
-    clearTimer: () => {},
+    setTimer: (fn, ms) => { timers.push({ fn, ms, live: true }); return timers.length - 1; },
+    clearTimer: id => { if (timers[id]) timers[id].live = false; },
   });
-  const gesture = () => { sfx.unlock(); sfx.listeners.forEach(f => f()); };
-  return { bgm, sfx, audios, timers, gesture };
+  const gesture = () => { sfx.unlock(); sfx.listeners.forEach(f => f('unlock')); };
+  const setMuted = m => { sfx.muted = m; sfx.listeners.forEach(f => f('mute')); };
+  return { bgm, sfx, audios, timers, gesture, setMuted };
 }
 const a = s => s.audios['music/bgm-a.mp3'];
 const b = s => s.audios['music/bgm-b.mp3'];
@@ -123,17 +124,62 @@ describe('Bgm', () => {
     s.bgm.setSuspended('rotate', false);
     expect(s.audios['music/bgm-c.mp3'].paused).toBe(false);
   });
-  it('without an AudioContext falls back to plain play/pause and follows mute via element.muted', () => {
+  it('without an AudioContext falls back to plain play/pause; mute pauses, unmute resumes', () => {
     const s = setup({ withCtx: false });
     s.gesture();
     s.bgm.request('a');
     expect(a(s).play).toHaveBeenCalled();
-    s.sfx.muted = true;
-    s.sfx.listeners.forEach(f => f());
-    expect(a(s).muted).toBe(true);
+    s.setMuted(true);
+    expect(a(s).paused).toBe(true);
+    s.setMuted(false);
+    expect(a(s).paused).toBe(false);
     s.bgm.request('b');
     expect(a(s).paused).toBe(true);
     expect(b(s).paused).toBe(false);
+  });
+  it('mute with a context pauses the element, unmute fades back in', () => {
+    const s = setup();
+    s.gesture();
+    s.bgm.request('b');
+    s.setMuted(true);
+    expect(b(s).paused).toBe(true);
+    s.setMuted(false);
+    expect(b(s).paused).toBe(false);
+  });
+  it('a mute notification (HUD create) before any gesture does not start music', () => {
+    const s = setup();
+    s.bgm.request('a');
+    s.setMuted(false);
+    expect(a(s)).toBeUndefined();
+    s.gesture();
+    expect(a(s).play).toHaveBeenCalledTimes(1);
+  });
+  it('an element that already plays when the context appears is wired and faded in (not left silent)', () => {
+    const s = setup();
+    // unmuted notification only: no gesture, so nothing may play yet
+    s.bgm.request('a');
+    s.setMuted(false);
+    // element playing without a context (e.g. created earlier through a later-successful path)
+    s.sfx.listeners.forEach(f => f('unlock')); // gesture whose unlock produced no context yet
+    expect(a(s).paused).toBe(false);
+    const g = () => s.bgm.tracks.a.gain;
+    expect(g()).toBeNull();
+    s.gesture(); // context now exists
+    expect(g()).not.toBeNull();
+    expect(g().gain.linearRampToValueAtTime).toHaveBeenCalledWith(expect.any(Number), expect.any(Number));
+    expect(g().gain.setValueAtTime).toHaveBeenCalledWith(0, expect.any(Number));
+    expect(a(s).play).toHaveBeenCalledTimes(1);
+  });
+  it('A to B to A inside the fade: A is not paused by the old timer and fades back up', () => {
+    const s = setup();
+    s.gesture();
+    s.bgm.request('a');
+    s.bgm.request('b');
+    s.bgm.request('a');
+    for (const t of s.timers) if (t.live) t.fn(); // a cancelled timer never fires
+    expect(a(s).paused).toBe(false);
+    expect(a(s).play).toHaveBeenCalledTimes(1);
+    expect(s.bgm.current).toBe('a');
   });
   it('never throws when play() rejects, and retries on the next gesture', async () => {
     const s = setup({ rejectPlay: true });

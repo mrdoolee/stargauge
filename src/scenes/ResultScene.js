@@ -1,5 +1,4 @@
 // 최종 결과 화면. Nothing is saved or sent anywhere; "처음부터 다시" clears the run and returns to the title.
-import { bgm } from '../audio/bgm.js';
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
@@ -7,6 +6,7 @@ import { STAR_COLORS } from '../logic/temperature.js';
 import { buildResultSummary, clearRunKeys } from '../logic/flow.js';
 import { armButton } from '../ui/button.js';
 import { getDifficulty } from '../logic/difficulty.js';
+import { bgm } from '../audio/bgm.js';
 
 const cx = GAME_WIDTH / 2;
 
