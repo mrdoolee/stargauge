@@ -6,7 +6,7 @@ import { GAME_WIDTH } from '../config/game.js';
 import { ENEMY_TEX } from '../objects/starTextures.js';
 import {
   M3_DRONE_GOAL, M3_STAR_POOL, M3_DECOY_SCALE, M3_STAR_SCALE, DRONE_WAVE_MS, DRONE_MAX_ON_SCREEN,
-  DRONE_FIRE_MS, DRONE_BAND_Y, DRONE_SPEED_X, BLOCKED_TOAST_MAX, WARMUP_MS,
+  DRONE_FIRE_MS, DRONE_BAND_Y, DRONE_SPEED_X, DRONE_MUZZLE_DY, BLOCKED_TOAST_MAX, WARMUP_MS,
 } from '../config/balance.js';
 import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
 import { fillFormationColors } from '../logic/spawner.js';
@@ -33,6 +33,8 @@ export default class M3DroneScene extends BaseMissionScene {
     super('m3');
     this.sunRef = true;
     this.showGauge = true; // HUD charge cell
+    this.toastAt = 'bottom'; // under the lowest ship row: covers neither the drone band nor the bullet path
+    this._droneBuf = [];
   }
 
   buildPhases() {
@@ -60,8 +62,12 @@ export default class M3DroneScene extends BaseMissionScene {
     this.formIndex = -1;
   }
 
+  /** Active drones in a reused buffer (no per-frame allocation); valid until the next call. */
   activeDrones() {
-    return this.pools.enemies.members.filter(e => e.active && e.kind === 'drone');
+    const buf = this._droneBuf;
+    buf.length = 0;
+    for (const e of this.pools.enemies.members) if (e.active && e.kind === 'drone') buf.push(e);
+    return buf;
   }
 
   /** One star per formation slot; colors drawn once per formation so a piercing color keeps coming. */
@@ -98,9 +104,9 @@ export default class M3DroneScene extends BaseMissionScene {
     this.toast('크고 밝아도 적색·주황색이면 온도가 낮아요 → 약한 충전', { tone: 'info' });
   }
 
-  onEnemyBlocked() {
+  onEnemyBlocked(_enemy, beamKey) {
     if (this.blockedHits <= BLOCKED_TOAST_MAX) {
-      this.toast('빔이 약해요. 더 뜨거운 색의 별로 충전하세요.', { tone: 'info' });
+      this.toast(beamKey ? '빔이 약해요. 더 뜨거운 색의 별로 충전하세요.' : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'info' });
     }
   }
 
@@ -122,15 +128,18 @@ export default class M3DroneScene extends BaseMissionScene {
 
   updateWaves(dt) {
     // staggered entries of an already planned wave
-    for (const p of this.pendingDrones) p.delayMs -= dt;
-    this.pendingDrones = this.pendingDrones.filter(p => {
-      if (p.delayMs > 0) return true;
-      this.spawnDrone(p.x);
-      return false;
-    });
+    const pend = this.pendingDrones;
+    let keep = 0;
+    for (let i = 0; i < pend.length; i++) {
+      const p = pend[i];
+      p.delayMs -= dt;
+      if (p.delayMs > 0) pend[keep++] = p;
+      else this.spawnDrone(p.x);
+    }
+    pend.length = keep;
     this.waveInMs -= dt;
     if (this.waveInMs > 0) return;
-    const room = DRONE_MAX_ON_SCREEN - this.activeDrones().length - this.pendingDrones.length;
+    const room = DRONE_MAX_ON_SCREEN - this.activeDrones().length - pend.length;
     if (room <= 0) {
       this.waveInMs = RETRY_WAVE_MS;
       return;
@@ -169,7 +178,7 @@ export default class M3DroneScene extends BaseMissionScene {
       drone: { x: d.x, y: d.y }, ship: { x: this.ship.x, y: this.ship.y }, diffKey: this.diff.key,
       tier: this.droneRank.tier, aimAllowed: this.droneRank.aimAllowed, warmup: this.droneElapsedMs < WARMUP_MS,
     });
-    if (shot) this.spawnBullet({ x: d.x, y: d.y + 30, vx: shot.vx, vy: shot.vy });
+    if (shot) this.spawnBullet({ x: d.x, y: d.y + DRONE_MUZZLE_DY, vx: shot.vx, vy: shot.vy });
   }
 
   onPhaseComplete() {

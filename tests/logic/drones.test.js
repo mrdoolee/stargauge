@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { droneFormation, droneShot, neededChargeColors } from '../../src/logic/drones.js';
 import { fillFormationColors } from '../../src/logic/spawner.js';
 import { piercingColors } from '../../src/logic/charge.js';
-import { M3_STAR_POOL } from '../../src/config/balance.js';
+import {
+  M3_STAR_POOL, SHIP_START_Y, SHIP_HALF_HEIGHT, DRONE_BAND_Y, DRONE_MUZZLE_DY, REACTION_FLOOR_SEC,
+} from '../../src/config/balance.js';
+import { shipMaxY } from '../../src/input/TouchControls.js';
+import { speedFor } from '../../src/logic/speed.js';
 
 const seeded = seed => () => {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -10,11 +14,33 @@ const seeded = seed => () => {
 };
 
 describe('droneShot', () => {
-  const base = { drone: { x: 100, y: 400 }, ship: { x: 600, y: 1100 }, tier: 0, warmup: false, rng: Math.random };
-  it('is null when the ship is inside the safe distance', () => {
+  const rng = () => 0.9999; // fastest speed of the tier
+  const base = { drone: { x: 100, y: 400 }, ship: { x: 600, y: SHIP_START_Y }, tier: 0, warmup: false, rng };
+  const shipYs = [SHIP_START_Y, shipMaxY({ shipHalfHeight: SHIP_HALF_HEIGHT })];
+  const droneYs = [DRONE_BAND_Y.min, (DRONE_BAND_Y.min + DRONE_BAND_Y.max) / 2, DRONE_BAND_Y.max];
+
+  it('is null only when the ship is right under the drone', () => {
     for (const diffKey of ['easy', 'normal', 'hard']) {
       expect(droneShot({ ...base, drone: { x: 300, y: 1090 }, ship: { x: 300, y: 1100 }, diffKey, aimAllowed: true })).toBeNull();
     }
+  });
+  it('never skips and always keeps the reaction floor: ship y 900 and shipMaxY, every tier, difficulty and hover row', () => {
+    for (const diffKey of ['easy', 'normal', 'hard']) for (let tier = 0; tier < 4; tier++) {
+      for (const shipY of shipYs) for (const y of droneYs) for (const aimAllowed of [false, true]) {
+        const s = droneShot({ ...base, drone: { x: 100, y }, ship: { x: 600, y: shipY }, diffKey, tier, aimAllowed });
+        expect(s, `${diffKey} t${tier} ship ${shipY} drone ${y}`).not.toBeNull();
+        const fromY = y + DRONE_MUZZLE_DY;
+        expect(s.vy).toBeGreaterThan(0);
+        // time to reach the ship row from the REAL spawn point
+        expect((shipY - fromY) / s.vy).toBeGreaterThanOrEqual(REACTION_FLOOR_SEC.hazard[diffKey] - 1e-9);
+        expect(Math.hypot(s.vx, s.vy)).toBeLessThanOrEqual(speedFor('hazard', diffKey, tier, rng) + 1e-6);
+      }
+    }
+  });
+  it('caps the speed instead of skipping when the ship is close', () => {
+    const s = droneShot({ ...base, drone: { x: 300, y: 560 }, ship: { x: 300, y: 560 + DRONE_MUZZLE_DY + 300 }, diffKey: 'hard', tier: 3, aimAllowed: false });
+    expect(s).not.toBeNull();
+    expect(s.vy).toBeLessThan(speedFor('hazard', 'hard', 3, rng));
   });
   it('easy and warm-up shoot straight down', () => {
     const e = droneShot({ ...base, diffKey: 'easy', aimAllowed: true });
@@ -29,7 +55,7 @@ describe('droneShot', () => {
     const s = droneShot({ ...base, diffKey: 'hard', aimAllowed: true });
     expect(Math.sign(s.vx)).toBe(1);
     expect(s.vy).toBeGreaterThan(0);
-    const l = droneShot({ ...base, drone: { x: 650, y: 400 }, ship: { x: 100, y: 1100 }, diffKey: 'hard', aimAllowed: true });
+    const l = droneShot({ ...base, drone: { x: 650, y: 400 }, ship: { x: 100, y: SHIP_START_Y }, diffKey: 'hard', aimAllowed: true });
     expect(Math.sign(l.vx)).toBe(-1);
   });
 });
