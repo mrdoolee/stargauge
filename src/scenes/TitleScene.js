@@ -77,7 +77,7 @@ export default class TitleScene extends Phaser.Scene {
       const label = this.add
         .text(x, CHIP_Y + 3, DIFFICULTY[k].label, { fontFamily: FONT, fontSize: '34px', color: '#e8ecff' })
         .setOrigin(0.5);
-      const hit = this.add.zone(x, CHIP_Y, CHIP_W, CHIP_H);
+      const hit = this.add.zone(x, CHIP_Y, CHIP_W + CHIP_GAP, CHIP_H + 12); // touch area spans the gap (no overlap) and is >= the old 190x90
       chips[k] = { bg, label };
       armButton(hit, () => { selected = k; this.registry.set('difficulty', k); paint(); });
     });

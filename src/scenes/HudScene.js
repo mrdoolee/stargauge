@@ -77,7 +77,7 @@ const BANNER_TITLE_PX = 56;
 const BANNER_BODY_PX = 40;
 const BANNER_BODY_LINE_H = 56;
 const BANNER_BODY_SEGS = 6; // pooled body text pieces: up to 2 lines x 3 pieces (before / emphasis / after)
-const BANNER_EMPH_PX = 46; // banner emphasis = white + bigger (Orbit has no bold) (no hue: colour means temperature here)
+const BANNER_EMPH_PX = 46; // banner emphasis = white + bigger (Orbit has no bold; no hue, because colour means temperature here)
 const TARGET_TWEEN_MS = 800;
 const TARGET_COLOR = 0x8fd3ff;
 
