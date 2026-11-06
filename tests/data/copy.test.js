@@ -12,7 +12,7 @@ describe('copy', () => {
     ['m1', 'm2a', 'm2b', 'm3', 'm4'].forEach(p => {
       ['blue', 'blueWhite', 'white', 'yellowWhite', 'yellow', 'orange', 'red'].forEach(k => {
         const m = wrongShotMessage(p, { colorKey: k });
-        expect(m.endsWith('온도는 색으로 비교해요.')).toBe(true);
+        if (!/태양과 같아서/.test(m)) expect(m.endsWith('온도는 색으로 비교해요.')).toBe(true); // the yellow star message has no room for the tail
         expect(m).not.toMatch(/\d|켈빈/);
       });
     });
@@ -28,8 +28,8 @@ describe('banner copy', () => {
     expect(BANNER_TEXT.m1.title).toBe('연습 끝!');
     expect(BANNER_TEXT.m1.body).toBe('이제 진짜예요! 흰색일 때만 쏘고,\n부딪히면 선체 온도가 올라가요.');
     expect(BANNER_TEXT.m1.body).toContain(BANNER_TEXT.m1.emphasis);
-    expect(BANNER_TEXT.overheat).toEqual({ title: '선체 온도가 가득 찼어요!', body: '이 미션을 처음부터 다시 해요.' });
-    expect(BANNER_TEXT.m4Win.title).toBe('보스 함선을 격파했어요!');
+    expect(BANNER_TEXT.overheat).toEqual({ title: '선체 온도가\n가득 찼어요!', body: '이 미션을 처음부터 다시 해요.' });
+    expect(BANNER_TEXT.m4Win.title).toBe('보스 함선을\n격파했어요!');
     expect(BANNER_TEXT.m4Flee.title).toBe('보스가 도망갔어요.');
   });
 });

@@ -3,6 +3,8 @@ import { BRIEFING, briefingParts } from '../../src/data/briefing.js';
 import { BRIEFING_EXPRESSIONS } from '../../src/config/assets.js';
 
 const all = b => [b.title, b.line, ...b.bullets, b.goal].join('\n');
+// Line breaks are layout only: copy is compared with each line break read as a space.
+const flat = s => s.replace(/\n/g, ' ');
 
 describe('BRIEFING', () => {
   it('has m1..m4 with every field and exactly 3 bullets', () => {
@@ -21,25 +23,25 @@ describe('BRIEFING', () => {
   });
 
   it('copy matches the spec', () => {
-    expect(BRIEFING.m1.line).toBe('대원, 쇳물은 뜨거울수록 흰색, 식을수록 붉은색이야.');
-    expect(BRIEFING.m1.goal).toBe('가장 뜨거운 쇳물을 쏘세요.');
-    expect(BRIEFING.m2.line).toBe('별은 온도에 따라 색이 달라.');
-    expect(BRIEFING.m2.goal).toBe('태양보다 뜨거운 별만 쏘고, 나머지는 피하세요.');
-    expect(BRIEFING.m2.bullets[2]).toBe('태양은 황색 별이에요. 태양을 기준으로 비교해요.');
-    expect(BRIEFING.m3.line).toBe('크고 밝다고 뜨거운 게 아니야. 색을 봐!');
-    expect(BRIEFING.m3.bullets).toEqual([
+    expect(flat(BRIEFING.m1.line)).toBe('대원, 쇳물은 뜨거울수록 흰색, 식을수록 붉은색이야.');
+    expect(flat(BRIEFING.m1.goal)).toBe('가장 뜨거운 쇳물을 쏘세요.');
+    expect(flat(BRIEFING.m2.line)).toBe('별은 온도에 따라 색이 달라.');
+    expect(flat(BRIEFING.m2.goal)).toBe('태양보다 뜨거운 별만 쏘고, 나머지는 피하세요.');
+    expect(flat(BRIEFING.m2.bullets[2])).toBe('태양은 황색 별이에요. 태양을 기준으로 비교해요.');
+    expect(flat(BRIEFING.m3.line)).toBe('크고 밝다고 뜨거운 게 아니야. 색을 봐!');
+    expect(BRIEFING.m3.bullets.map(flat)).toEqual([
       '별을 측정하면 그 별의 표면 온도만큼 빔이 충전돼요.',
       '별의 크기와 밝기는 표면 온도와 관계없어요.',
       '드론의 방어막과 같거나 더 뜨거운 색으로 충전해야 뚫려요.',
     ]);
-    expect(BRIEFING.m3.goal).toBe('뜨거운 별로 빔을 충전해서 방해 드론을 격추하세요.');
-    expect(BRIEFING.m4.line).toBe('마지막 임무야. 보스 함선의 장갑을 뚫어!');
-    expect(BRIEFING.m4.bullets).toEqual([
+    expect(flat(BRIEFING.m3.goal)).toBe('뜨거운 별로 빔을 충전해서 방해 드론을 격추하세요.');
+    expect(flat(BRIEFING.m4.line)).toBe('마지막 임무야. 보스 함선의 장갑을 뚫어!');
+    expect(BRIEFING.m4.bullets.map(flat)).toEqual([
       '장갑 색과 같거나 더 뜨거운 색의 별로 충전해야 뚫려요.',
       '보스가 쉬는 틈에는 탄이 오지 않아요.',
       '단계가 오를수록 장갑이 더 뜨거운 색으로 바뀌어요.',
     ]);
-    expect(BRIEFING.m4.goal).toBe('제한 시간 안에 보스 함선을 물리치세요. 날아오는 탄은 피하세요.');
+    expect(flat(BRIEFING.m4.goal)).toBe('제한 시간 안에 보스 함선을 물리치세요. 날아오는 탄은 피하세요.');
     expect(BRIEFING.m1.title).toBe('용광로 탈출');
     expect(BRIEFING.m2.title).toBe('스타게이지 보정');
     expect(BRIEFING.m3.title).toBe('밝기의 함정');

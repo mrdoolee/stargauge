@@ -1141,7 +1141,7 @@ export default class BaseMissionScene extends Phaser.Scene {
       sfx.play('wrong');
       if (phase.blockedToast !== false && this.blockedHits <= BLOCKED_TOAST_MAX) {
         this.toast(beamKey
-          ? '방어막을 뚫기엔 빔이 약해요. 더 뜨거운(푸른쪽) 별을 맞혀 충전해요!'
+          ? '방어막을 뚫기엔 빔이 약해요.\n더 뜨거운(푸른쪽) 별을 맞혀 충전해요!'
           : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'wrong' });
       }
       this.onEnemyBlocked(enemy, beamKey);

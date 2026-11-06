@@ -128,7 +128,7 @@ export default class M1FurnaceScene extends BaseMissionScene {
     const kind = result.neutral ? 'cooled' : 'white';
     if (!practiceToastDue(this.lastPracticeToast[kind], this.clockMs)) return;
     this.lastPracticeToast[kind] = this.clockMs;
-    this.toast(kind === 'white' ? '흰색일 때 맞혔어요! 가장 뜨거운 쇳물이에요.' : '이미 식은 쇳물이에요. 흰색일 때 쏴 보세요.', { tone: 'info' });
+    this.toast(kind === 'white' ? '흰색일 때 맞혔어요!\n가장 뜨거운 쇳물이에요.' : '이미 식은 쇳물이에요.\n흰색일 때 쏴 보세요.', { tone: 'info' });
   }
 
   onPhaseComplete(phase) {

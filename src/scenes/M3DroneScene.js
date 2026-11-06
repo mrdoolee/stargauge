@@ -100,12 +100,12 @@ export default class M3DroneScene extends BaseMissionScene {
   onStarMeasured(obj) {
     if (this.decoyTipShown || !DECOY_KEYS.includes(obj.colorKey)) return;
     this.decoyTipShown = true;
-    this.toast('크고 밝아도 적색·주황색이면 온도가 낮아요 → 약한 충전', { tone: 'info' });
+    this.toast('크고 밝아도 적색·주황색이면\n온도가 낮아요 → 약한 충전', { tone: 'info' });
   }
 
   onEnemyBlocked(_enemy, beamKey) {
     if (this.blockedHits <= BLOCKED_TOAST_MAX) {
-      this.toast(beamKey ? '빔이 약해요. 더 뜨거운 색의 별로 충전하세요.' : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'info' });
+      this.toast(beamKey ? '빔이 약해요.\n더 뜨거운 색의 별로 충전하세요.' : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'info' });
     }
   }
 

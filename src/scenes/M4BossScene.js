@@ -36,19 +36,19 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const QUESTIONS = [
   {
     id: 'q1',
-    text: '가장 강한 충전을 주는 별의 색은?',
+    text: '가장 강한 충전을 주는\n별의 색은?',
     choices: ['청색', '백색', '적색'],
     correct: '청색',
-    right: '맞아요! 청색 별이 표면 온도가 가장 높아서 가장 강하게 충전돼요.',
-    wrong: '아니에요. 청색 별이 표면 온도가 가장 높아서 가장 강하게 충전돼요.',
+    right: '맞아요! 청색 별이 표면 온도가\n가장 높아서 가장 강하게 충전돼요.',
+    wrong: '아니에요. 청색 별이 표면 온도가\n가장 높아서 가장 강하게 충전돼요.',
   },
   {
     id: 'q2',
     text: '크고 밝은 적색 별로 충전하면 빔이 약했던 이유는?',
     choices: ['적색 별은 표면 온도가 낮아서', '별이 너무 커서', '별이 너무 밝아서'],
     correct: '적색 별은 표면 온도가 낮아서',
-    right: '맞아요! 크기나 밝기가 아니라 색이 표면 온도를 알려 줘요.',
-    wrong: '아니에요. 크기나 밝기가 아니라 색이 표면 온도를 알려 줘요. 적색은 온도가 낮아요.',
+    right: '맞아요! 크기나 밝기가 아니라\n색이 표면 온도를 알려 줘요.',
+    wrong: '아니에요. 크기나 밝기가 아니라\n색이 표면 온도를 알려 줘요.\n적색은 온도가 낮아요.',
   },
 ];
 
@@ -119,7 +119,7 @@ export default class M4BossScene extends BaseMissionScene {
     }
     this.boss = boss;
     this.emitBoss();
-    this.toast('별을 쏴서 빔을 충전하고, 뜨거운 색일수록 센 충전!', { tone: 'info' });
+    this.toast('별을 쏴서 빔을 충전하고,\n뜨거운 색일수록 센 충전!', { tone: 'info' });
   }
 
   /** One star per formation slot; colors drawn once per formation so a piercing color keeps coming. */
@@ -153,7 +153,7 @@ export default class M4BossScene extends BaseMissionScene {
   onEnemyBlocked(_enemy, beamKey) {
     this.flashBoss();
     if (this.blockedHits <= BLOCKED_TOAST_MAX) {
-      this.toast(beamKey ? '빔이 약해요. 장갑과 같거나 더 뜨거운 색의 별로 충전하세요.' : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'info' });
+      this.toast(beamKey ? '빔이 약해요. 장갑과 같거나\n더 뜨거운 색의 별로 충전하세요.' : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'info' });
     }
   }
 
@@ -411,7 +411,7 @@ export default class M4BossScene extends BaseMissionScene {
     });
 
     const msg = total > 0
-      ? '청색에 가까운 별일수록 표면 온도가 높고, 빔을 더 세게 충전해요.'
+      ? '청색에 가까운 별일수록\n표면 온도가 높고,\n빔을 더 세게 충전해요.'
       : '별을 맞혀 충전하면 색별 개수가 여기에 나타나요.';
     this.addUi(this.add.text(cx, 840, msg, {
       fontFamily: FONT, fontSize: '36px', fontStyle: 'bold', color: '#ffffff', align: 'center', lineSpacing: 10,

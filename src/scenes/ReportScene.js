@@ -88,7 +88,7 @@ export default class ReportScene extends Phaser.Scene {
     }).setOrigin(0.5));
     this.addUi(this.add.text(cx, L.prompt.top, q.prompt, {
       fontFamily: FONT, fontSize: '38px', fontStyle: 'bold', color: '#ffffff', align: 'center', lineSpacing: 10,
-      wordWrap: { width: GAME_WIDTH - 100, useAdvancedWrap: true },
+      wordWrap: { width: GAME_WIDTH - 40, useAdvancedWrap: true },
     }).setOrigin(0.5, 0));
 
     const hasImage = q.id === Q2_IMAGE_SLOT.qid;
