@@ -13,7 +13,7 @@ import { predicateJudge } from '../logic/judges.js';
 import {
   furnaceStageAt, furnaceFallFraction, countsAsWhite, practiceToastDue, pickBlobStart, stageStartFraction,
 } from '../logic/furnace.js';
-import { MISSION_TEXT } from '../data/copy.js';
+import { MISSION_TEXT, BANNER_TEXT } from '../data/copy.js';
 
 const SPAWN_Y = -60;
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -79,9 +79,6 @@ export default class M1FurnaceScene extends BaseMissionScene {
     this.phaseMs = 0;
     this.asteroidSpeed = createFormationMemo(); // formation indices restart each phase
     this.blobSpeed = createFormationMemo();
-    if (!phase.practice) {
-      this.toast('이제 진짜예요! 흰색일 때만 쏘고, 부딪히면 선체 온도가 올라가요.', { tone: 'info' });
-    }
   }
 
   spawnObject(phase, slot) {
@@ -136,7 +133,7 @@ export default class M1FurnaceScene extends BaseMissionScene {
 
   onPhaseComplete(phase) {
     if (phase.practice) {
-      this.advancePhase();
+      this.startTransition({ ...BANNER_TEXT.m1, onDone: () => this.advancePhase() }); // practice -> test
       return;
     }
     this.completeMission({

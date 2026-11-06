@@ -34,6 +34,7 @@
  *                                   // zigzag: {amp, periodMs} | null, formationId, tier, aimAllowed,
    *                                   // formationIndex, formationSize, slotIndex }. Pass slot.zigzag to spawnStar/spawnAsteroid. A correct hit feeds director.onCorrect().
  *     waveBounds: { minX, maxX },   // optional; formation x range (default 70 .. GAME_WIDTH - 70)
+ *     gaugeTarget: ['blue', ...],   // optional; STAR_COLORS keys the HUD brackets as the correct range while the phase runs ('gauge-target')
  *     blockedToast: false,          // optional (chargeMode phases); false = no engine hint toast on a blocked hit (default: shown, first
  *                                   // BLOCKED_TOAST_MAX per run). this.blockedHits counts every blocked hit either way.
  *     chargeMode: true,             // optional; shooting a star MEASURES it: ring + fade (markObject, never destroyed) and
@@ -95,6 +96,15 @@
  *   wrongShotMessage, beam consumed, object keeps flying. Collision heat =
  *   heatOnCollision(kind, colorKey) only. Heat full ⇒ registry results.<missionId>.restarts += 1
  *   and scene.restart({ ...initData, restarted: true }).
+ *   Stage transition: startTransition({ title, body?, emphasis?, gaugeTarget?: { from: string[], to: string[] }, onDone }) — call it from
+ *   onPhaseComplete instead of advancePhase(). New spawns stop; active stars/asteroids/bullets (and beams) lose collision, judging and
+ *   targeting and fade out over TRANSITION_CLEAR_MS, then return to the pool (stars are never destroyed or measured: no score, charge or
+ *   heat). Fire is ignored, the ship may still move, hull heat keeps cooling. When the field is empty the HUD 'banner' shows for
+ *   TRANSITION_BANNER_MS (gaugeTarget slides from `from` to `to`), then the banner hides and onDone() runs (usually advancePhase()).
+ *   It advances ONLY by update dt (logic/transition.js, dt capped by MAX_DT_MS): pause / app switch / landscape freeze it; this.playing
+ *   stays true, so returning from the background still opens the pause overlay. showBanner(copy)/hideBanner() drive the banner by hand
+ *   (overheat, m4 end); clearField() is the same fade-and-return clear without the banner (advance it with updateFade(dt)).
+ *   Overheat: a full hull shows the BANNER_TEXT.overheat banner for RESTART_DELAY_MS, then restarts (the new run hides the banner).
  *   Helpers: advancePhase(), completePhase(), endGameplay(), completeMission({ next, nextData }),
  *   refreshGoal(), toast(text, opts: { colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert', priority? } — shown in the instruction strip, then the instruction returns), setInstruction(text), emitGauge(), updateResult(patch).
  *
@@ -124,6 +134,7 @@ import {
   COLLISION_COOLDOWN_MS,
   MARK_FADE_MS,
   RESTART_DELAY_MS,
+  TRANSITION_CLEAR_MS,
   FORMATION_GAP_MS,
   BLOCKED_TOAST_MAX,
   ENEMY_BODY_R,
@@ -138,7 +149,8 @@ import { WaveDirector } from '../logic/waves.js';
 import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome, beamCanTouch, bounceCounts } from '../logic/charge.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { missionStars } from '../logic/scoring.js';
-import { MISSION_TEXT, wrongShotMessage } from '../data/copy.js';
+import { advanceTransition } from '../logic/transition.js';
+import { MISSION_TEXT, BANNER_TEXT, wrongShotMessage } from '../data/copy.js';
 import { TouchControls, fireButtonRect, joystickLayout, shipMaxY, stepShip } from '../input/TouchControls.js';
 import { hasImage, addBackdrop } from '../config/assets.js';
 import {
@@ -224,6 +236,12 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.gauge = new StarGauge(this.gaugePrefill());
     this.charge = initialCharge();
     this.blockedHits = 0;
+
+    this.transition = null; // { st: {step, ms}, ... } while a stage transition runs
+    this.fadeObjs = [];
+    this.fadeMs = 0;
+    this._banner = null; // last 'banner' payload (re-sent on 'hud-ready'); null = hidden
+    this._gaugeTarget = null; // last 'gauge-target' keys (null = none)
 
     this.playing = false;
     this.restarting = false;
@@ -366,6 +384,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.controls.update();
     this.syncJoystick();
     this.parallax?.update(dt);
+    if (this.fadeObjs.length) this.updateFade(dt); // clearField() fade (also after endGameplay: the m4 end)
     if (!this.playing) return;
 
     const v = this.controls.vector;
@@ -376,6 +395,12 @@ export default class BaseMissionScene extends Phaser.Scene {
 
     this.heat.update(dt);
     this.emitHeat();
+
+    if (this.transition) { // stage change: nothing spawns, the field fades, then the banner; nothing is judged or measured
+      this.updateTransition(dt);
+      this.cull();
+      return;
+    }
 
     if (this.spawner && !this.phaseDone && this.spawner.update(dt)) this.spawnObject(this.phase);
     if (this.director && this.phase?.waves && !this.phaseDone) {
@@ -423,6 +448,8 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.setInstruction(this.currentInstruction());
     this._lastRemaining = undefined;
     this.emitGoal();
+    this.game.events.emit('banner', this._banner ?? { visible: false });
+    this.game.events.emit('gauge-target', { keys: this._gaugeTarget ?? [] });
   }
 
   currentInstruction() {
@@ -463,6 +490,23 @@ export default class BaseMissionScene extends Phaser.Scene {
     if (remaining !== null && remaining <= 0) this.completePhase();
   }
 
+  /** Centre banner (HUD). copy = { title, body?, emphasis? }. Only while nothing dangerous moves. */
+  showBanner(copy) {
+    this._banner = { title: copy.title, body: copy.body, emphasis: copy.emphasis, visible: true };
+    this.game.events.emit('banner', this._banner);
+  }
+
+  hideBanner() {
+    this._banner = null;
+    this.game.events.emit('banner', { visible: false });
+  }
+
+  /** Bracket the correct range on the HUD star gauge (null/[] hides it). animateFrom = slide from that range. */
+  setGaugeTarget(keys, animateFrom) {
+    this._gaugeTarget = keys?.length ? keys : null;
+    this.game.events.emit('gauge-target', { keys: keys ?? [], animateFrom });
+  }
+
   toast(text, opts = {}) {
     this.game.events.emit('toast', { text, ...opts });
   }
@@ -490,6 +534,7 @@ export default class BaseMissionScene extends Phaser.Scene {
       this.spawner = interval > 0 ? new Spawner({ intervalMs: interval }) : null;
     }
     this.setInstruction(this.currentInstruction());
+    if (p.gaugeTarget) this.setGaugeTarget(p.gaugeTarget);
     this.onPhaseStart(p);
     this.refreshGoal();
   }
@@ -508,10 +553,78 @@ export default class BaseMissionScene extends Phaser.Scene {
     return true;
   }
 
+  /**
+   * Stage transition (see the header): clear the field, show the centre banner, then onDone().
+   * @param {{ title: string, body?: string, emphasis?: string, gaugeTarget?: {from: string[], to: string[]}, onDone: () => void }} o
+   */
+  startTransition({ title, body, emphasis, gaugeTarget, onDone }) {
+    if (this.transition || this.restarting || this.finished) return;
+    this.spawner = null;
+    this.controls.cancel();
+    this.transition = {
+      st: { step: 'clear', ms: 0 }, shown: false, copy: { title, body, emphasis }, gaugeTarget, onDone,
+    };
+    this.clearField();
+  }
+
+  /** Fade every active star/asteroid/bullet out over TRANSITION_CLEAR_MS (advance with updateFade(dt)), then return them to the pool. No judging. */
+  clearField() {
+    for (const b of this.pools.beams.members) if (b.active) release(b);
+    this.fadeMs = 0;
+    this.fadeObjs.length = 0;
+    for (const g of [this.pools.stars, this.pools.asteroids, this.pools.bullets]) {
+      for (const o of g.members) {
+        if (!o.active) continue;
+        if (o.marked && !o.keepOnMark) continue; // already fading out on its own (a measured/hit star)
+        this.tweens.killTweensOf(o);
+        o.targetable = false;
+        o.collides = false;
+        o.marked = true; // no more judging, no zigzag, no recolouring
+        o.body.setVelocity(0, 0);
+        o.body.setAngularVelocity(0);
+        o.fadeFrom = o.alpha;
+        o.fadeHaloFrom = o.halo ? o.halo.alpha : 0;
+        this.fadeObjs.push(o);
+      }
+    }
+  }
+
+  /** Advance the clear fade by dt. Returns true when it finished (everything is back in the pool). */
+  updateFade(dt) {
+    this.fadeMs += dt;
+    const k = Math.max(0, 1 - this.fadeMs / TRANSITION_CLEAR_MS);
+    const done = k <= 0;
+    for (let i = 0; i < this.fadeObjs.length; i++) {
+      const o = this.fadeObjs[i];
+      if (!o.active) continue;
+      if (done) { release(o); continue; }
+      o.setAlpha(o.fadeFrom * k);
+      if (o.halo) o.halo.setAlpha(o.fadeHaloFrom * k);
+    }
+    if (done) this.fadeObjs.length = 0;
+    return done;
+  }
+
+  updateTransition(dt) {
+    const t = this.transition;
+    advanceTransition(t.st, dt);
+    if (t.st.step === 'clear') return;
+    if (!t.shown) {
+      t.shown = true;
+      this.showBanner(t.copy);
+      if (t.gaugeTarget) this.setGaugeTarget(t.gaugeTarget.to, t.gaugeTarget.from);
+    }
+    if (t.st.step !== 'done') return;
+    this.transition = null;
+    this.hideBanner();
+    t.onDone();
+  }
+
   /** Stop play (no spawns, shots or collisions; ship + joystick + fire button hidden) but keep the scene. */
   endGameplay() {
     this.playing = false;
     this.spawner = null;
+    this.transition = null;
     this.controls.cancel();
     this.ship.setVisible(false);
     this.joystickView.setVisible(false);
@@ -689,7 +802,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   // ---- shooting -------------------------------------------------------------------
 
   fire() {
-    if (!this.playing) return;
+    if (!this.playing || this.transition) return;
     sfx.play('fire'); // small tier: sound only (+ the button press below)
     this.tweens.killTweensOf(this.fireButton);
     this.fireButton.setScale(0.9);
@@ -721,7 +834,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   canBeamHit(beam, obj) {
-    return this.playing && beam.active && obj.active && obj.targetable && !obj.marked
+    return this.playing && !this.transition && beam.active && obj.active && obj.targetable && !obj.marked
       && beamCanTouch({ chargeMode: this.phase?.chargeMode, y: obj.y });
   }
 
@@ -842,7 +955,7 @@ export default class BaseMissionScene extends Phaser.Scene {
 
   // ---- collisions / heat ----------------------------------------------------------
   canShipHit(_ship, obj) {
-    return this.playing && this.phase?.collisions !== false && obj.active && obj.collides
+    return this.playing && !this.transition && this.phase?.collisions !== false && obj.active && obj.collides
       && !obj.marked && this.time.now >= obj.hitCooldownUntil;
   }
 
@@ -881,8 +994,8 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.physics.pause();
     const restarts = (this.registry.get('results')?.[this.missionId]?.restarts ?? 0) + 1;
     this.updateResult({ restarts });
-    this.toast('선체 온도가 가득 찼어요! 이 미션을 처음부터 다시 해요.', { tone: 'alert', priority: true });
-    this.cameras.main.flash(RESTART_DELAY_MS - 100, 255, 90, 40);
+    this.showBanner(BANNER_TEXT.overheat); // physics is paused: nothing moves under it; the restart hides it
+    this.cameras.main.flash(Math.min(500, RESTART_DELAY_MS - 100), 255, 90, 40);
     this.time.delayedCall(RESTART_DELAY_MS, () => this.scene.restart({ ...this.initData, restarted: true }));
   }
 
@@ -969,7 +1082,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   canBeamEnemy(beam, enemy) {
-    return this.playing && beam.active && enemy.active && beamCanTouch({ chargeMode: this.phase?.chargeMode, y: enemy.y });
+    return this.playing && !this.transition && beam.active && enemy.active && beamCanTouch({ chargeMode: this.phase?.chargeMode, y: enemy.y });
   }
 
   handleBeamEnemy(beam, enemy) {

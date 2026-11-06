@@ -17,6 +17,12 @@
 //                     then the current instruction returns. tone = strip border flash (info/alert/wrong). priority = a plain message
 //                     can't replace it for STRIP_HOLD_MS. ladder 'star' = the colorKey cell of the top gauge blinks while the message
 //                     shows; ladder 'furnace' = a small 4-colour FURNACE_STAGES ladder in the strip's right slot with colorKey outlined.
+//   'banner'        { title: string, body?: string, emphasis?: string, visible: boolean }  big centre banner on a translucent panel
+//                     (title ~56 px, body ~40 px, '\n' = line break, the `emphasis` word of the body in the accent colour). Missions send it
+//                     only while nothing dangerous moves (stage change, overheat, boss defeated). { visible: false } hides it.
+//                     Re-emitted on 'hud-ready'; also hidden on 'mission-end'. Drawn below the pause overlay.
+//   'gauge-target'  { keys: string[], animateFrom?: string[] }  bracket over the star-gauge cells that are the correct range ("맞힐 별");
+//                     animateFrom = the bracket slides from that range to `keys` (~800 ms). [] hides it. Re-emitted on 'hud-ready'.
 //   'mission-start' { key }                                scene key the pause button pauses
 //   'mission-end'   { key }
 // The HUD emits 'hud-ready' at the end of create(); missions answer by re-emitting their
@@ -33,6 +39,7 @@ import {
   HUD_SAFE_MARGIN, HUD_PANEL_H, HUD_INSTRUCTION_H,
 } from '../config/balance.js';
 import { STAR_COLORS, FURNACE_STAGES } from '../logic/temperature.js';
+import { splitEmphasis } from '../logic/transition.js';
 import { hpBarFraction } from '../logic/enemyHp.js';
 import { stripReducer, stripText, initialStrip } from '../logic/strip.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
@@ -62,12 +69,22 @@ const CELL_H = 40;
 const GAP = 6;
 const GAUGE_Y = 116;
 
+const BANNER_W = 680; // centre banner panel (x 20..700), centred on the screen
+const BANNER_PAD = 40;
+const BANNER_TITLE_PX = 56;
+const BANNER_BODY_PX = 40;
+const BANNER_BODY_LINE_H = 56;
+const BANNER_BODY_SEGS = 6; // pooled body text pieces: up to 2 lines x 3 pieces (before / emphasis / after)
+const BANNER_ACCENT = '#ffd23f';
+const TARGET_TWEEN_MS = 800;
+const TARGET_COLOR = 0x8fd3ff;
+
 const BOSS_BAR_W = 136; // boss gauge bar: the width of the 남은 목표 slot (x 560..696)
 const BOSS_GAUGE_TWEEN_MS = 160;
 
 export const HUD_EVENTS = [
   'instruction', 'goal-changed', 'gauge-changed', 'heat-changed', 'sun-ref', 'toast', 'mission-start', 'mission-end', 'ship-hit',
-  'charge-changed', 'boss-changed',
+  'charge-changed', 'boss-changed', 'banner', 'gauge-target',
 ];
 
 export default class HudScene extends Phaser.Scene {
@@ -90,6 +107,8 @@ export default class HudScene extends Phaser.Scene {
     this.createInstruction();
     this.createBossGauge();
     this.createStripFeedback();
+    this.createGaugeTarget();
+    this.createBanner();
     this.createPauseOverlay();
 
     this.handlers = {
@@ -101,6 +120,7 @@ export default class HudScene extends Phaser.Scene {
         this.gaugeVisible = g?.visible !== false;
         this.setCharge(this.chargeKey);
         this.sunMarker.setVisible(this.sunOn && g?.visible !== false);
+        this.syncTargetVisible();
       },
       'heat-changed': h => this.setHeat(h?.ratio ?? 0),
       'sun-ref': on => {
@@ -115,11 +135,15 @@ export default class HudScene extends Phaser.Scene {
       },
       'charge-changed': c => this.setCharge(c?.colorKey ?? null),
       'boss-changed': b => this.setBoss(b),
+      banner: b => this.setBanner(b),
+      'gauge-target': t => this.setGaugeTarget(t),
       'ship-hit': () => this.flashHeatBar(),
       'mission-end': () => {
         this.closePause(false);
         this.stripEvent({ type: 'clear' });
         this.setBoss({ visible: false });
+        this.setBanner({ visible: false });
+        this.setGaugeTarget({ keys: [] });
         this.activeKey = null;
       },
     };
@@ -433,6 +457,124 @@ export default class HudScene extends Phaser.Scene {
       this.cellBlink.setVisible(true).setAlpha(1);
       this.cellBlinkTween.restart();
     }
+  }
+
+  // ---- star-gauge correct range ("맞힐 별") ---------------------------------------
+
+  createGaugeTarget() {
+    this.targetBox = this.add.graphics().setVisible(false);
+    this.targetLabel = this.add
+      .text(0, GAUGE_Y - 12, '맞힐 별', { ...TXT, fontSize: '24px', fontStyle: 'bold', color: '#8fd3ff' })
+      .setOrigin(0.5, 1)
+      .setVisible(false);
+    this.targetKeys = null;
+    this.targetEdges = { l: 0, r: 0 }; // tweened left/right edge (px) of the bracket
+  }
+
+  /** Left/right pixel edge of the cell range `keys` (null when empty). Called on events only. */
+  targetEdgesOf(keys) {
+    if (!keys?.length) return null;
+    let l = Infinity;
+    let r = -Infinity;
+    for (const k of keys) {
+      const cx = this.gauge.cellCenterX(k);
+      l = Math.min(l, cx - CELL_W / 2);
+      r = Math.max(r, cx + CELL_W / 2);
+    }
+    return { l, r };
+  }
+
+  drawTarget() {
+    const { l, r } = this.targetEdges;
+    this.targetBox.clear();
+    this.targetBox.lineStyle(5, TARGET_COLOR, 1);
+    this.targetBox.strokeRoundedRect(l - 8, GAUGE_Y - 8, r - l + 16, CELL_H + 16, 12);
+    this.targetLabel.setX((l + r) / 2);
+  }
+
+  syncTargetVisible() {
+    const on = !!this.targetKeys && this.gaugeVisible;
+    this.targetBox.setVisible(on);
+    this.targetLabel.setVisible(on);
+  }
+
+  setGaugeTarget(t) {
+    this.tweens.killTweensOf(this.targetEdges);
+    const to = this.targetEdgesOf(t?.keys);
+    this.targetKeys = to ? t.keys : null;
+    this.syncTargetVisible();
+    if (!to) return;
+    const from = this.targetEdgesOf(t.animateFrom);
+    if (from && (from.l !== to.l || from.r !== to.r)) {
+      this.targetEdges.l = from.l;
+      this.targetEdges.r = from.r;
+      this.drawTarget();
+      this.tweens.add({
+        targets: this.targetEdges, l: to.l, r: to.r, duration: TARGET_TWEEN_MS, ease: 'Sine.easeInOut',
+        onUpdate: () => this.drawTarget(),
+      });
+      return;
+    }
+    this.targetEdges.l = to.l;
+    this.targetEdges.r = to.r;
+    this.drawTarget();
+  }
+
+  // ---- centre banner -----------------------------------------------------------------
+
+  createBanner() {
+    const cx = GAME_WIDTH / 2;
+    const cy = GAME_HEIGHT / 2;
+    this.bannerPanel = this.add.rectangle(cx, cy, BANNER_W, 300, 0x05070f, 0.86).setStrokeStyle(4, 0x8fd3ff, 1);
+    this.bannerTitle = this.add
+      .text(cx, cy, '', {
+        ...TXT, fontSize: `${BANNER_TITLE_PX}px`, fontStyle: 'bold', color: '#ffffff', align: 'center',
+        wordWrap: { width: BANNER_W - 2 * BANNER_PAD, useAdvancedWrap: true }, lineSpacing: 8,
+      })
+      .setOrigin(0.5, 0);
+    this.bannerSegs = [];
+    for (let i = 0; i < BANNER_BODY_SEGS; i++) {
+      this.bannerSegs.push(this.add.text(cx, cy, '', { ...TXT, fontSize: `${BANNER_BODY_PX}px`, color: '#e8ecff' }).setOrigin(0, 0.5));
+    }
+    this.bannerBox = this.add.container(0, 0, [this.bannerPanel, this.bannerTitle, ...this.bannerSegs]).setDepth(50).setVisible(false);
+  }
+
+  setBanner(b) {
+    this.tweens.killTweensOf(this.bannerBox);
+    if (!b?.visible) {
+      this.bannerBox.setVisible(false);
+      return;
+    }
+    const cx = GAME_WIDTH / 2;
+    this.bannerTitle.setText(b.title ?? '');
+    const lines = b.body ? b.body.split('\n') : [];
+    const titleH = this.bannerTitle.height;
+    const h = BANNER_PAD * 2 + titleH + (lines.length ? 20 + lines.length * BANNER_BODY_LINE_H : 0);
+    const top = GAME_HEIGHT / 2 - h / 2;
+    this.bannerPanel.setSize(BANNER_W, h).setPosition(cx, GAME_HEIGHT / 2);
+    this.bannerTitle.setPosition(cx, top + BANNER_PAD);
+    let seg = 0;
+    lines.forEach((line, li) => {
+      const y = top + BANNER_PAD + titleH + 20 + li * BANNER_BODY_LINE_H + BANNER_BODY_LINE_H / 2;
+      const parts = splitEmphasis(line, b.emphasis);
+      const used = [];
+      let w = 0;
+      for (const part of parts) {
+        const t = this.bannerSegs[seg++];
+        if (!t) break;
+        t.setText(part.text).setColor(part.emph ? BANNER_ACCENT : '#e8ecff').setFontStyle(part.emph ? 'bold' : 'normal').setVisible(true);
+        used.push(t);
+        w += t.width;
+      }
+      let x = cx - w / 2;
+      for (const t of used) {
+        t.setPosition(x, y);
+        x += t.width;
+      }
+    });
+    for (; seg < BANNER_BODY_SEGS; seg++) this.bannerSegs[seg].setVisible(false);
+    this.bannerBox.setAlpha(0).setVisible(true);
+    this.tweens.add({ targets: this.bannerBox, alpha: 1, duration: 180 });
   }
 
   // ---- pause overlay (screen stack: gameplay → pause) ------------------------

@@ -17,7 +17,7 @@ import { fillFormationColors } from '../logic/spawner.js';
 import { bossArmorColor, piercingColors } from '../logic/charge.js';
 import { bossCycle, bossWarmup, bossStageFromHp, bossShotSpeed, stageChangeVolleyMs, fanVelocities, angleToward, swayOffset, formatTime } from '../logic/boss.js';
 import { STAR_COLORS } from '../logic/temperature.js';
-import { MISSION_TEXT } from '../data/copy.js';
+import { MISSION_TEXT, BANNER_TEXT } from '../data/copy.js';
 import { FONT } from '../objects/gaugeView.js';
 import { armButton } from '../ui/button.js';
 
@@ -28,10 +28,11 @@ const ALL_COLOR_KEYS = STAR_COLORS.map(c => c.key);
 const STAGES = BOSS_HP.length;
 const GAP_TINT = 0x8fa0c8;
 const HIT_TINT = 0xff9a9a;
-const EXPLODE_TO_QUESTIONS_MS = 1200;
+const EXPLODE_TO_QUESTIONS_MS = 2600; // explosion, then the centre banner (read time), then the questions
 const GAP_TOAST_MAX = 2; // "지금이 기회!" shows for the first gaps of each stage only
 const FLEE_MS = 1400;
-const FLEE_TO_QUESTIONS_MS = 2000;
+const EXPLODE_BANNER_DELAY_MS = 400; // the banner waits for the field to clear and the explosion to start fading
+const FLEE_TO_QUESTIONS_MS = 3000;
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -288,9 +289,9 @@ export default class M4BossScene extends BaseMissionScene {
   // ---- end of the fight ------------------------------------------------------------------
   onPhaseComplete() {
     if (this.timedOut) return;
-    this.toast('보스 함선을 격파했어요!', { tone: 'info' });
     this.endGameplay();
-    this.releaseBullets();
+    this.clearField(); // leftover stars/bullets/beams fade out, nothing is judged or measured (advanced by update dt)
+    this.time.delayedCall(EXPLODE_BANNER_DELAY_MS, () => this.showBanner(BANNER_TEXT.m4Win)); // after the explosion
     this.time.delayedCall(EXPLODE_TO_QUESTIONS_MS, () => this.startQuestions());
   }
 
@@ -300,9 +301,9 @@ export default class M4BossScene extends BaseMissionScene {
     this.timedOut = true;
     this.phaseDone = true;
     this.endGameplay();
-    this.releaseBullets();
+    this.clearField();
     this.emitBoss(false);
-    this.toast('보스가 도망갔어요.', { tone: 'info' });
+    this.showBanner(BANNER_TEXT.m4Flee);
     const b = this.boss;
     if (b?.active) {
       b.body.setVelocity(0, 0);

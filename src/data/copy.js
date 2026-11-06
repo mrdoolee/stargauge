@@ -21,6 +21,15 @@ export const MISSION_TEXT = {
   },
 };
 
+// Centre banners (HUD 'banner'): shown only while nothing is moving. `emphasis` is a word of `body` drawn in the accent colour.
+export const BANNER_TEXT = {
+  m1: { title: '연습 끝!', body: '이제 진짜예요! 흰색일 때만 쏘고,\n부딪히면 선체 온도가 올라가요.', emphasis: '흰색' },
+  m2: { title: '1단계 완료!', body: '이번엔 태양보다 차가운 별', emphasis: '차가운' },
+  overheat: { title: '선체 온도가 가득 찼어요!', body: '이 미션을 처음부터 다시 해요.' },
+  m4Win: { title: '보스 함선을 격파했어요!' },
+  m4Flee: { title: '보스가 도망갔어요.' },
+};
+
 const TAIL = '온도는 색으로 비교해요.';
 const labelOf = key => STAR_COLORS.find(c => c.key === key)?.label;
 
