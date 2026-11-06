@@ -103,7 +103,7 @@
  *   TRANSITION_BANNER_MS (gaugeTarget slides from `from` to `to`), then the banner hides and onDone() runs (usually advancePhase()).
  *   It advances ONLY by update dt (logic/transition.js, dt capped by MAX_DT_MS): pause / app switch / landscape freeze it; this.playing
  *   stays true, so returning from the background still opens the pause overlay. showBanner(copy)/hideBanner() drive the banner by hand
- *   (overheat, m4 end); clearField() is the same fade-and-return clear without the banner (advance it with updateFade(dt)).
+ *   (overheat); clearField() is the same fade-and-return clear without the banner (advance it with updateFade(dt)).
  *   Overheat: a full hull shows the BANNER_TEXT.overheat banner for RESTART_DELAY_MS, then restarts (the new run hides the banner).
  *   Helpers: advancePhase(), completePhase(), endGameplay(), completeMission({ next, nextData }),
  *   refreshGoal(), toast(text, opts: { colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert', priority? } — shown in the instruction strip, then the instruction returns), setInstruction(text), emitGauge(), updateResult(patch).
@@ -149,7 +149,7 @@ import { WaveDirector } from '../logic/waves.js';
 import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome, beamCanTouch, bounceCounts } from '../logic/charge.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { missionStars } from '../logic/scoring.js';
-import { advanceTransition } from '../logic/transition.js';
+import { advanceTransition, phaseResolution } from '../logic/transition.js';
 import { MISSION_TEXT, BANNER_TEXT, wrongShotMessage } from '../data/copy.js';
 import { TouchControls, fireButtonRect, joystickLayout, shipMaxY, stepShip } from '../input/TouchControls.js';
 import { hasImage, addBackdrop } from '../config/assets.js';
@@ -226,6 +226,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.phaseIndex = -1;
     this.phase = null;
     this.phaseDone = false;
+    this.phaseResolvePending = false;
     this.phaseHits = 0;
     this.spawner = null;
     this.director = null; // WaveDirector, created lazily by the first `waves` phase
@@ -423,6 +424,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   lateUpdate() {
+    if (this.phaseResolvePending) this.resolvePhaseDone();
     syncHalos(this.pools.stars);
     syncShields(this.pools.enemies);
     syncHpBars(this.pools.enemies);
@@ -543,7 +545,21 @@ export default class BaseMissionScene extends Phaser.Scene {
     if (this.phaseDone || this.restarting || this.finished || !this.phase) return;
     this.phaseDone = true;
     this.spawner = null;
-    this.onPhaseComplete(this.phase);
+    // Decided after the physics step (lateUpdate): a ship hit later in the same step may fill the hull, and a restart wins.
+    this.phaseResolvePending = true;
+  }
+
+  /** After physics: overheat restart beats a phase transition / mission end (spec). */
+  resolvePhaseDone() {
+    const pending = this.phaseResolvePending;
+    this.phaseResolvePending = false;
+    const what = phaseResolution({
+      pending, restarting: this.restarting,
+      heatFull: this.heat.isFull(), hasNextPhase: this.phaseIndex + 1 < this.phases.length,
+    });
+    if (what === null || this.finished) return;
+    if (what === 'restart') this.overheat();
+    else this.onPhaseComplete(this.phase);
   }
 
   /** Start the next phase; false when there is none. */
@@ -559,8 +575,7 @@ export default class BaseMissionScene extends Phaser.Scene {
    */
   startTransition({ title, body, emphasis, gaugeTarget, onDone }) {
     if (this.transition || this.restarting || this.finished) return;
-    this.spawner = null;
-    this.controls.cancel();
+    this.spawner = null; // the joystick stays live (the ship may move); fire() is ignored while this.transition is set
     this.transition = {
       st: { step: 'clear', ms: 0 }, shown: false, copy: { title, body, emphasis }, gaugeTarget, onDone,
     };

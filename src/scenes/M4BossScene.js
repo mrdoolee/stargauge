@@ -28,11 +28,8 @@ const ALL_COLOR_KEYS = STAR_COLORS.map(c => c.key);
 const STAGES = BOSS_HP.length;
 const GAP_TINT = 0x8fa0c8;
 const HIT_TINT = 0xff9a9a;
-const EXPLODE_TO_QUESTIONS_MS = 2600; // explosion, then the centre banner (read time), then the questions
 const GAP_TOAST_MAX = 2; // "지금이 기회!" shows for the first gaps of each stage only
 const FLEE_MS = 1400;
-const EXPLODE_BANNER_DELAY_MS = 400; // the banner waits for the field to clear and the explosion to start fading
-const FLEE_TO_QUESTIONS_MS = 3000;
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -289,10 +286,7 @@ export default class M4BossScene extends BaseMissionScene {
   // ---- end of the fight ------------------------------------------------------------------
   onPhaseComplete() {
     if (this.timedOut) return;
-    this.endGameplay();
-    this.clearField(); // leftover stars/bullets/beams fade out, nothing is judged or measured (advanced by update dt)
-    this.time.delayedCall(EXPLODE_BANNER_DELAY_MS, () => this.showBanner(BANNER_TEXT.m4Win)); // after the explosion
-    this.time.delayedCall(EXPLODE_TO_QUESTIONS_MS, () => this.startQuestions());
+    this.endFight(BANNER_TEXT.m4Win);
   }
 
   /** Time is up: not a failure. The boss flies away, then the questions. */
@@ -300,16 +294,18 @@ export default class M4BossScene extends BaseMissionScene {
     if (this.timedOut || this.phaseDone || this.restarting || this.finished) return;
     this.timedOut = true;
     this.phaseDone = true;
-    this.endGameplay();
-    this.clearField();
     this.emitBoss(false);
-    this.showBanner(BANNER_TEXT.m4Flee);
     const b = this.boss;
     if (b?.active) {
       b.body.setVelocity(0, 0);
       this.tweens.add({ targets: b, y: -300, duration: FLEE_MS, ease: 'Sine.easeIn' });
     }
-    this.time.delayedCall(FLEE_TO_QUESTIONS_MS, () => this.startQuestions());
+    this.endFight(BANNER_TEXT.m4Flee);
+  }
+
+  /** Clear the field (no judging), then the centre banner, then the questions: the shared stage transition (capped update dt). */
+  endFight(banner) {
+    this.startTransition({ ...banner, onDone: () => { this.endGameplay(); this.startQuestions(); } });
   }
 
   // ---- questions + chart -------------------------------------------------------------

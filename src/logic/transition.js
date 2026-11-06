@@ -8,6 +8,15 @@ export function nextAfterPhaseDone({ heatFull, hasNextPhase }) {
   return hasNextPhase ? 'transition' : 'complete';
 }
 
+/**
+ * Resolve a phase that was completed during this physics step (decided AFTER the step so a same-step hull-filling hit wins).
+ * null = nothing to do (no pending completion, or an overheat restart already owns the scene).
+ */
+export function phaseResolution({ pending, restarting, heatFull, hasNextPhase }) {
+  if (!pending || restarting) return null;
+  return nextAfterPhaseDone({ heatFull, hasNextPhase });
+}
+
 /** Mutating step (no allocation; the scene calls this every frame). state = { step: 'clear'|'banner'|'done', ms }. */
 export function advanceTransition(state, dtMs) {
   if (state.step === 'done') return state;

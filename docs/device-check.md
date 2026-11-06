@@ -200,7 +200,7 @@ npm run build && npm run preview -- --host
 | 미션 4 보스 장갑이 너무 단단하다/무르다 | `BOSS_ARMOR` (난이도별 1·2·3단계 장갑 색), `BOSS_HP` (단계별 체력 4/5/6. 장갑과 같은 색 빔이면 체력만큼 발, 한 단계 더 뜨거우면 약 절반. **교실 플레이 뒤 조정**) |
 | 미션 4 균형 계산(`boss.js` `bossFightSec`, 시간 추정): 보스 한 판 시간 | `BOSS_STAGE_FIND_SEC` (20, 단계마다 뚫는 별 찾아 충전하기), `M3_SEC_PER_SHOT` (6). 20×3 + (4+5+6)×6 = 150초. **측정 안 함 — 교실 플레이 뒤 조정** |
 | 단계 전환 때 별이 사라지는 게 너무 느리다/빠르다 | `TRANSITION_CLEAR_MS` (400, 날아오던 별·운석·탄이 흐려져 사라지는 시간) |
-| 단계 전환·보스 끝 가운데 안내를 읽기엔 짧다/길다 | `TRANSITION_BANNER_MS` (2600, 가운데 안내가 떠 있는 시간. 일시정지 중에는 흐르지 않는다). 선체 온도 가득 안내가 보이는 시간은 `RESTART_DELAY_MS` (1800), 미션 4 끝 안내는 `M4BossScene.js` 의 `EXPLODE_TO_QUESTIONS_MS` (2600)·`FLEE_TO_QUESTIONS_MS` (3000) |
+| 단계 전환·보스 끝 가운데 안내를 읽기엔 짧다/길다 | `TRANSITION_BANNER_MS` (2600, 가운데 안내가 떠 있는 시간. 일시정지 중에는 흐르지 않는다). 선체 온도 가득 안내가 보이는 시간은 `RESTART_DELAY_MS` (1800), 미션 4 끝 안내도 같은 `TRANSITION_CLEAR_MS`+`TRANSITION_BANNER_MS` (정리 뒤 안내, 그다음 질문) |
 | 안내 줄 글자가 너무 빨리 사라진다 / 오래 남는다 | `TOAST_MS` (2400, 안내가 안내 줄에 머무는 시간). 중요한 안내(장갑 색 바뀜·선체 온도 가득)가 다른 안내에 덮이지 않는 시간은 `STRIP_HOLD_MS` (1200) |
 | 미션 4 보스 위치·움직임 | `BOSS_POS` (x 360, y 430), `BOSS_SWAY` (amp 160 좌우 폭, periodMs 6000). 위 끝은 HUD 띠(y 344) 아래로 보여야 한다 |
 | 미션 1 흰색이 너무 적게/많이 나온다 | `M1_BLOB_START_WEIGHTS` (쇳물이 시작하는 색 비율. 흰색만 점수), `M1_WHITE_GUARANTEE` (3, 흰색이 아닌 쇳물이 연달아 이만큼 나오면 다음은 흰색) |

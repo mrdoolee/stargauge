@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { nextAfterPhaseDone, transitionStep, advanceTransition, splitEmphasis } from '../../src/logic/transition.js';
+import { nextAfterPhaseDone, phaseResolution, transitionStep, advanceTransition, splitEmphasis } from '../../src/logic/transition.js';
 import { TRANSITION_CLEAR_MS, TRANSITION_BANNER_MS } from '../../src/config/balance.js';
 
 describe('nextAfterPhaseDone', () => {
@@ -52,5 +52,22 @@ describe('splitEmphasis', () => {
   it('no emphasis or no match keeps one plain segment', () => {
     expect(splitEmphasis('안녕', undefined)).toEqual([{ text: '안녕', emph: false }]);
     expect(splitEmphasis('안녕', '없음')).toEqual([{ text: '안녕', emph: false }]);
+  });
+});
+
+describe('phaseResolution (decided after the physics step)', () => {
+  it('nothing pending -> null', () => {
+    expect(phaseResolution({ pending: false, restarting: false, heatFull: false, hasNextPhase: true })).toBe(null);
+  });
+  it('a restart that already started owns the scene -> null', () => {
+    expect(phaseResolution({ pending: true, restarting: true, heatFull: true, hasNextPhase: true })).toBe(null);
+  });
+  it('hull full in the same step beats the transition / mission end', () => {
+    expect(phaseResolution({ pending: true, restarting: false, heatFull: true, hasNextPhase: true })).toBe('restart');
+    expect(phaseResolution({ pending: true, restarting: false, heatFull: true, hasNextPhase: false })).toBe('restart');
+  });
+  it('otherwise transition or complete', () => {
+    expect(phaseResolution({ pending: true, restarting: false, heatFull: false, hasNextPhase: true })).toBe('transition');
+    expect(phaseResolution({ pending: true, restarting: false, heatFull: false, hasNextPhase: false })).toBe('complete');
   });
 });

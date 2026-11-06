@@ -75,7 +75,7 @@ const BANNER_TITLE_PX = 56;
 const BANNER_BODY_PX = 40;
 const BANNER_BODY_LINE_H = 56;
 const BANNER_BODY_SEGS = 6; // pooled body text pieces: up to 2 lines x 3 pieces (before / emphasis / after)
-const BANNER_ACCENT = '#ffd23f';
+const BANNER_ACCENT = '#8fd3ff'; // the banner's own UI cyan (never a star/temperature colour)
 const TARGET_TWEEN_MS = 800;
 const TARGET_COLOR = 0x8fd3ff;
 
