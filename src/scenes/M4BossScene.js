@@ -59,7 +59,6 @@ export default class M4BossScene extends BaseMissionScene {
     super('m4');
     this.sunRef = true;
     this.showGauge = true; // HUD charge cell
-    this.toastAt = 'bottom'; // under the lowest ship row: covers neither the boss nor its bullet path
   }
 
   buildPhases() {
@@ -182,7 +181,7 @@ export default class M4BossScene extends BaseMissionScene {
     this.emitBoss(); // new stage: full gauge, new armor color cell
     this.releaseBullets();
     this.cameras.main.flash(90, 255, 255, 255); // short: it must not hide bullets
-    this.toast('장갑이 더 뜨거운 색으로 바뀌었어요!', { tone: 'info' });
+    this.toast('장갑이 더 뜨거운 색으로 바뀌었어요!', { tone: 'info', priority: true });
     const k = enemy.baseScale ?? enemy.scaleX;
     this.tweens.add({
       targets: enemy, scaleX: k * 1.12, scaleY: k * 1.12, duration: 160, yoyo: true,

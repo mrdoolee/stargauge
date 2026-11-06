@@ -12,8 +12,11 @@
 //                     right slot (it replaces the "남은 목표" counter while visible): neutral white fill = hp/maxHp, armor color cell
 //                     (exact STAR_COLORS hex), "n/3단계". { visible: false } hides it. Re-emitted on 'hud-ready'.
 //   'sun-ref'       boolean                                show the 태양 marker (mission 2+)
-//   'toast'         { text, colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert',
-//                     at?: 'top'|'low'|'bottom' }  'low' = below m1's white zone (HUD_TOAST_LOW_Y); 'bottom' = under the lowest ship row (HUD_TOAST_BOTTOM_Y)
+//   'toast'         { text, colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert', priority?: boolean }
+//                     in-play message: it REPLACES the instruction text in the strip (never a box over the play field) for TOAST_MS,
+//                     then the current instruction returns. tone = strip border flash (info/alert/wrong). priority = a plain message
+//                     can't replace it for STRIP_HOLD_MS. ladder 'star' = the colorKey cell of the top gauge blinks while the message
+//                     shows; ladder 'furnace' = a small 4-colour FURNACE_STAGES ladder in the strip's right slot with colorKey outlined.
 //   'mission-start' { key }                                scene key the pause button pauses
 //   'mission-end'   { key }
 // The HUD emits 'hud-ready' at the end of create(); missions answer by re-emitting their
@@ -27,10 +30,11 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import {
-  HUD_SAFE_MARGIN, TOAST_MS, HUD_PANEL_H, HUD_INSTRUCTION_H, HUD_TOAST_LOW_Y, HUD_TOAST_BOTTOM_Y,
+  HUD_SAFE_MARGIN, HUD_PANEL_H, HUD_INSTRUCTION_H,
 } from '../config/balance.js';
 import { STAR_COLORS, FURNACE_STAGES } from '../logic/temperature.js';
 import { hpBarFraction } from '../logic/enemyHp.js';
+import { stripReducer, stripText, initialStrip } from '../logic/strip.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
 import { armButton } from '../ui/button.js';
@@ -39,7 +43,18 @@ const M = HUD_SAFE_MARGIN;
 const BTN = 72;
 const TXT = { fontFamily: FONT, fontSize: '28px', color: '#e8ecff' };
 const PANEL_H = HUD_PANEL_H;
-const TOAST_TOP_Y = PANEL_H + 120;
+const STRIP_TEXT_W = GAME_WIDTH - 2 * M - 140; // left text area; the right ~140 px is the goal counter / boss gauge
+const STRIP_FONT = 30;
+const STRIP_FONT_SMALL = 26; // one step down when the text would not fit the 96 px strip
+const STRIP_TONES = {
+  info: { stroke: 0x8fd3ff, text: '#8fd3ff' },
+  alert: { stroke: 0xffd23f, text: '#ffd23f' },
+  wrong: { stroke: 0xff8a7a, text: '#ffb3a8' },
+};
+const LADDER_W = 31; // furnace ladder (4 cells) in the strip's top-right: x 560..696, above the goal label
+const LADDER_GAP = 3;
+const LADDER_Y = PANEL_H + 3;
+const LADDER_H = 9;
 
 // Gauge geometry (720 wide): 7 x 64 cells + 6 x 6 gaps = 484 → starts at x 118.
 const CELL_W = 64;
@@ -74,11 +89,11 @@ export default class HudScene extends Phaser.Scene {
     this.createGauge();
     this.createInstruction();
     this.createBossGauge();
-    this.createToast();
+    this.createStripFeedback();
     this.createPauseOverlay();
 
     this.handlers = {
-      instruction: t => this.instruction.setText(t ?? ''),
+      instruction: t => this.stripEvent({ type: 'instruction', text: t ?? '' }),
       'goal-changed': g => this.setGoal(g?.remaining ?? null),
       'gauge-changed': g => {
         this.gauge.setFilled(g?.filled ?? []);
@@ -103,7 +118,7 @@ export default class HudScene extends Phaser.Scene {
       'ship-hit': () => this.flashHeatBar(),
       'mission-end': () => {
         this.closePause(false);
-        this.hideToast();
+        this.stripEvent({ type: 'clear' });
         this.setBoss({ visible: false });
         this.activeKey = null;
       },
@@ -277,7 +292,7 @@ export default class HudScene extends Phaser.Scene {
       ...TXT,
       fontSize: '30px',
       color: '#ffffff',
-      wordWrap: { width: GAME_WIDTH - 2 * M - 140, useAdvancedWrap: true },
+      wordWrap: { width: STRIP_TEXT_W, useAdvancedWrap: true },
       lineSpacing: 4,
     });
     this.goalLabel = this.add.text(GAME_WIDTH - M, y, '남은 목표', TXT).setOrigin(1, 0);
@@ -342,69 +357,82 @@ export default class HudScene extends Phaser.Scene {
     this.goalValue.setVisible(show).setText(show ? String(remaining) : '');
   }
 
-  createToast() {
-    const y = TOAST_TOP_Y;
-    this.toastBg = this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 2 * M, 80, 0x2a1020, 0.92)
-      .setOrigin(0.5, 0)
-      .setStrokeStyle(3, 0xff8a7a);
-    this.toastText = this.add
-      .text(GAME_WIDTH / 2, y + 14, '', {
-        ...TXT,
-        color: '#ffffff',
-        align: 'center',
-        wordWrap: { width: GAME_WIDTH - 2 * M - 32, useAdvancedWrap: true },
-      })
-      .setOrigin(0.5, 0);
-    this.toastLadder = this.add.graphics();
-    this.toast = this.add.container(0, 0, [this.toastBg, this.toastText, this.toastLadder]).setVisible(false);
-    this.toastTimer = null;
+  createStripFeedback() {
+    this.strip = initialStrip();
+    this.stripShown = { text: null, tone: null };
+    this.stripFlash = this.add.rectangle(0, PANEL_H, GAME_WIDTH, HUD_INSTRUCTION_H).setOrigin(0).setStrokeStyle(4, 0xffffff, 1).setFillStyle(0, 0).setVisible(false);
+    this.stripLadder = this.add.graphics();
+    this.cellBlink = this.add.graphics().setVisible(false); // wrong-shot highlight on a gauge cell (blinks; the white charge border stays)
+    this.cellBlinkTween = this.tweens.add({ targets: this.cellBlink, alpha: 0.35, duration: 220, yoyo: true, repeat: -1, paused: true });
+    this.ladderKey = null;
   }
 
-  /** Hide any visible toast and cancel its timer (a late toast must not reappear in the next mission). */
-  hideToast() {
-    this.toastTimer?.remove(false);
-    this.toastTimer = null;
-    this.tweens.killTweensOf(this.toast);
-    this.toast.setVisible(false);
+  /** The single place the strip state changes; redraws only when the shown text/tone changed. */
+  stripEvent(event) {
+    const next = stripReducer(this.strip, event);
+    if (next === this.strip) return false;
+    this.strip = next;
+    const { text, tone } = stripText(next);
+    if (text !== this.stripShown.text || tone !== this.stripShown.tone) {
+      this.stripShown.text = text;
+      this.stripShown.tone = tone;
+      this.renderStrip(text, tone);
+    }
+    if (!next.message) this.clearLadder();
+    return true;
   }
 
-  showToast({ text = '', colorKey = null, ladder = null, tone = 'wrong', at = 'top' } = {}) {
-    const top = at === 'bottom' ? HUD_TOAST_BOTTOM_Y : at === 'low' ? HUD_TOAST_LOW_Y : TOAST_TOP_Y;
-    this.toastBg.setY(top);
-    this.toastText.setY(top + 14);
-    this.toastText.setText(text);
-    let h = this.toastText.height + 28;
-    this.toastLadder.clear();
+  renderStrip(text, tone) {
+    const t = this.instruction;
+    const style = STRIP_TONES[tone];
+    t.setColor(style ? style.text : '#ffffff');
+    t.setFontSize(STRIP_FONT);
+    t.setText(text);
+    if (t.height > HUD_INSTRUCTION_H - 16) t.setFontSize(STRIP_FONT_SMALL); // once; a long text may still wrap to 3 lines
+  }
 
-    // Tiny color ladder (hot → cool) with the shot color circled.
-    const steps = ladder === 'furnace' ? FURNACE_STAGES : ladder === 'star' ? STAR_COLORS : null;
-    if (steps) {
-      const w = 44;
-      const gap = 6;
-      const total = steps.length * w + (steps.length - 1) * gap;
-      const x0 = (GAME_WIDTH - total) / 2;
-      const ly = this.toastBg.y + h - 6;
-      steps.forEach((c, i) => {
-        const lx = x0 + i * (w + gap);
-        this.toastLadder.fillStyle(c.hex, 1);
-        this.toastLadder.fillRect(lx, ly, w, 20);
+  clearLadder() {
+    if (this.ladderKey === null) return;
+    this.ladderKey = null;
+    this.stripLadder.clear();
+    this.cellBlinkTween.pause();
+    this.cellBlink.clear().setVisible(false);
+  }
+
+  update() {
+    if (this.strip.message) this.stripEvent({ type: 'tick', nowMs: this.time.now });
+  }
+
+  showToast({ text = '', colorKey = null, ladder = null, tone = 'wrong', priority = false } = {}) {
+    if (!this.stripEvent({ type: 'message', text, tone, priority, nowMs: this.time.now })) return; // held back by a priority message
+    const style = STRIP_TONES[tone] ?? STRIP_TONES.wrong;
+    this.stripFlash.setStrokeStyle(4, style.stroke, 1).setVisible(true).setAlpha(1);
+    this.tweens.killTweensOf(this.stripFlash);
+    this.tweens.add({ targets: this.stripFlash, alpha: 0, duration: 600, onComplete: () => this.stripFlash.setVisible(false) });
+
+    this.clearLadder();
+    if (!colorKey) return;
+    if (ladder === 'furnace') {
+      this.ladderKey = colorKey;
+      const x0 = GAME_WIDTH - M - (FURNACE_STAGES.length * LADDER_W + (FURNACE_STAGES.length - 1) * LADDER_GAP);
+      FURNACE_STAGES.forEach((c, i) => {
+        const lx = x0 + i * (LADDER_W + LADDER_GAP);
+        this.stripLadder.fillStyle(c.hex, 1);
+        this.stripLadder.fillRect(lx, LADDER_Y, LADDER_W, LADDER_H);
         if (c.key === colorKey) {
-          this.toastLadder.lineStyle(4, 0xffffff, 1);
-          this.toastLadder.strokeRect(lx - 4, ly - 4, w + 8, 28);
+          this.stripLadder.lineStyle(2, 0xffffff, 1);
+          this.stripLadder.strokeRect(lx - 1, LADDER_Y - 2, LADDER_W + 2, LADDER_H + 4);
         }
       });
-      h += 34;
+    } else if (ladder === 'star' && this.gaugeVisible) {
+      this.ladderKey = colorKey;
+      const cx = this.gauge.cellCenterX(colorKey);
+      this.cellBlink.clear();
+      this.cellBlink.lineStyle(5, 0xff8a7a, 1); // thinner and wider than the white 7 px charge border: it never replaces it
+      this.cellBlink.strokeRoundedRect(cx - CELL_W / 2 - 9, GAUGE_Y - 9, CELL_W + 18, CELL_H + 18, 14);
+      this.cellBlink.setVisible(true).setAlpha(1);
+      this.cellBlinkTween.restart();
     }
-
-    const stroke = tone === 'info' ? 0x8fd3ff : tone === 'alert' ? 0xffd23f : 0xff8a7a;
-    this.toastBg.setStrokeStyle(3, stroke);
-    this.toastBg.setSize(this.toastBg.width, h);
-    this.toast.setVisible(true).setAlpha(1);
-    this.tweens.killTweensOf(this.toast);
-    this.toastTimer?.remove(false);
-    this.toastTimer = this.time.delayedCall(TOAST_MS, () => {
-      this.tweens.add({ targets: this.toast, alpha: 0, duration: 250, onComplete: () => this.toast.setVisible(false) });
-    });
   }
 
   // ---- pause overlay (screen stack: gameplay → pause) ------------------------

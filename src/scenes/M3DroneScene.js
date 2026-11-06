@@ -33,7 +33,6 @@ export default class M3DroneScene extends BaseMissionScene {
     super('m3');
     this.sunRef = true;
     this.showGauge = true; // HUD charge cell
-    this.toastAt = 'bottom'; // under the lowest ship row: covers neither the drone band nor the bullet path
     this._droneBuf = [];
   }
 

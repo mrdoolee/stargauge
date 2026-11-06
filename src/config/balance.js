@@ -53,12 +53,11 @@ export const MARK_FADE_MS = 450; // correct-star mark ring + fade before returni
 export const RESTART_DELAY_MS = 600; // heat-full flash before the mission restarts
 export const HUD_SAFE_MARGIN = 24;
 export const TOAST_MS = 2400;
+export const STRIP_HOLD_MS = 1200; // a priority strip message is not replaced by a plain one for this long
 // HUD band heights (HudScene draws them). Falling objects are hidden/dimmed above HUD_BAND_BOTTOM.
 export const HUD_PANEL_H = 248; // top panel: buttons, heat bar, gauge
 export const HUD_INSTRUCTION_H = 96; // instruction strip under the panel
 export const HUD_BAND_BOTTOM = HUD_PANEL_H + HUD_INSTRUCTION_H; // 344
-export const HUD_TOAST_BOTTOM_Y = 1004; // top of a 'bottom' toast (m3/m4): just under the lowest ship row (shipMaxY 960 + 38), clear of the drone band and the boss bullet path
-export const HUD_TOAST_LOW_Y = 660; // top of a 'low' toast (m1: keeps the white zone 344-624 clear)
 
 // Task 7 additions — mission 1 (furnace) and mission 2 (star gauge).
 export const M1_PRACTICE_SEC = 15; // no asteroids / no ship-collision heat during this time

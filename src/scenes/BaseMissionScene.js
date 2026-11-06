@@ -13,8 +13,7 @@
  *   }
  * Do NOT override create() or update(): use setupMission() and the per-frame hook onMissionUpdate(dtMs, time). If you override init(data), call super.init(data) first.
  * Fields: missionId ('m1'..'m4' — registry results key), sunRef (bool, default false),
- *         showGauge (bool, default true), toastAt ('top' | 'low' | 'bottom', default 'top': where HUD toasts sit; 'bottom' = just above the controls, m3/m4;
- *         m1 uses 'low' so toasts never cover the white zone just under the HUD).
+ *         showGauge (bool, default true). In-play messages never cover the play field: toast() puts them in the HUD's instruction strip.
  *
  * Phase object (plain; rebuilt every run so judge state like orderedJudge.progress resets):
  *   {
@@ -97,7 +96,7 @@
  *   heatOnCollision(kind, colorKey) only. Heat full ⇒ registry results.<missionId>.restarts += 1
  *   and scene.restart({ ...initData, restarted: true }).
  *   Helpers: advancePhase(), completePhase(), endGameplay(), completeMission({ next, nextData }),
- *   refreshGoal(), toast(text, opts), setInstruction(text), emitGauge(), updateResult(patch).
+ *   refreshGoal(), toast(text, opts: { colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert', priority? } — shown in the instruction strip, then the instruction returns), setInstruction(text), emitGauge(), updateResult(patch).
  *
  * ── Registry ───────────────────────────────────────────────────────────────────────
  *   results.<missionId> = { stars, wrongShots, restarts }. Reset to zeros on a fresh start
@@ -178,7 +177,6 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.missionId = key;
     this.sunRef = false;
     this.showGauge = true;
-    this.toastAt = 'top';
   }
 
   // ---- subclass hooks (defaults) --------------------------------------------------
@@ -466,7 +464,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   toast(text, opts = {}) {
-    this.game.events.emit('toast', { text, at: this.toastAt, ...opts });
+    this.game.events.emit('toast', { text, ...opts });
   }
 
   // ---- phases ---------------------------------------------------------------------
@@ -883,7 +881,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.physics.pause();
     const restarts = (this.registry.get('results')?.[this.missionId]?.restarts ?? 0) + 1;
     this.updateResult({ restarts });
-    this.toast('선체 온도가 가득 찼어요! 이 미션을 처음부터 다시 해요.', { tone: 'alert' });
+    this.toast('선체 온도가 가득 찼어요! 이 미션을 처음부터 다시 해요.', { tone: 'alert', priority: true });
     this.cameras.main.flash(RESTART_DELAY_MS - 100, 255, 90, 40);
     this.time.delayedCall(RESTART_DELAY_MS, () => this.scene.restart({ ...this.initData, restarted: true }));
   }
