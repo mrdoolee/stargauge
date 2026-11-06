@@ -33,7 +33,7 @@ export default class CardScene extends Phaser.Scene {
       .setStrokeStyle(4, 0x8fd3ff);
 
     this.add
-      .text(cx, 300, d.title ?? '정리 카드', { fontFamily: FONT, fontSize: '48px', fontStyle: 'bold', color: '#8fd3ff' })
+      .text(cx, 300, d.title ?? '정리 카드', { fontFamily: FONT, fontSize: '48px', color: '#8fd3ff' })
       .setOrigin(0.5);
 
     let bodyY = 460;

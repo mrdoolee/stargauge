@@ -283,7 +283,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.fxPops = [];
     for (let i = 0; i < FX_POPS; i++) {
       this.fxPops.push(this.add.text(0, 0, '+1', {
-        fontFamily: FONT, fontSize: '34px', fontStyle: 'bold', color: '#ffe98a', stroke: '#05070f', strokeThickness: 5,
+        fontFamily: FONT, fontSize: '34px', color: '#ffe98a', stroke: '#05070f', strokeThickness: 5,
       }).setOrigin(0.5).setDepth(16).setVisible(false));
     }
     this.fxFlashes = [];
@@ -805,7 +805,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.firePressedGlow.fillStyle(0x7ef2d4, 0.45);
     this.firePressedGlow.fillCircle(0, 0, r.w / 2 - 6);
     const label = this.add
-      .text(0, 0, '발사', { fontFamily: FONT, fontSize: '38px', fontStyle: 'bold', color: '#ffffff' })
+      .text(0, 0, '발사', { fontFamily: FONT, fontSize: '38px', color: '#ffffff' })
       .setOrigin(0.5);
     let parts = [g, this.firePressedGlow, label];
     if (hasImage(this, 'fire-button')) {

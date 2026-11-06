@@ -340,7 +340,7 @@ export default class M4BossScene extends BaseMissionScene {
   button(x, y, w, label, fill, onTap) {
     const r = this.addUi(this.add.rectangle(x, y, w, 96, fill, 1).setStrokeStyle(3, 0xffffff, 0.4));
     this.addUi(this.add.text(x, y, label, {
-      fontFamily: FONT, fontSize: '36px', fontStyle: 'bold', color: '#ffffff', align: 'center',
+      fontFamily: FONT, fontSize: '36px', color: '#ffffff', align: 'center',
       wordWrap: { width: w - 24, useAdvancedWrap: true },
     }).setOrigin(0.5), D + 2);
     armButton(r, () => onTap(r)); // a press that started on it, >= 300 ms after it appeared
@@ -355,7 +355,7 @@ export default class M4BossScene extends BaseMissionScene {
       fontFamily: FONT, fontSize: '32px', color: '#8fd3ff',
     }).setOrigin(0.5));
     this.addUi(this.add.text(cx, 330, q.text, {
-      fontFamily: FONT, fontSize: '44px', fontStyle: 'bold', color: '#ffffff', align: 'center', lineSpacing: 14,
+      fontFamily: FONT, fontSize: '44px', color: '#ffffff', align: 'center', lineSpacing: 14,
       wordWrap: { width: GAME_WIDTH - 100, useAdvancedWrap: true },
     }).setOrigin(0.5));
 
@@ -387,7 +387,7 @@ export default class M4BossScene extends BaseMissionScene {
     this.registry.set('measuredCounts', { ...this.measured });
     const cx = GAME_WIDTH / 2;
     this.addUi(this.add.text(cx, 90, '내가 측정한 별의 색', {
-      fontFamily: FONT, fontSize: '46px', fontStyle: 'bold', color: '#8fd3ff',
+      fontFamily: FONT, fontSize: '46px', color: '#8fd3ff',
     }).setOrigin(0.5));
 
     const data = STAR_COLORS.map(c => ({ ...c, count: this.measured[c.key] ?? 0 })); // textbook order, hottest first
@@ -408,7 +408,7 @@ export default class M4BossScene extends BaseMissionScene {
       g.fillStyle(d.hex, 1);
       g.fillRect(x, baseY - h, barW, h);
       this.addUi(this.add.text(x + barW / 2, baseY - h - 8, `${d.count}개`, {
-        fontFamily: FONT, fontSize: '30px', fontStyle: 'bold', color: '#ffffff',
+        fontFamily: FONT, fontSize: '30px', color: '#ffffff',
       }).setOrigin(0.5, 1));
       this.addUi(this.add.text(x + barW / 2, baseY + 14, d.label, {
         fontFamily: FONT, fontSize: '22px', color: '#ffffff',
@@ -419,7 +419,7 @@ export default class M4BossScene extends BaseMissionScene {
       ? '청색에 가까운 별일수록\n표면 온도가 높고,\n빔을 더 세게 충전해요.'
       : '별을 맞혀 충전하면 색별 개수가 여기에 나타나요.';
     this.addUi(this.add.text(cx, 840, msg, {
-      fontFamily: FONT, fontSize: '36px', fontStyle: 'bold', color: '#ffffff', align: 'center', lineSpacing: 10,
+      fontFamily: FONT, fontSize: '36px', color: '#ffffff', align: 'center', lineSpacing: 10,
       wordWrap: { width: GAME_WIDTH - 100, useAdvancedWrap: true },
     }).setOrigin(0.5, 0));
 

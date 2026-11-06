@@ -77,7 +77,7 @@ const BANNER_TITLE_PX = 56;
 const BANNER_BODY_PX = 40;
 const BANNER_BODY_LINE_H = 56;
 const BANNER_BODY_SEGS = 6; // pooled body text pieces: up to 2 lines x 3 pieces (before / emphasis / after)
-const BANNER_EMPH_PX = 46; // banner emphasis = bold white + bigger (no hue: colour means temperature here)
+const BANNER_EMPH_PX = 46; // banner emphasis = white + bigger (Orbit has no bold) (no hue: colour means temperature here)
 const TARGET_TWEEN_MS = 800;
 const TARGET_COLOR = 0x8fd3ff;
 
@@ -286,7 +286,7 @@ export default class HudScene extends Phaser.Scene {
     // Beam-charge highlight: bright thick border on the charged colour's cell + a small label above it.
     this.chargeBox = this.add.graphics().setVisible(false);
     this.chargeLabel = this.add
-      .text(0, GAUGE_Y - 6, '빔 충전', { ...TXT, fontSize: '22px', fontStyle: 'bold', color: '#ffffff' })
+      .text(0, GAUGE_Y - 6, '빔 충전', { ...TXT, fontSize: '22px', color: '#ffffff' })
       .setOrigin(0.5, 1)
       .setVisible(false);
     this.chargeKey = null;
@@ -323,7 +323,7 @@ export default class HudScene extends Phaser.Scene {
     });
     this.goalLabel = this.add.text(GAME_WIDTH - M, y, '남은 목표', TXT).setOrigin(1, 0);
     this.goalValue = this.add
-      .text(GAME_WIDTH - M, y + 36, '', { ...TXT, fontSize: '40px', fontStyle: 'bold', color: '#8fd3ff' })
+      .text(GAME_WIDTH - M, y + 36, '', { ...TXT, fontSize: '40px', color: '#8fd3ff' })
       .setOrigin(1, 0);
     this.setGoal(null);
   }
@@ -336,7 +336,7 @@ export default class HudScene extends Phaser.Scene {
     this.bossBack = this.add.rectangle(right, y + 50, w, 20, 0x2a3048).setOrigin(1, 0).setStrokeStyle(2, 0x8890a8);
     this.bossFill = this.add.rectangle(right - w, y + 50, w, 20, 0xf2f5ff).setOrigin(0, 0); // neutral white, never a palette color
     this.bossArmor = this.add.rectangle(right - w, y + 2, 28, 28, 0xffffff).setOrigin(0, 0).setStrokeStyle(2, 0xffffff);
-    this.bossStageText = this.add.text(right, y, '', { ...TXT, fontSize: '26px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(1, 0);
+    this.bossStageText = this.add.text(right, y, '', { ...TXT, fontSize: '26px', color: '#ffffff' }).setOrigin(1, 0);
     this.bossObjects = [this.bossBack, this.bossFill, this.bossArmor, this.bossStageText];
     this.bossState = { visible: false, stage: 0, hp: 0, maxHp: 1, armorKey: null };
     this.bossFrac = { v: 0 };
@@ -466,7 +466,7 @@ export default class HudScene extends Phaser.Scene {
   createGaugeTarget() {
     this.targetBox = this.add.graphics().setVisible(false);
     this.targetLabel = this.add
-      .text(0, GAUGE_Y - 12, '맞힐 별', { ...TXT, fontSize: '24px', fontStyle: 'bold', color: '#8fd3ff' })
+      .text(0, GAUGE_Y - 12, '맞힐 별', { ...TXT, fontSize: '24px', color: '#8fd3ff' })
       .setOrigin(0.5, 1)
       .setVisible(false);
     this.targetKeys = null;
@@ -530,7 +530,7 @@ export default class HudScene extends Phaser.Scene {
     this.bannerPanel = this.add.rectangle(cx, cy, BANNER_W, 300, 0x05070f, 0.86).setStrokeStyle(4, 0x8fd3ff, 1);
     this.bannerTitle = this.add
       .text(cx, cy, '', {
-        ...TXT, fontSize: `${BANNER_TITLE_PX}px`, fontStyle: 'bold', color: '#ffffff', align: 'center',
+        ...TXT, fontSize: `${BANNER_TITLE_PX}px`, color: '#ffffff', align: 'center',
         wordWrap: { width: BANNER_W - 2 * BANNER_PAD, useAdvancedWrap: true }, lineSpacing: 8,
       })
       .setOrigin(0.5, 0);
@@ -564,7 +564,7 @@ export default class HudScene extends Phaser.Scene {
       for (const part of parts) {
         const t = this.bannerSegs[seg++];
         if (!t) break;
-        t.setText(part.text).setColor(part.emph ? '#ffffff' : '#e8ecff').setFontStyle(part.emph ? 'bold' : 'normal')
+        t.setText(part.text).setColor(part.emph ? '#ffffff' : '#e8ecff')
           .setFontSize(part.emph ? BANNER_EMPH_PX : BANNER_BODY_PX).setVisible(true);
         used.push(t);
         w += t.width;
@@ -585,7 +585,7 @@ export default class HudScene extends Phaser.Scene {
   createPauseOverlay() {
     const dim = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.65).setOrigin(0).setInteractive();
     const title = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.38, '일시정지', { ...TXT, fontSize: '56px', fontStyle: 'bold', color: '#ffffff' })
+      .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.38, '일시정지', { ...TXT, fontSize: '56px', color: '#ffffff' })
       .setOrigin(0.5);
     const resume = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.52, '계속하기', {

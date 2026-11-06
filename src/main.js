@@ -1,6 +1,7 @@
 import { GAME_WIDTH, GAME_HEIGHT } from './config/game.js';
 import { ROTATE_QUERY, applyOrientation } from './config/orientation.js';
 import { showBootError } from './config/bootError.js';
+import { loadGameFont } from './config/fontLoad.js';
 import { parseDebug, debugRegistryDefaults } from './config/debug.js';
 
 export { GAME_WIDTH, GAME_HEIGHT };
@@ -52,6 +53,8 @@ async function boot() {
       colorsView = true;
     }
   }
+
+  await loadGameFont(); // Orbit ready (max ~3 s, never throws) before any canvas text is drawn
 
   game = new Phaser.Game({
     type: Phaser.AUTO,
