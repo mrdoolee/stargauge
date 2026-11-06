@@ -169,7 +169,7 @@ npm run build && npm run preview -- --host
 | 미션 1 흰색이 너무 적게/많이 나온다 | `M1_BLOB_START_WEIGHTS` (쇳물이 시작하는 색 비율. 흰색만 점수), `M1_WHITE_GUARANTEE` (3, 흰색이 아닌 쇳물이 연달아 이만큼 나오면 다음은 흰색) |
 | 미션 3·4 균형 계산(코드 `heatInflowPerSec`): 놓친 충전 별 몫 | `MISSED_STAR_SHARE` (0.25). 충전용 별 중 쏘지도 피하지도 못하는 몫. **측정 안 함 — 교실 플레이 뒤 조정** |
 | 미션 3 균형 계산: 드론이 살아 있는 평균 몫 | `DRONE_ALIVE_DUTY` (0.6). `DRONE_MAX_ON_SCREEN` 중 평균적으로 살아서 쏘는 비율. **측정 안 함 — 교실 플레이 뒤 조정** |
-| 미션 1 소행성이 너무 많다/적다 | `M1_ASTEROID_SLOT_CHANCE` (0.2, 시험 단계에서 소행성이 되는 비율). 연습 단계(30초)만 `SPAWN_INTERVAL_MS` (m1 1100)를 쓴다 |
+| 미션 1 소행성이 너무 많다/적다 | `M1_ASTEROID_SLOT_CHANCE` (0.2, 시험 단계에서 소행성이 되는 비율). 연습 단계(15초)만 `SPAWN_INTERVAL_MS` (m1 1100)를 쓴다 |
 | 별이 너무 빠르다/느리다 (속도 띠) | `SPEED_BANDS_H` (화면 높이/초 단위, 별·위험물 × 난이도)와 `REACTION_FLOOR_SEC` (반응 시간 하한). **스펙으로 정한 값이라 교사와 상의한 뒤에만 바꾼다.** 난이도 전체를 한 번에 줄이려면 `DIFFICULTY_MULTIPLIERS` |
 | 긴장이 너무 빨리/천천히 오른다, 다시 하면 쉬워지는 정도 | `RANK_START` (시작 긴장도 쉬움 0 / 중간 2 / 어려움 5), `RANK_SURVIVAL` (시간이 지나며 오르는 속도), `RANK_PER_CORRECT` (0.5, 맞힐 때 오름), `RANK_TIER_AT` (단계 경계), `RANK_AIM_MIN` (4, 이 값부터 조준 발사), `RANK_MERCY_PER_RESTART` (2)·`RANK_MERCY_MAX_RESTARTS` (2, 다시 할 때 깎아 주는 양). 쉬움은 긴장도가 고정이다 |
 | 시작 몸풀기가 너무 길다/짧다 | `WARMUP_MS` (12000, 처음 몇 밀리초), `WARMUP_DENSITY` (0.7, 이 동안 편대 크기 배율. 조준 발사는 없다. 미션 4는 발사 간격이 이 값으로 나뉜다) |
