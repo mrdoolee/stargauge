@@ -82,14 +82,24 @@ export default class BriefingScene extends Phaser.Scene {
 
     // bullets
     const bulletTop = picBottom + 28;
-    const text = b.bullets.map(t => `• ${t}`).join('\n');
-    const bullets = this.add.text(M + 28, bulletTop, text, {
-      fontFamily: FONT, fontSize: '30px', color: '#e8ecff', lineSpacing: 12,
-      wordWrap: { width: GAME_WIDTH - 2 * (M + 28), useAdvancedWrap: true },
-    }).setOrigin(0, 0);
+    // Hanging indent: the "•" is its own Text and the body sits beside it, so wrapped lines line up under the first letter.
+    const bulletStyle = { fontFamily: FONT, fontSize: '30px', color: '#e8ecff', lineSpacing: 12 };
+    const bulletW = GAME_WIDTH - 2 * (M + 28);
+    const markerProbe = this.add.text(0, 0, '• ', bulletStyle);
+    const indent = Math.ceil(markerProbe.width);
+    markerProbe.destroy();
+    let cursorY = bulletTop;
+    for (const t of b.bullets) {
+      this.add.text(M + 28, cursorY, '•', bulletStyle).setOrigin(0, 0);
+      const body = this.add.text(M + 28 + indent, cursorY, t, {
+        ...bulletStyle, wordWrap: { width: bulletW - indent, useAdvancedWrap: true },
+      }).setOrigin(0, 0);
+      cursorY += body.height + bulletStyle.lineSpacing;
+    }
+    const bulletsBottom = cursorY - bulletStyle.lineSpacing;
 
     // goal box (yellow border)
-    const goalTop = bullets.y + bullets.height + 28;
+    const goalTop = bulletsBottom + 28;
     const goal = this.add.text(cx, 0, `임무: ${b.goal}`, {
       fontFamily: FONT, fontSize: '32px', color: '#ffe27a', align: 'center', lineSpacing: 8,
       wordWrap: { width: GAME_WIDTH - 2 * (M + 28) - 40, useAdvancedWrap: true },

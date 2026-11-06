@@ -4,7 +4,7 @@ import { MISSION_TEXT, BANNER_TEXT, wrongShotMessage } from '../../src/data/copy
 describe('copy', () => {
   it('mission text', () => {
     ['m1', 'm2a', 'm2b', 'm3', 'm4'].forEach(id => expect(MISSION_TEXT[id].instruction).toBeTruthy());
-    expect(MISSION_TEXT.m1.card).toBe('뜨거울수록 흰색, 식을수록 붉은색. 별도 그래요!');
+    expect(MISSION_TEXT.m1.card.replace(/\n/g, ' ')).toBe('뜨거울수록 흰색, 식을수록 붉은색. 별도 그래요!');
     expect(MISSION_TEXT.m3a).toBeUndefined();
     expect(MISSION_TEXT.m3b).toBeUndefined();
   });

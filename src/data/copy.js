@@ -3,7 +3,7 @@ import { STAR_COLORS } from '../logic/temperature.js';
 export const MISSION_TEXT = {
   m1: {
     instruction: '가장 뜨거운 쇳물을 쏴라!\n흰색에 가까울수록 뜨거워요.',
-    card: '뜨거울수록 흰색, 식을수록 붉은색. 별도 그래요!',
+    card: '뜨거울수록 흰색,\n식을수록 붉은색.\n별도 그래요!',
   },
   m2a: {
     instruction: '태양보다 뜨거운 별만 쏘고,\n나머지는 피하세요.',

@@ -4,14 +4,14 @@ export const QUIZ = [
     prompt: '별은 표면 온도가 (   ) 청색을 띤다.',
     choices: ['높을수록', '낮을수록'],
     answerIndex: 0,
-    explanation: '표면 온도가 높은 별일수록 청색, 낮은 별일수록 적색을 띠어요.',
+    explanation: '표면 온도가 높은 별일수록 청색,\n낮은 별일수록 적색을 띠어요.',
   },
   {
     id: 'q2',
     prompt: '유리 공예 그림에서\n(가) 노란빛 부분과 (나) 붉은빛 부분 중\n온도가 더 높은 곳은?',
     choices: ['(가) 노란빛 부분', '(나) 붉은빛 부분', '둘이 같다'],
     answerIndex: 0,
-    explanation: '노란빛은 붉은빛보다 온도가 높을 때 나타나요.',
+    explanation: '노란빛은 붉은빛보다\n온도가 높을 때 나타나요.',
   },
   {
     id: 'q3',
