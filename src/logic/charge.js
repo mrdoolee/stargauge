@@ -1,7 +1,7 @@
 // Star-charged beam and shield rules (pure). Charge level = star color temperature step (blue 7 ... red 1).
 import { STAR_COLORS } from './temperature.js';
 import { getDifficulty } from './difficulty.js';
-import { DRONE_SHIELDS, BOSS_ARMOR } from '../config/balance.js';
+import { DRONE_SHIELDS, BOSS_ARMOR, HUD_BAND_BOTTOM } from '../config/balance.js';
 
 const LEVELS = STAR_COLORS.length;
 
@@ -50,3 +50,13 @@ export function enemyHitOutcome({ res, keepAlive }) {
   if (!res.down) return 'pierced';
   return keepAlive ? 'kept' : 'down';
 }
+
+/** Beam vs star/enemy contact: in charge mode only objects visible below the HUD band can be hit (m1/m2: always). */
+export const beamCanTouch = ({ chargeMode, y }) => !chargeMode || y > HUD_BAND_BOTTOM;
+
+/**
+ * A bounce counts as a wrong shot only if the beam was charged when fired and was fired no earlier than the
+ * enemy's current shield was set (a beam already in flight when the armor changed is not the student's mistake).
+ */
+export const bounceCounts = ({ beamKey, firedAtMs, shieldChangedAtMs }) =>
+  !!beamKey && firedAtMs >= shieldChangedAtMs;

@@ -13,7 +13,7 @@
  *   }
  * Do NOT override create() or update(): use setupMission() and the per-frame hook onMissionUpdate(dtMs, time). If you override init(data), call super.init(data) first.
  * Fields: missionId ('m1'..'m4' — registry results key), sunRef (bool, default false),
- *         showGauge (bool, default true), toastAt ('top' | 'low', default 'top': where HUD toasts sit;
+ *         showGauge (bool, default true), toastAt ('top' | 'low' | 'bottom', default 'top': where HUD toasts sit; 'bottom' = just above the controls, m3/m4;
  *         m1 uses 'low' so toasts never cover the white zone just under the HUD).
  *
  * Phase object (plain; rebuilt every run so judge state like orderedJudge.progress resets):
@@ -49,7 +49,7 @@
  * onShipHit(obj, heat), onStarMeasured(obj) (chargeMode), onEnemyDown(enemy) (hp hit 0, already released),
  * onEnemyPierced(enemy, res) (every pierce, hp already lowered, enemy still active; return true to KEEP it: then no
  * explosion, no release, no onEnemyDown, and the scene owns what follows, e.g. reset hp + setEnemyShield(next armor) + its fx),
- * onEnemyBlocked(enemy) (beam charge too weak for its shield; wrongShots and this.blockedHits already +1), practiceTone(obj) ('correct' | 'neutral', default 'correct': a practice hit
+ * onEnemyBlocked(enemy, beamKey) (beam charge too weak for its shield; this.blockedHits already +1; wrongShots +1 unless chargeMode and the bounce does not count, see bounceCounts), practiceTone(obj) ('correct' | 'neutral', default 'correct': a practice hit
  * (judge null) on a 'neutral' object gets a soft mark — no "+1", no correct chime — and onCorrectHit
  * receives { correct: true, practice: true, neutral: true }).
  *
@@ -63,6 +63,8 @@
  *   Asteroids are never targetable.
  *
  * ── Enemies, enemy bullets, charge (generic; used by m3/m4) ───────────────────────────
+ *   Each fired beam keeps its own b.chargeKey/b.firedAtMs: enemy hits are judged on the fire-time charge. In chargeMode phases beams only
+ *   touch stars/enemies below the HUD band (beamCanTouch).
  *   this.charge: star colorKey the beam is charged with, or null (plain beam). setCharge(colorKey|null) re-tints newly
  *   fired beams with the exact palette hex and emits 'charge-changed' { colorKey } (HUD highlights that gauge cell).
  *   Reset to initialCharge() (null) in init() (so also on a heat restart).
@@ -128,7 +130,7 @@ import { StarGauge } from '../logic/gauge.js';
 import { zigzagVx } from '../logic/formations.js';
 import { Spawner } from '../logic/spawner.js';
 import { WaveDirector } from '../logic/waves.js';
-import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome } from '../logic/charge.js';
+import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome, beamCanTouch, bounceCounts } from '../logic/charge.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { missionStars } from '../logic/scoring.js';
 import { MISSION_TEXT, wrongShotMessage } from '../data/copy.js';
@@ -157,7 +159,7 @@ const FX_BURSTS = 4; // pooled explosion / spark bursts: 1 ring + FX_BITS sparks
 const FX_BITS = 6;
 const EXPLODE_MS = 280; // downed enemy burst (<= 300 ms)
 const SPARK_MS = 160;
-const SHIELD_ALPHA = 0.85;
+const SHIELD_ALPHA = 1; // exact palette color: no dimming over the dark backdrop
 const SHIELD_UNIT = 0.8; // shield ring scale per enemy scale unit (ring just outside the 80 px body)
 
 export default class BaseMissionScene extends Phaser.Scene {
@@ -188,7 +190,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   onStarMeasured(_obj) {}
   onEnemyDown(_enemy) {}
   onEnemyPierced(_enemy, _res) { return false; }
-  onEnemyBlocked(_enemy) {}
+  onEnemyBlocked(_enemy, _beamKey) {}
   practiceTone(_obj) { return 'correct'; }
 
   // ---- lifecycle ------------------------------------------------------------------
@@ -514,7 +516,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.playing = false;
     this.controls.cancel();
     const restarts = this.registry.get('results')?.[this.missionId]?.restarts ?? 0;
-    const stars = missionStars({ wrongShots: this.wrongShots, restarts });
+    const stars = missionStars({ wrongShots: this.wrongShots, restarts, chargeMode: !!this.phase?.chargeMode });
     this.updateResult({ stars, wrongShots: this.wrongShots, restarts });
     sfx.play('clear');
     this.game.events.emit('mission-end', { key: this.scene.key });
@@ -686,14 +688,17 @@ export default class BaseMissionScene extends Phaser.Scene {
     const b = acquire(this.pools.beams, this.ship.x, this.ship.y - BEAM_SPAWN_OFFSET_Y);
     if (!b) return;
     b.body.setVelocity(0, -BEAM_SPEED);
-    const hex = this.chargeHex();
+    b.chargeKey = this.charge; // the beam keeps the charge it was fired with (judged on it, not on the later charge)
+    b.firedAtMs = this.time.now;
+    const hex = this.chargeHex(b.chargeKey);
     if (hex !== null) b.setTint(hex); // charged: the beam core is exactly the palette color
+    else b.clearTint(); // pooled beam: drop a tint left from an earlier shot
   }
 
-  /** Palette hex of the current charge, or null (no charge = the plain beam). */
-  chargeHex() {
-    if (!this.charge) return null;
-    return STAR_COLORS.find(c => c.key === this.charge)?.hex ?? null;
+  /** Palette hex of a charge color (default: the current charge), or null (no charge = the plain beam). */
+  chargeHex(key = this.charge) {
+    if (!key) return null;
+    return STAR_COLORS.find(c => c.key === key)?.hex ?? null;
   }
 
   /** Charge the beam with a star color (null clears). Newly fired beams take the color; the HUD highlights the cell. */
@@ -707,7 +712,8 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   canBeamHit(beam, obj) {
-    return this.playing && beam.active && obj.active && obj.targetable && !obj.marked;
+    return this.playing && beam.active && obj.active && obj.targetable && !obj.marked
+      && beamCanTouch({ chargeMode: this.phase?.chargeMode, y: obj.y });
   }
 
   handleBeamHit(beam, obj) {
@@ -901,6 +907,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   /** Recolor (or, with null, remove) an enemy's shield ring. */
   setEnemyShield(obj, shieldKey) {
     obj.shieldKey = shieldKey ?? null;
+    obj.shieldChangedAtMs = this.time.now; // beams fired before this do not count as wrong bounces
     const sh = obj.shield;
     if (!sh) return;
     this.tweens.killTweensOf(sh);
@@ -922,48 +929,52 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   canBeamEnemy(beam, enemy) {
-    return this.playing && beam.active && enemy.active;
+    return this.playing && beam.active && enemy.active && beamCanTouch({ chargeMode: this.phase?.chargeMode, y: enemy.y });
   }
 
   handleBeamEnemy(beam, enemy) {
     if (!beam.active) return;
     const bx = beam.x;
     const by = beam.y;
+    const beamKey = beam.chargeKey ?? null; // read before release: the beam is judged on its fire-time charge
+    const firedAtMs = beam.firedAtMs ?? 0;
     release(beam);
     const phase = this.phase;
     if (!phase || this.phaseDone || this.restarting) return;
-    const res = resolveBeamOnEnemy({ charge: this.charge, shieldKey: enemy.shieldKey, hp: enemy.hp });
+    const beamHex = this.chargeHex(beamKey) ?? 0xffffff;
+    const res = resolveBeamOnEnemy({ charge: beamKey, shieldKey: enemy.shieldKey, hp: enemy.hp });
     if (res.pierced) {
       enemy.hp = res.hp;
       const keep = this.onEnemyPierced(enemy, res) === true;
       const outcome = enemyHitOutcome({ res, keepAlive: keep });
       if (outcome === 'kept') {
-        this.sparkAt(bx, by, this.chargeHex() ?? 0xffffff);
+        this.sparkAt(bx, by, beamHex);
         sfx.play('correct');
       } else if (outcome === 'down') {
-        this.explodeAt(enemy.x, enemy.y, enemy.displayWidth / ENEMY_TEX, this.chargeHex() ?? 0xffffff);
+        this.explodeAt(enemy.x, enemy.y, enemy.displayWidth / ENEMY_TEX, beamHex);
         sfx.play('clear');
         this.releaseEnemy(enemy);
         this.onEnemyDown(enemy);
       } else {
-        this.sparkAt(bx, by, this.chargeHex() ?? 0xffffff);
+        this.sparkAt(bx, by, beamHex);
         sfx.play('correct');
         this.tweens.killTweensOf(enemy);
         enemy.setAlpha(1);
         this.tweens.add({ targets: enemy, alpha: 0.4, duration: 60, yoyo: true, onComplete: () => enemy.setAlpha(1) });
       }
     } else {
-      this.wrongShots += 1;
+      // Charge mode: a bounce is a wrong shot only if the beam was charged and fired after the shield was set.
+      if (!phase.chargeMode || bounceCounts({ beamKey, firedAtMs, shieldChangedAtMs: enemy.shieldChangedAtMs ?? 0 })) this.wrongShots += 1;
       this.blockedHits += 1;
       this.sparkAt(bx, by, 0xffffff);
       this.flashShield(enemy);
       sfx.play('wrong');
       if (phase.blockedToast !== false && this.blockedHits <= BLOCKED_TOAST_MAX) {
-        this.toast(this.charge
+        this.toast(beamKey
           ? '방어막을 뚫기엔 빔이 약해요. 더 뜨거운(푸른쪽) 별을 맞혀 충전해요!'
           : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'wrong' });
       }
-      this.onEnemyBlocked(enemy);
+      this.onEnemyBlocked(enemy, beamKey);
     }
     this.refreshGoal();
   }

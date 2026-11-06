@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   chargeLevel, canPierce, piercingColors, pickShieldColor, bossArmorColor, resolveBeamOnEnemy, initialCharge, enemyHitOutcome,
+  beamCanTouch, bounceCounts,
 } from '../../src/logic/charge.js';
-import { DRONE_SHIELDS } from '../../src/config/balance.js';
+import { DRONE_SHIELDS, HUD_BAND_BOTTOM } from '../../src/config/balance.js';
 
 describe('charge', () => {
   it('chargeLevel by color', () => {
@@ -53,5 +54,39 @@ describe('charge', () => {
   });
   it('initialCharge', () => {
     expect(initialCharge()).toBe(null);
+  });
+});
+
+describe('beam judged by its own fire-time charge', () => {
+  it('a blue beam pierces white and a red beam bounces, whatever the current charge is', () => {
+    const blue = resolveBeamOnEnemy({ charge: 'blue', shieldKey: 'white', hp: 2 });
+    const red = resolveBeamOnEnemy({ charge: 'red', shieldKey: 'white', hp: 2 });
+    expect(blue.pierced).toBe(true);
+    expect(red.pierced).toBe(false);
+  });
+});
+
+describe('beamCanTouch (HUD band)', () => {
+  it('charge mode: only below the HUD band', () => {
+    expect(beamCanTouch({ chargeMode: true, y: HUD_BAND_BOTTOM })).toBe(false);
+    expect(beamCanTouch({ chargeMode: true, y: 100 })).toBe(false);
+    expect(beamCanTouch({ chargeMode: true, y: HUD_BAND_BOTTOM + 1 })).toBe(true);
+  });
+  it('m1/m2 (no charge mode) keep the old behavior', () => {
+    expect(beamCanTouch({ chargeMode: false, y: 100 })).toBe(true);
+    expect(beamCanTouch({ chargeMode: undefined, y: -50 })).toBe(true);
+  });
+});
+
+describe('bounceCounts', () => {
+  it('does not count an uncharged beam', () => {
+    expect(bounceCounts({ beamKey: null, firedAtMs: 500, shieldChangedAtMs: 0 })).toBe(false);
+  });
+  it('does not count a beam fired before the shield changed', () => {
+    expect(bounceCounts({ beamKey: 'blue', firedAtMs: 900, shieldChangedAtMs: 1000 })).toBe(false);
+  });
+  it('counts a charged beam fired at/after the shield was set', () => {
+    expect(bounceCounts({ beamKey: 'red', firedAtMs: 1000, shieldChangedAtMs: 1000 })).toBe(true);
+    expect(bounceCounts({ beamKey: 'red', firedAtMs: 2000, shieldChangedAtMs: 1000 })).toBe(true);
   });
 });

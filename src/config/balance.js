@@ -14,6 +14,9 @@ export const SPAWN_NEEDED_GUARANTEE = 3; // force a needed color after this many
 export const MISSION_GOAL_COUNTS = { m1: 8 };
 export const STARS_THREE_MAX_WRONG = 1;
 export const STARS_TWO_MAX_WRONG = 4;
+// Charge-mode missions (m3/m4): only COUNTED bounces are wrong (see bounceCounts in charge.js). Provisional values, 교사 확인 필요.
+export const CHARGE_STARS_THREE_MAX_WRONG = 3;
+export const CHARGE_STARS_TWO_MAX_WRONG = 8;
 
 // Task 6 additions — touch controls, ship, beam, pools, HUD layout.
 // Controls revised 2026-10-31 (teacher field test): fixed virtual joystick bottom-left (left thumb)
@@ -54,6 +57,7 @@ export const TOAST_MS = 2400;
 export const HUD_PANEL_H = 248; // top panel: buttons, heat bar, gauge
 export const HUD_INSTRUCTION_H = 96; // instruction strip under the panel
 export const HUD_BAND_BOTTOM = HUD_PANEL_H + HUD_INSTRUCTION_H; // 344
+export const HUD_TOAST_BOTTOM_Y = 1004; // top of a 'bottom' toast (m3/m4): just under the lowest ship row (shipMaxY 960 + 38), clear of the drone band and the boss bullet path
 export const HUD_TOAST_LOW_Y = 660; // top of a 'low' toast (m1: keeps the white zone 344-624 clear)
 
 // Task 7 additions — mission 1 (furnace) and mission 2 (star gauge).
@@ -83,7 +87,7 @@ export const BOSS_FAN_SHIP_HITS = 1.5;
 export const BOSS_GAP_DIM_ALPHA = 0.55;
 
 // Difficulty (2026-10-31). Multipliers on the base values above; `normal` is 1 everywhere = the shipped feel.
-// speed: every falling/moving hazard or target (m1 blobs + asteroids, m2 stars, m3 stars + drone patrol,
+// speed: every falling/moving hazard or target (m1 blobs + asteroids, m2 stars, m3 stars (the drone patrol DRONE_SPEED_X is a fixed px/s, not scaled),
 // m4 charge stars). spawnInterval: FORMATION_GAP_MS, BOSS_VOLLEY_MS, SPAWN_INTERVAL_MS (m1 practice spawner only);
 // larger = fewer objects. heat: ship-collision heat only (not WRONG_SHOT_HEAT, not cooling).
 export const DIFFICULTY_MULTIPLIERS = {
@@ -169,7 +173,9 @@ export const DRONE_MAX_ON_SCREEN = 3;
 export const DRONE_ALIVE_DUTY = 0.6;
 export const DRONE_FIRE_MS = { easy: 4000, normal: 2800, hard: 2000 };
 export const DRONE_BAND_Y = { min: 380, max: 560 }; // hover rows
-export const DRONE_SPEED_X = 90; // px/s patrol
+export const DRONE_SPEED_X = 90; // px/s patrol (fixed: the difficulty speed multiplier does not apply)
+export const DRONE_MUZZLE_DY = 30; // drone bullets spawn this far below the drone centre
+export const DRONE_MIN_SHOT_SPEED = 150; // a drone shot is skipped only if the safe-distance cap is below this
 
 // Mission 4 boss ship (2026-11-04). The boss is not a star: it can be shot down. Armor color rises with stages (BOSS_ARMOR).
 // BOSS_POS.y 430: the 300 px hull spans y 280..580, so everything below the HUD band (344) is visible and the muzzle

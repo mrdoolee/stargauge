@@ -10,7 +10,7 @@
 //   'charge-changed' { colorKey: string|null }             beam charge: that gauge cell gets a bright border + "빔 충전" label; null clears
 //   'sun-ref'       boolean                                show the 태양 marker (mission 2+)
 //   'toast'         { text, colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert',
-//                     at?: 'top'|'low' }  'low' = below m1's white zone (HUD_TOAST_LOW_Y)
+//                     at?: 'top'|'low'|'bottom' }  'low' = below m1's white zone (HUD_TOAST_LOW_Y); 'bottom' = under the lowest ship row (HUD_TOAST_BOTTOM_Y)
 //   'mission-start' { key }                                scene key the pause button pauses
 //   'mission-end'   { key }
 // The HUD emits 'hud-ready' at the end of create(); missions answer by re-emitting their
@@ -24,7 +24,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import {
-  HUD_SAFE_MARGIN, TOAST_MS, HUD_PANEL_H, HUD_INSTRUCTION_H, HUD_TOAST_LOW_Y,
+  HUD_SAFE_MARGIN, TOAST_MS, HUD_PANEL_H, HUD_INSTRUCTION_H, HUD_TOAST_LOW_Y, HUD_TOAST_BOTTOM_Y,
 } from '../config/balance.js';
 import { STAR_COLORS, FURNACE_STAGES } from '../logic/temperature.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
@@ -250,6 +250,11 @@ export default class HudScene extends Phaser.Scene {
     this.chargeLabel.setVisible(show);
     if (!show) return;
     const cx = this.gauge.cellCenterX(this.chargeKey);
+    const hex = STAR_COLORS.find(c => c.key === this.chargeKey)?.hex;
+    if (hex !== undefined) { // the charged cell is filled with the exact palette color (uncharged cells stay dim)
+      this.chargeBox.fillStyle(hex, 1);
+      this.chargeBox.fillRoundedRect(cx - CELL_W / 2, GAUGE_Y, CELL_W, CELL_H, 8);
+    }
     this.chargeBox.lineStyle(7, 0xffffff, 1);
     this.chargeBox.strokeRoundedRect(cx - CELL_W / 2 - 5, GAUGE_Y - 5, CELL_W + 10, CELL_H + 10, 11);
     this.chargeLabel.setX(cx);
@@ -305,7 +310,7 @@ export default class HudScene extends Phaser.Scene {
   }
 
   showToast({ text = '', colorKey = null, ladder = null, tone = 'wrong', at = 'top' } = {}) {
-    const top = at === 'low' ? HUD_TOAST_LOW_Y : TOAST_TOP_Y;
+    const top = at === 'bottom' ? HUD_TOAST_BOTTOM_Y : at === 'low' ? HUD_TOAST_LOW_Y : TOAST_TOP_Y;
     this.toastBg.setY(top);
     this.toastText.setY(top + 14);
     this.toastText.setText(text);
