@@ -175,7 +175,8 @@ export default class M4BossScene extends BaseMissionScene {
 
   /** Stop the stage-change pulse and put the boss (and its body) back to its base scale. */
   resetBossScale(enemy) {
-    this.tweens.killTweensOf(enemy);
+    this.tweens.killTweensOf(enemy); // also cuts a hit-flash alpha tween, so restore alpha too
+    enemy.setAlpha(1);
     if (enemy.baseScale) enemy.setScale(enemy.baseScale);
   }
 

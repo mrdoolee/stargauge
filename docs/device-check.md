@@ -60,6 +60,13 @@
 
 결과:
 
+### 3-2) 미션 3·4 빔 충전 판정
+- [ ] 청색 별로 충전한 뒤 백색 방어막 드론에 빔을 쏘고, 빔이 날아가는 동안 적색 별을 맞혀 충전을 바꾼다. 먼저 쏜 청색 빔은 그대로 방어막을 뚫는다. (빔은 쏜 순간의 색을 지님)
+- [ ] 상단 정보창 뒤로 들어간 별·드론에는 빔이 맞지 않는다.
+- [ ] 충전 전에 드론을 쏘면 "먼저 별을 맞혀 빔을 충전해요!"가 뜨고, 별점의 오답으로 세지 않는다.
+
+결과:
+
 ### 4) 기기 가로 회전
 터치 기기(폰·태블릿)는 화면 크기와 상관없이 **가로로 돌리면 항상** 안내가 뜹니다. 마우스를 쓰는 컴퓨터는 가로 화면이어도 막지 않습니다.
 - [ ] 폰을 가로로 돌리면 "세로로 돌려 주세요" 안내가 뜨고 게임이 멈춘다.
@@ -179,6 +186,8 @@ npm run build && npm run preview -- --host
 | 미션 2 별이 한곳에 겹쳐 나온다 | 편대 모양이 간격을 정한다 (`src/logic/formations.js`, `FORMATION_OBJECT_WIDTH`, `FORMATION_GAP_WINDOW_MS`) |
 | 미션 2에서 필요한 색이 늦게 나온다 | `SPAWN_NEEDED_GUARANTEE` (3, 작을수록 빨리 나옴) |
 | 미션 4 시간이 부족/남는다 | `M4_TIME_LIMIT_SEC` (210초) |
+| 미션 1·2 별점이 너무 짜다/후하다 | `STARS_THREE_MAX_WRONG` (1, 오답 이하면 ★3), `STARS_TWO_MAX_WRONG` (4, 이하면 ★2) |
+| 미션 3·4 별점이 너무 짜다/후하다 | `CHARGE_STARS_THREE_MAX_WRONG` (3), `CHARGE_STARS_TWO_MAX_WRONG` (8). 튕긴 빔만 오답이고, 충전 전에 쏜 빔과 방어막·장갑 색이 바뀌기 전에 쏜 빔은 세지 않는다. **임시값 — 교사 확인 필요** |
 | 난이도 차이가 너무 크다 / 작다 | `DIFFICULTY_MULTIPLIERS` (easy·normal·hard 각각 `speed` 속도, `spawnInterval` 나오는 간격(클수록 적게), `heat` 부딪힘 온도). 중간은 모두 1 |
 | 선체 온도가 너무 빨리 찬다 / 안 찬다 | `STAR_HEAT`, `FURNACE_HEAT`, `ASTEROID_HEAT` (15), `WRONG_SHOT_HEAT` (5) |
 | 식는 속도 | `COOL_PER_SEC` (4, 클수록 빨리 식음) |

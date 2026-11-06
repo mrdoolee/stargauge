@@ -74,7 +74,9 @@
  *     costs 1 hp (an enemy with shieldKey null is always pierced); then onEnemyPierced(enemy, res); hp 0 (unless the hook kept it) =>
  *     explosion, releaseEnemy, onEnemyDown(enemy) (receives the ALREADY RELEASED enemy: inactive, shield hidden, x/y still readable).
  *     Setting enemy.collides = false disables the ship overlap for that enemy. Blocked => bounce spark + shield flash +
- *     wrongShots += 1 + onEnemyBlocked(enemy) (+ a short hint toast, at most BLOCKED_TOAST_MAX per run).
+ *     onEnemyBlocked(enemy, beamKey) (beamKey = the beam's fire-time charge, null if uncharged) (+ a short hint toast,
+ *     at most BLOCKED_TOAST_MAX per run). wrongShots += 1 only when bounceCounts says so: an uncharged beam, or a beam
+ *     fired before the enemy's shield was last set, does not count.
  *   releaseEnemy(enemy), setEnemyShield(enemy, shieldKey|null) (recolor / drop the shield).
  *   spawnBullet({ x, y, vx, vy }) -> bullet|null (pool POOL_BULLETS; never targetable by beams).
  *   Ship vs bullet: heat scaledHeat('asteroid', null, diff), bullet returned. Ship vs enemy body: same heat, enemy stays
