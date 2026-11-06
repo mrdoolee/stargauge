@@ -156,7 +156,17 @@ export const DRONE_SHIELDS = {
   normal: { white: 0.6, blueWhite: 0.4 },
   hard: { white: 0.4, blueWhite: 0.4, blue: 0.2 },
 };
-export const M3_DRONE_GOAL = { easy: 5, normal: 6, hard: 8 };
+// Goal = drones DOWNED (not hits). With DRONE_HP 3 a drone now takes ~3 shots (30 s in the time model, flow.js), so hard 8 -> 6 to keep the
+// hard total <= 16 min (flow.test.js); easy 5 / normal 6 still fit (easy <= 900 s, normal <= 17 min). Hard stays harder through its
+// shorter drone fire gap and hotter shields (DRONE_FIRE_MS / DRONE_SHIELDS), not through a longer drone count.
+export const M3_DRONE_GOAL = { easy: 5, normal: 6, hard: 6 };
+// A drone has DRONE_HP hit points; a beam hit costs beamDamage(charge, shield) (1 at the same color, +1 per hotter step), so the
+// conservative case (charge = the shield color) takes DRONE_HP shots. UNMEASURED: adjust after classroom play.
+export const DRONE_HP = 3;
+// m3 time model (flow.js m3SecPerDrone = M3_DRONE_FIND_SEC + DRONE_HP x M3_SEC_PER_SHOT). UNMEASURED: the old single 18 s per drone
+// ("find a hot star, charge, aim, dodge, 1 shot") is split 12 s find+charge / 6 s per shot, so a 1-hit drone still costs 18 s.
+export const M3_DRONE_FIND_SEC = 12;
+export const M3_SEC_PER_SHOT = 6;
 export const BOSS_ARMOR = {
   easy: ['yellow', 'yellowWhite', 'white'],
   normal: ['yellowWhite', 'white', 'blueWhite'],

@@ -5,7 +5,7 @@ import BaseMissionScene from './BaseMissionScene.js';
 import { GAME_WIDTH } from '../config/game.js';
 import { ENEMY_TEX } from '../objects/starTextures.js';
 import {
-  M3_DRONE_GOAL, M3_STAR_POOL, M3_DECOY_SCALE, M3_STAR_SCALE, DRONE_WAVE_MS, DRONE_MAX_ON_SCREEN,
+  M3_DRONE_GOAL, DRONE_HP, M3_STAR_POOL, M3_DECOY_SCALE, M3_STAR_SCALE, DRONE_WAVE_MS, DRONE_MAX_ON_SCREEN,
   DRONE_FIRE_MS, DRONE_BAND_Y, DRONE_SPEED_X, DRONE_MUZZLE_DY, BLOCKED_TOAST_MAX, WARMUP_MS,
 } from '../config/balance.js';
 import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
@@ -153,7 +153,7 @@ export default class M3DroneScene extends BaseMissionScene {
 
   spawnDrone(x) {
     const e = this.spawnEnemy({
-      x, y: DRONE_ENTRY_Y, vx: 0, vy: DRONE_ENTRY_SPEED, hp: 1,
+      x, y: DRONE_ENTRY_Y, vx: 0, vy: DRONE_ENTRY_SPEED, hp: DRONE_HP, hpBar: true,
       scale: ENEMY_TEX / this.textures.get('drone').getSourceImage().width, // loaded art (128) keeps the 80 px enemy footprint
       shieldKey: pickShieldColor(this.diff.key),
     });

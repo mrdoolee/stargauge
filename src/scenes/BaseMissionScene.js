@@ -68,15 +68,19 @@
  *   this.charge: star colorKey the beam is charged with, or null (plain beam). setCharge(colorKey|null) re-tints newly
  *   fired beams with the exact palette hex and emits 'charge-changed' { colorKey } (HUD highlights that gauge cell).
  *   Reset to initialCharge() (null) in init() (so also on a heat restart).
- *   spawnEnemy({ x, y, vx=0, vy=0, shieldKey=null, hp=1, kind='drone', texture='drone', scale=1 }) -> enemy|null
+ *   spawnEnemy({ x, y, vx=0, vy=0, shieldKey=null, hp=1, kind='drone', texture='drone', scale=1, hpBar=false }) -> enemy|null
  *     (pool POOL_ENEMIES; fields kind, shieldKey, hp, maxHp, colorKey null, collides, hitCooldownUntil; obj.shield = ring image
  *     shield-<shieldKey> kept over it). Not a star: a beam that pierces (resolveBeamOnEnemy: charge level >= shield level)
- *     costs 1 hp (an enemy with shieldKey null is always pierced); then onEnemyPierced(enemy, res); hp 0 (unless the hook kept it) =>
+ *     costs res.damage hp = 1 + (beam level - shield level), clamped at 0 (an enemy with shieldKey null is always pierced for 1);
+ *     then onEnemyPierced(enemy, res); hp 0 (unless the hook kept it) =>
  *     explosion, releaseEnemy, onEnemyDown(enemy) (receives the ALREADY RELEASED enemy: inactive, shield hidden, x/y still readable).
  *     Setting enemy.collides = false disables the ship overlap for that enemy. Blocked => bounce spark + shield flash +
  *     onEnemyBlocked(enemy, beamKey) (beamKey = the beam's fire-time charge, null if uncharged) (+ a short hint toast,
  *     at most BLOCKED_TOAST_MAX per run). wrongShots += 1 only when bounceCounts says so: an uncharged beam, or a beam
  *     fired before the enemy's shield was last set, does not count.
+ *     hpBar: true (drones; default false, the boss has its own gauge) adds a small neutral-white hp bar above the shield ring
+ *     (enemy.hpBar fill + enemy.hpBarBack, glued by syncHpBars, shrinks over 120 ms per hit, hidden by releaseEnemy); a pierce
+ *     that does not down such an enemy also pops "-N" (N = res.damage) above the bar.
  *   releaseEnemy(enemy), setEnemyShield(enemy, shieldKey|null) (recolor / drop the shield).
  *   spawnBullet({ x, y, vx, vy }) -> bullet|null (pool POOL_BULLETS; never targetable by beams).
  *   Ship vs bullet: heat scaledHeat('asteroid', null, diff), bullet returned. Ship vs enemy body: same heat, enemy stays
@@ -142,7 +146,8 @@ import {
   makeStarTextures, textureFor, loadedAsteroidKeys, ASTEROID_TEX, ENEMY_TEX, shieldTextureKey,
 } from '../objects/starTextures.js';
 import { createParallax, PARALLAX_SPACE } from '../objects/parallax.js';
-import { createPools, acquire, release, syncHalos, syncShields } from '../objects/Pools.js';
+import { hpBarFraction } from '../logic/enemyHp.js';
+import { createPools, acquire, release, syncHalos, syncShields, syncHpBars } from '../objects/Pools.js';
 import { FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
 
@@ -153,7 +158,7 @@ const ENGINE_NOZZLES = [{ x: 0, y: 28, w: 7, h: 14 }, { x: -11, y: 23, w: 5, h: 
 const ENGINE_COLOR = 0x9ffff0;
 
 const FX_RINGS = 8;
-const FX_POPS = 6; // pooled "+1" score texts
+const FX_POPS = 6; // pooled "+1" score / "-N" damage texts
 const FX_FLASHES = 4; // pooled red wrong-shot beam flashes
 const SHAKE_MS = 120; // large tier: <= 150 ms, mission camera only
 const SHAKE_INTENSITY = 0.006;
@@ -161,6 +166,9 @@ const FX_BURSTS = 4; // pooled explosion / spark bursts: 1 ring + FX_BITS sparks
 const FX_BITS = 6;
 const EXPLODE_MS = 280; // downed enemy burst (<= 300 ms)
 const SPARK_MS = 160;
+const HP_BAR_H = 8; // small enemy hp bar height (px); width = the enemy's display width
+const HP_BAR_GAP = 8; // gap between the shield ring's top and the bar
+const HP_BAR_TWEEN_MS = 120;
 const SHIELD_ALPHA = 1; // exact palette color: no dimming over the dark backdrop
 const SHIELD_UNIT = 0.8; // shield ring scale per enemy scale unit (ring just outside the 80 px body)
 
@@ -394,6 +402,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   lateUpdate() {
     syncHalos(this.pools.stars);
     syncShields(this.pools.enemies);
+    syncHpBars(this.pools.enemies);
     this.updateEngine(this.time.now);
     this.onLateUpdate();
   }
@@ -808,12 +817,12 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   /** Medium tier (correct): "+1" pops up and drifts away. Pooled; no stray tweens. */
-  popScore(x, y) {
+  popScore(x, y, label = '+1', color = '#ffe98a') {
     const t = this.fxPops.find(p => !p.visible);
     if (!t) return;
     this.tweens.killTweensOf(t);
     const px = Phaser.Math.Clamp(x, 40, GAME_WIDTH - 40);
-    t.setPosition(px, y).setAlpha(1).setScale(0.6).setVisible(true);
+    t.setText(label).setColor(color).setPosition(px, y).setAlpha(1).setScale(0.6).setVisible(true);
     this.tweens.add({ targets: t, scale: 1.15, duration: 110, ease: 'Back.Out' });
     this.tweens.add({
       targets: t, y: y - 56, alpha: 0, duration: 520, delay: 60,
@@ -880,7 +889,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   // ---- enemies / bullets / beam vs enemy --------------------------------------------
-  spawnEnemy({ x, y, vx = 0, vy = 0, shieldKey = null, hp = 1, kind = 'drone', texture = 'drone', scale = 1 }) {
+  spawnEnemy({ x, y, vx = 0, vy = 0, shieldKey = null, hp = 1, kind = 'drone', texture = 'drone', scale = 1, hpBar = false }) {
     const obj = acquire(this.pools.enemies, x, y);
     if (!obj) return null;
     Object.assign(obj, {
@@ -899,7 +908,38 @@ export default class BaseMissionScene extends Phaser.Scene {
     }
     obj.body.setVelocity(vx, vy);
     this.setEnemyShield(obj, shieldKey);
+    this.showHpBar(obj, hpBar);
     return obj;
+  }
+
+  /** Show (full) or hide the small hp bar above an enemy's shield ring. Bar width = the enemy's display width. */
+  showHpBar(obj, on) {
+    this.tweens.killTweensOf(obj.hpBarState);
+    obj.hpBarState.v = 1;
+    obj.hpBarOn = on;
+    obj.hpBar.setVisible(on);
+    obj.hpBarBack.setVisible(on);
+    if (!on) return;
+    const ringHalf = obj.shield?.visible ? obj.shield.displayHeight / 2 : 0;
+    obj.hpBarW = obj.displayWidth;
+    obj.hpBarOffY = -(Math.max(obj.displayHeight / 2, ringHalf) + HP_BAR_GAP + HP_BAR_H / 2);
+    obj.hpBarBack.setSize(obj.hpBarW, HP_BAR_H);
+    this.applyHpBar(obj);
+    syncHpBars(this.pools.enemies);
+  }
+
+  applyHpBar(obj) {
+    obj.hpBar.setSize(Math.max(0, obj.hpBarW * obj.hpBarState.v), HP_BAR_H);
+  }
+
+  /** The bar shrinks to hp / maxHp over HP_BAR_TWEEN_MS. */
+  updateHpBar(obj) {
+    if (!obj.hpBarOn) return;
+    this.tweens.killTweensOf(obj.hpBarState);
+    this.tweens.add({
+      targets: obj.hpBarState, v: hpBarFraction(obj.hp, obj.maxHp), duration: HP_BAR_TWEEN_MS,
+      onUpdate: () => this.applyHpBar(obj),
+    });
   }
 
   releaseEnemy(obj) {
@@ -947,6 +987,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     const res = resolveBeamOnEnemy({ charge: beamKey, shieldKey: enemy.shieldKey, hp: enemy.hp });
     if (res.pierced) {
       enemy.hp = res.hp;
+      this.updateHpBar(enemy);
       const keep = this.onEnemyPierced(enemy, res) === true;
       const outcome = enemyHitOutcome({ res, keepAlive: keep });
       if (outcome === 'kept') {
@@ -960,6 +1001,7 @@ export default class BaseMissionScene extends Phaser.Scene {
       } else {
         this.sparkAt(bx, by, beamHex);
         sfx.play('correct');
+        if (enemy.hpBarOn) this.popScore(enemy.x, enemy.y + enemy.hpBarOffY - 14, `-${res.damage}`, '#ffffff');
         this.tweens.killTweensOf(enemy);
         enemy.setAlpha(1);
         this.tweens.add({ targets: enemy, alpha: 0.4, duration: 60, yoyo: true, onComplete: () => enemy.setAlpha(1) });

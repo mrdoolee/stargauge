@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { estimateFlow, buildResultSummary, clearRunKeys, PACE } from '../../src/logic/flow.js';
+import { DRONE_HP, DRONE_SHIELDS, M3_DRONE_FIND_SEC, M3_SEC_PER_SHOT } from '../../src/config/balance.js';
+import { hitsToDown } from '../../src/logic/charge.js';
 
 describe('estimateFlow', () => {
   it('rows sum to total and cover every stage', () => {
@@ -33,6 +35,13 @@ describe('estimateFlow', () => {
     expect(m3(g, 'normal')).toBe(PACE.read.m3 + 6 * PACE.m3SecPerDrone + PACE.read.card);
     expect(m3(g, 'easy')).toBe(PACE.read.m3 + 5 * PACE.m3SecPerDrone + PACE.read.card);
     expect(m3({ ...g, normal: 12 }, 'normal')).toBeGreaterThan(m3(g, 'normal'));
+  });
+  it('m3SecPerDrone = find time + shots to down x seconds per shot (charge = the shield color: the conservative case)', () => {
+    expect(DRONE_HP).toBe(3);
+    for (const shields of Object.values(DRONE_SHIELDS)) {
+      for (const shield of Object.keys(shields)) expect(hitsToDown(shield, shield, DRONE_HP)).toBe(DRONE_HP);
+    }
+    expect(PACE.m3SecPerDrone).toBe(M3_DRONE_FIND_SEC + DRONE_HP * M3_SEC_PER_SHOT);
   });
   it('m4 = read + min(limit, boss estimate) + questions/chart read, and has no picture pace', () => {
     expect(PACE.read).not.toHaveProperty('picture');
