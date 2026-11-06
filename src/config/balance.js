@@ -172,7 +172,13 @@ export const BOSS_ARMOR = {
   normal: ['yellowWhite', 'white', 'blueWhite'],
   hard: ['yellowWhite', 'white', 'blueWhite'],
 };
-export const BOSS_HP = [6, 8, 10];
+// Boss hp per stage under the damage rule (a hit = 1 + beam level - armor level). Charging with the armor's own color costs one hp per
+// hit, so a stage takes BOSS_HP[s] shots (4/5/6); a charge one step hotter does 2 per hit (about half), the hottest 3+. The old
+// 6/8/10 were tuned for 1 damage per hit regardless of color and would take 24 armor-colored shots. UNMEASURED: adjust after play.
+export const BOSS_HP = [4, 5, 6];
+// Boss time model (boss.js bossFightSec): per stage, seconds to find a piercing star, charge and line up, before the shots
+// (M3_SEC_PER_SHOT each). 20 s x 3 + 15 shots x 6 s = 150 s, the same boss estimate flow.js used before damage existed. UNMEASURED.
+export const BOSS_STAGE_FIND_SEC = 20;
 export const M3_STAR_POOL = ['red', 'red', 'red', 'orange', 'orange', 'orange', 'yellow', 'yellowWhite', 'white', 'blueWhite', 'blue']; // weight = repeats
 export const M3_DECOY_SCALE = { min: 1.4, max: 1.8 }; // red / orange stars
 export const M3_STAR_SCALE = { min: 0.55, max: 0.85 }; // the other stars

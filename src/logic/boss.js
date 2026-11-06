@@ -1,9 +1,11 @@
 // Mission 4 boss logic (pure): attack/gap cycle, fans, aim, warm-up, hp stages, safe bullet speed, sway, timer text.
 import {
   BOSS_ATTACK_MS, BOSS_GAP_MS, REACTION_FLOOR_SEC, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY, BOSS_HP, BOSS_MIN_SHOT_SPEED, BOSS_VOLLEY_MS,
+  BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT,
 } from '../config/balance.js';
 import { scaleInterval } from './difficulty.js';
 import { cappedShotSpeed } from './speed.js';
+import { bossArmorColor, hitsToDown } from './charge.js';
 
 const MAX_FAN_ANGLE_DEG = 85; // keeps vy > 0 whatever the caller passes
 
@@ -56,6 +58,19 @@ export function bossStageFromHp({ stage, hp }) {
   if (hp > 0) return { stage, hp, cleared: false };
   if (stage >= BOSS_HP.length) return { stage, hp: 0, cleared: true };
   return { stage: stage + 1, hp: BOSS_HP[stage], cleared: false };
+}
+
+/**
+ * Time-model estimate (seconds) of the whole boss fight: per stage, BOSS_STAGE_FIND_SEC plus the shots needed when the student charges
+ * with the armor's own color (1 damage per hit: the conservative case) x M3_SEC_PER_SHOT. Hotter charges would be faster.
+ */
+export function bossFightSec(diffKey) {
+  let sec = 0;
+  BOSS_HP.forEach((hp, i) => {
+    const armor = bossArmorColor(i + 1, diffKey);
+    sec += BOSS_STAGE_FIND_SEC + hitsToDown(armor, armor, hp) * M3_SEC_PER_SHOT;
+  });
+  return sec;
 }
 
 /**

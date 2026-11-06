@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { bossCycle, fanVelocities, bossWarmup, swayOffset, formatTime } from '../../src/logic/boss.js';
+import { bossCycle, fanVelocities, bossWarmup, swayOffset, formatTime, bossStageFromHp, bossFightSec } from '../../src/logic/boss.js';
+import { hitsToDown, bossArmorColor, chargeLevel } from '../../src/logic/charge.js';
+import { STAR_COLORS } from '../../src/logic/temperature.js';
 import { canLaunch } from '../../src/logic/speed.js';
 import {
-  BOSS_ATTACK_MS, BOSS_GAP_MS, SHIP_START_Y, WARMUP_MS, WARMUP_DENSITY,
+  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_HP, M4_TIME_LIMIT_SEC, BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, SHIP_START_Y, WARMUP_MS, WARMUP_DENSITY,
 } from '../../src/config/balance.js';
 
 describe('bossCycle', () => {
@@ -144,5 +146,41 @@ describe('stageChangeVolleyMs', () => {
       expect(ms).toBe(scaleInterval(BOSS_VOLLEY_MS[stage], diffKey));
       expect(ms).toBeGreaterThanOrEqual(1500);
     }
+  });
+});
+
+describe('bossStageFromHp (overflow damage is not carried over)', () => {
+  it('next stage starts with its full hp whatever the overshoot', () => {
+    expect(bossStageFromHp({ stage: 1, hp: -2 })).toEqual({ stage: 2, hp: BOSS_HP[1], cleared: false });
+    expect(bossStageFromHp({ stage: 2, hp: 0 })).toEqual({ stage: 3, hp: BOSS_HP[2], cleared: false });
+    expect(bossStageFromHp({ stage: 1, hp: 3 })).toEqual({ stage: 1, hp: 3, cleared: false });
+  });
+  it('the last stage clears', () => {
+    expect(bossStageFromHp({ stage: 3, hp: -1 }).cleared).toBe(true);
+    expect(bossStageFromHp({ stage: 3, hp: 0 }).cleared).toBe(true);
+  });
+});
+
+describe('boss balance (damage by charge temperature)', () => {
+  it('armor-colored beams need BOSS_HP hits; one hotter step needs fewer, on every stage and difficulty', () => {
+    for (const diff of ['easy', 'normal', 'hard']) for (const stage of [1, 2, 3]) {
+      const armor = bossArmorColor(stage, diff);
+      const hotter = STAR_COLORS.find(c => chargeLevel(c.key) === chargeLevel(armor) + 1).key;
+      const hp = BOSS_HP[stage - 1];
+      expect(hitsToDown(armor, armor, hp)).toBe(hp);
+      expect(hitsToDown(hotter, armor, hp)).toBeLessThan(hitsToDown(armor, armor, hp));
+    }
+  });
+  it('a stage takes 4 to 6 armor-colored shots', () => {
+    for (const hp of BOSS_HP) { expect(hp).toBeGreaterThanOrEqual(4); expect(hp).toBeLessThanOrEqual(6); }
+  });
+  it('bossFightSec = per stage find time + armor-colored shots x seconds per shot, and fits the time limit', () => {
+    for (const diff of ['easy', 'normal', 'hard']) {
+      const want = BOSS_HP.reduce((a, hp, i) => a + BOSS_STAGE_FIND_SEC + hitsToDown(bossArmorColor(i + 1, diff), bossArmorColor(i + 1, diff), hp) * M3_SEC_PER_SHOT, 0);
+      expect(bossFightSec(diff)).toBe(want);
+    }
+    expect(bossFightSec('easy')).toBeLessThan(M4_TIME_LIMIT_SEC);
+    expect(bossFightSec('normal')).toBeLessThan(M4_TIME_LIMIT_SEC);
+    expect(bossFightSec('hard')).toBeLessThan(M4_TIME_LIMIT_SEC);
   });
 });

@@ -89,6 +89,21 @@ export default class M4BossScene extends BaseMissionScene {
     this.rank = createRank({ diffKey: this.diff.key, restarts });
     // warm-up: the first volley waits one (sparser) interval instead of firing on frame 1
     this.volleyMs = bossWarmup(0, false, scaleInterval(BOSS_VOLLEY_MS[1], this.diff.key)).intervalMs;
+    // A restart / leaving the scene must not leave the HUD gauge up.
+    this.events.once('shutdown', () => this.game.events.emit('boss-changed', { visible: false }));
+  }
+
+  /** HUD boss gauge. Visible only while the boss is on screen and fighting. */
+  emitBoss(visible = !!this.boss?.active && !this.bossDown && !this.timedOut) {
+    const b = this.boss;
+    this.game.events.emit('boss-changed', visible && b ? {
+      visible: true, stage: this.stage, stages: STAGES, hp: b.hp, maxHp: b.maxHp, armorKey: b.shieldKey,
+    } : { visible: false });
+  }
+
+  emitHudState() {
+    super.emitHudState();
+    this.emitBoss();
   }
 
   onPhaseStart() {
@@ -106,6 +121,7 @@ export default class M4BossScene extends BaseMissionScene {
       boss.baseScale = BOSS_WIDTH_PX / tex.width; // the stage-change pulse always returns to this
     }
     this.boss = boss;
+    this.emitBoss();
     this.toast('별을 쏴서 빔을 충전하고, 뜨거운 색일수록 센 충전!', { tone: 'info' });
   }
 
@@ -151,6 +167,7 @@ export default class M4BossScene extends BaseMissionScene {
     this.resetBossScale(enemy); // a pulse cut short by an earlier hit must not leave the boss bigger
     if (res.hp > 0) {
       this.flashBoss();
+      this.emitBoss();
       return false;
     }
     const next = bossStageFromHp({ stage: this.stage, hp: res.hp });
@@ -162,6 +179,7 @@ export default class M4BossScene extends BaseMissionScene {
     enemy.hp = next.hp;
     enemy.maxHp = next.hp;
     this.setEnemyShield(enemy, bossArmorColor(this.stage, this.diff.key));
+    this.emitBoss(); // new stage: full gauge, new armor color cell
     this.releaseBullets();
     this.cameras.main.flash(90, 255, 255, 255); // short: it must not hide bullets
     this.toast('장갑이 더 뜨거운 색으로 바뀌었어요!', { tone: 'info' });
@@ -183,6 +201,7 @@ export default class M4BossScene extends BaseMissionScene {
   onEnemyDown() {
     this.bossDown = true;
     this.boss = null;
+    this.emitBoss(false);
   }
 
   flashBoss() {
@@ -283,6 +302,7 @@ export default class M4BossScene extends BaseMissionScene {
     this.phaseDone = true;
     this.endGameplay();
     this.releaseBullets();
+    this.emitBoss(false);
     this.toast('보스가 도망갔어요.', { tone: 'info' });
     const b = this.boss;
     if (b?.active) {

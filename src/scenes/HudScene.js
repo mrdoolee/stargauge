@@ -8,6 +8,9 @@
 //   'gauge-changed' { filled: string[], visible: boolean } filled STAR_COLORS keys
 //   'heat-changed'  { value, max, ratio }                  hull heat (ratio 0..1)
 //   'charge-changed' { colorKey: string|null }             beam charge: that gauge cell gets a bright border + "빔 충전" label; null clears
+//   'boss-changed'  { visible: boolean, stage: 1..3, stages: 3, hp, maxHp, armorKey: string|null }  m4 boss gauge in the instruction strip's
+//                     right slot (it replaces the "남은 목표" counter while visible): neutral white fill = hp/maxHp, armor color cell
+//                     (exact STAR_COLORS hex), "n/3단계". { visible: false } hides it. Re-emitted on 'hud-ready'.
 //   'sun-ref'       boolean                                show the 태양 marker (mission 2+)
 //   'toast'         { text, colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert',
 //                     at?: 'top'|'low'|'bottom' }  'low' = below m1's white zone (HUD_TOAST_LOW_Y); 'bottom' = under the lowest ship row (HUD_TOAST_BOTTOM_Y)
@@ -27,6 +30,7 @@ import {
   HUD_SAFE_MARGIN, TOAST_MS, HUD_PANEL_H, HUD_INSTRUCTION_H, HUD_TOAST_LOW_Y, HUD_TOAST_BOTTOM_Y,
 } from '../config/balance.js';
 import { STAR_COLORS, FURNACE_STAGES } from '../logic/temperature.js';
+import { hpBarFraction } from '../logic/enemyHp.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
 import { armButton } from '../ui/button.js';
@@ -43,9 +47,12 @@ const CELL_H = 40;
 const GAP = 6;
 const GAUGE_Y = 116;
 
+const BOSS_BAR_W = 136; // boss gauge bar: the width of the 남은 목표 slot (x 560..696)
+const BOSS_GAUGE_TWEEN_MS = 160;
+
 export const HUD_EVENTS = [
   'instruction', 'goal-changed', 'gauge-changed', 'heat-changed', 'sun-ref', 'toast', 'mission-start', 'mission-end', 'ship-hit',
-  'charge-changed',
+  'charge-changed', 'boss-changed',
 ];
 
 export default class HudScene extends Phaser.Scene {
@@ -66,6 +73,7 @@ export default class HudScene extends Phaser.Scene {
     this.createHeatBar();
     this.createGauge();
     this.createInstruction();
+    this.createBossGauge();
     this.createToast();
     this.createPauseOverlay();
 
@@ -91,10 +99,12 @@ export default class HudScene extends Phaser.Scene {
         this.setCharge(null); // a new mission starts uncharged (the mission re-emits its charge right after)
       },
       'charge-changed': c => this.setCharge(c?.colorKey ?? null),
+      'boss-changed': b => this.setBoss(b),
       'ship-hit': () => this.flashHeatBar(),
       'mission-end': () => {
         this.closePause(false);
         this.hideToast();
+        this.setBoss({ visible: false });
         this.activeKey = null;
       },
     };
@@ -277,8 +287,57 @@ export default class HudScene extends Phaser.Scene {
     this.setGoal(null);
   }
 
+  /** m4 boss gauge: the right slot of the instruction strip (x 560..696, y < HUD_BAND_BOTTOM). Built once; redrawn only on change. */
+  createBossGauge() {
+    const right = GAME_WIDTH - M;
+    const w = BOSS_BAR_W;
+    const y = PANEL_H + 12;
+    this.bossBack = this.add.rectangle(right, y + 50, w, 20, 0x2a3048).setOrigin(1, 0).setStrokeStyle(2, 0x8890a8);
+    this.bossFill = this.add.rectangle(right - w, y + 50, w, 20, 0xf2f5ff).setOrigin(0, 0); // neutral white, never a palette color
+    this.bossArmor = this.add.rectangle(right - w, y + 2, 28, 28, 0xffffff).setOrigin(0, 0).setStrokeStyle(2, 0xffffff);
+    this.bossStageText = this.add.text(right, y, '', { ...TXT, fontSize: '26px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(1, 0);
+    this.bossObjects = [this.bossBack, this.bossFill, this.bossArmor, this.bossStageText];
+    this.bossState = { visible: false, stage: 0, hp: 0, maxHp: 1, armorKey: null };
+    this.bossFrac = { v: 0 };
+    for (const o of this.bossObjects) o.setVisible(false);
+  }
+
+  setBoss(b) {
+    const visible = !!b?.visible;
+    const st = this.bossState;
+    if (!visible) {
+      if (!st.visible) return;
+      st.visible = false;
+      this.tweens.killTweensOf(this.bossFrac);
+      for (const o of this.bossObjects) o.setVisible(false);
+      this.setGoal(this.goalRemaining); // the counter comes back for other missions
+      return;
+    }
+    const target = hpBarFraction(b.hp, b.maxHp);
+    const stageChanged = !st.visible || b.stage !== st.stage;
+    if (stageChanged || b.armorKey !== st.armorKey) {
+      const hex = STAR_COLORS.find(c => c.key === b.armorKey)?.hex ?? 0xffffff;
+      this.bossArmor.setFillStyle(hex, 1);
+      this.bossStageText.setText(`${b.stage}/${b.stages}단계`);
+      this.bossArmor.setX(GAME_WIDTH - M - BOSS_BAR_W);
+    }
+    if (!st.visible) { // first show: no tween from empty
+      this.bossFrac.v = target;
+      this.bossFill.setSize(BOSS_BAR_W * target, 20);
+    }
+    Object.assign(st, { visible: true, stage: b.stage, hp: b.hp, maxHp: b.maxHp, armorKey: b.armorKey });
+    for (const o of this.bossObjects) o.setVisible(true);
+    this.setGoal(this.goalRemaining); // hides the counter while the gauge is up
+    this.tweens.killTweensOf(this.bossFrac);
+    this.tweens.add({
+      targets: this.bossFrac, v: target, duration: BOSS_GAUGE_TWEEN_MS,
+      onUpdate: () => this.bossFill.setSize(Math.max(0, BOSS_BAR_W * this.bossFrac.v), 20),
+    });
+  }
+
   setGoal(remaining) {
-    const show = remaining !== null && remaining !== undefined;
+    this.goalRemaining = remaining;
+    const show = remaining !== null && remaining !== undefined && !this.bossState?.visible;
     this.goalLabel.setVisible(show);
     this.goalValue.setVisible(show).setText(show ? String(remaining) : '');
   }
