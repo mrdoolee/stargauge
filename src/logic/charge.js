@@ -34,11 +34,25 @@ export function pickShieldColor(diffKey, rng = Math.random) {
 /** Boss armor color of a stage (1..3). */
 export const bossArmorColor = (stage, diffKey) => BOSS_ARMOR[getDifficulty(diffKey).key][stage - 1];
 
-/** One beam hit on a shielded enemy: pierce costs 1 hp. */
+/** Damage of one beam hit: 0 = bounced; unshielded = 1; else 1 + (beam level - shield level) when it pierces. */
+export function beamDamage(chargeKey, shieldKey) {
+  if (!shieldKey) return 1;
+  if (!canPierce(chargeKey, shieldKey)) return 0;
+  return 1 + (chargeLevel(chargeKey) - chargeLevel(shieldKey));
+}
+
+/** One beam hit on an enemy: hp drops by beamDamage (never below 0). */
 export function resolveBeamOnEnemy({ charge, shieldKey, hp }) {
-  if (shieldKey && !canPierce(charge, shieldKey)) return { pierced: false, hp, down: false };
-  const next = Math.max(0, hp - 1);
-  return { pierced: true, hp: next, down: next === 0 };
+  const damage = beamDamage(charge, shieldKey);
+  if (damage === 0) return { pierced: false, hp, down: false, damage: 0 };
+  const next = Math.max(0, hp - damage);
+  return { pierced: true, hp: next, down: next === 0, damage };
+}
+
+/** Hits needed to bring hp down with this charge against this shield (Infinity = cannot pierce). */
+export function hitsToDown(chargeKey, shieldKey, hp) {
+  const d = beamDamage(chargeKey, shieldKey);
+  return d === 0 ? Infinity : Math.ceil(hp / d);
 }
 
 /**

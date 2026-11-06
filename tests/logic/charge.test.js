@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   chargeLevel, canPierce, piercingColors, pickShieldColor, bossArmorColor, resolveBeamOnEnemy, initialCharge, enemyHitOutcome,
+  beamDamage, hitsToDown,
   beamCanTouch, bounceCounts,
 } from '../../src/logic/charge.js';
 import { DRONE_SHIELDS, HUD_BAND_BOTTOM } from '../../src/config/balance.js';
@@ -33,13 +34,29 @@ describe('charge', () => {
     expect(bossArmorColor(3, 'normal')).toBe('blueWhite');
     expect(bossArmorColor(1, 'easy')).toBe('yellow');
   });
-  it('resolveBeamOnEnemy', () => {
-    expect(resolveBeamOnEnemy({ charge: 'blue', shieldKey: 'white', hp: 1 })).toEqual({ pierced: true, hp: 0, down: true });
-    expect(resolveBeamOnEnemy({ charge: 'red', shieldKey: 'white', hp: 3 })).toEqual({ pierced: false, hp: 3, down: false });
+  it('beamDamage: 1 + (beam level - shield level), 0 when colder', () => {
+    expect(beamDamage('white', 'white')).toBe(1);
+    expect(beamDamage('blueWhite', 'white')).toBe(2);
+    expect(beamDamage('blue', 'white')).toBe(3);
+    expect(beamDamage('yellow', 'white')).toBe(0);
+    expect(beamDamage(null, 'red')).toBe(0);
+    expect(beamDamage('red', null)).toBe(1);
+    expect(beamDamage(null, null)).toBe(1);
+  });
+  it('resolveBeamOnEnemy: damage grows with charge temperature above the shield', () => {
+    expect(resolveBeamOnEnemy({ charge: 'blue', shieldKey: 'white', hp: 3 })).toEqual({ pierced: true, hp: 0, down: true, damage: 3 });
+    expect(resolveBeamOnEnemy({ charge: 'white', shieldKey: 'white', hp: 3 })).toEqual({ pierced: true, hp: 2, down: false, damage: 1 });
+    expect(resolveBeamOnEnemy({ charge: 'red', shieldKey: 'white', hp: 3 })).toEqual({ pierced: false, hp: 3, down: false, damage: 0 });
+    expect(resolveBeamOnEnemy({ charge: 'blue', shieldKey: 'yellowWhite', hp: 2 })).toEqual({ pierced: true, hp: 0, down: true, damage: 4 });
+  });
+  it('hitsToDown', () => {
+    expect(hitsToDown('white', 'white', 3)).toBe(3);
+    expect(hitsToDown('blueWhite', 'white', 3)).toBe(2);
+    expect(hitsToDown('yellow', 'white', 3)).toBe(Infinity);
   });
   it('unshielded enemy (shieldKey null) is pierced, even by a plain beam', () => {
-    expect(resolveBeamOnEnemy({ charge: 'red', shieldKey: null, hp: 2 })).toEqual({ pierced: true, hp: 1, down: false });
-    expect(resolveBeamOnEnemy({ charge: null, shieldKey: null, hp: 1 })).toEqual({ pierced: true, hp: 0, down: true });
+    expect(resolveBeamOnEnemy({ charge: 'red', shieldKey: null, hp: 2 })).toEqual({ pierced: true, hp: 1, down: false, damage: 1 });
+    expect(resolveBeamOnEnemy({ charge: null, shieldKey: null, hp: 1 })).toEqual({ pierced: true, hp: 0, down: true, damage: 1 });
   });
   it('enemyHitOutcome', () => {
     const blocked = { pierced: false, hp: 3, down: false };
