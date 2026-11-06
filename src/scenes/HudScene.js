@@ -28,7 +28,8 @@
 // The HUD emits 'hud-ready' at the end of create(); missions answer by re-emitting their
 // full state (so nothing is lost when the HUD's create runs a frame after the mission's).
 // Pause = overlay stack: pause button pauses the mission scene and pushes the overlay;
-// '계속하기' pops it and resumes. Mute toggles registry 'muted' and sfx.setMuted.
+// '계속하기' pops it and resumes. Mute toggles registry 'muted' and sfx.setMuted
+// (the music bus shares the master, so music is muted too). The pause overlay also pauses the music (bgm.setSuspended('pause')).
 // Returning from the background (game 'hidden' -> 'visible') during live gameplay opens the pause
 // overlay, so a student coming back is not dropped into falling stars. If the device is in landscape
 // the loop stays asleep behind #rotate (main.js); the queued pause/overlay show once back in portrait.
@@ -44,6 +45,7 @@ import { hpBarFraction } from '../logic/enemyHp.js';
 import { stripReducer, stripText, initialStrip } from '../logic/strip.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
+import { bgm } from '../audio/bgm.js';
 import { armButton } from '../ui/button.js';
 
 const M = HUD_SAFE_MARGIN;
@@ -611,12 +613,14 @@ export default class HudScene extends Phaser.Scene {
     this.scene.pause(this.activeKey);
     this.resumeButton.rearm(); // the tap that opened it (or the return from background) can't close it
     this.pauseOverlay.setVisible(true);
+    bgm.setSuspended('pause', true);
   }
 
   closePause(resume) {
     if (!this.paused) return;
     this.paused = false;
     this.pauseOverlay.setVisible(false);
+    bgm.setSuspended('pause', false);
     if (resume && this.activeKey) this.scene.resume(this.activeKey);
   }
 }

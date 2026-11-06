@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { addBackdrop } from '../config/assets.js';
 import { armButton } from '../ui/button.js';
+import { bgm } from '../audio/bgm.js';
 import { DIFFICULTY, DIFFICULTY_KEYS, getDifficulty } from '../logic/difficulty.js';
 
 const FONT = '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
@@ -12,6 +13,7 @@ export default class TitleScene extends Phaser.Scene {
   }
 
   create() {
+    bgm.requestForScene(this.scene.key);
     const cx = GAME_WIDTH / 2;
     if (addBackdrop(this, 'title-art', GAME_WIDTH, GAME_HEIGHT)) {
       // keep the title text and buttons readable over the picture

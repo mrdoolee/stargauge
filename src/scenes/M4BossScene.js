@@ -20,6 +20,7 @@ import { STAR_COLORS } from '../logic/temperature.js';
 import { MISSION_TEXT, BANNER_TEXT } from '../data/copy.js';
 import { FONT } from '../objects/gaugeView.js';
 import { armButton } from '../ui/button.js';
+import { bgm } from '../audio/bgm.js';
 
 // Next scene after the chart: 'report' once it is registered, else the title.
 const NEXT_AFTER_M4 = 'report';
@@ -314,6 +315,7 @@ export default class M4BossScene extends BaseMissionScene {
   // ---- questions + chart -------------------------------------------------------------
   startQuestions() {
     if (this.finished || this.restarting) return;
+    bgm.request('a'); // the fight is over: calm track for the questions
     for (const s of this.pools.stars.members) if (s.active) this.releaseObject(s);
     for (const b of this.pools.beams.members) if (b.active) this.releaseObject(b);
     for (const e of this.pools.enemies.members) if (e.active) this.releaseEnemy(e);

@@ -1,4 +1,5 @@
 // 최종 결과 화면. Nothing is saved or sent anywhere; "처음부터 다시" clears the run and returns to the title.
+import { bgm } from '../audio/bgm.js';
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
@@ -15,6 +16,7 @@ export default class ResultScene extends Phaser.Scene {
   }
 
   create() {
+    bgm.requestForScene(this.scene.key);
     this.leaving = false;
     const sum = buildResultSummary({
       results: this.registry.get('results') ?? {},

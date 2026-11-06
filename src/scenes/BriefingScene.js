@@ -10,6 +10,7 @@ import { BRIEFING, briefingParts } from '../data/briefing.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { armButton } from '../ui/button.js';
+import { bgm } from '../audio/bgm.js';
 
 const M = HUD_SAFE_MARGIN;
 const CAPTAIN_W = 200; // 416x520 frame -> 200x250
@@ -28,6 +29,7 @@ export default class BriefingScene extends Phaser.Scene {
   }
 
   create() {
+    bgm.requestForScene(this.scene.key);
     const b = BRIEFING[this.mission];
     const cx = GAME_WIDTH / 2;
     const hasCaptain = hasImage(this, 'captain') && this.textures.get('captain').has(b.expression);

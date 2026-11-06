@@ -5,10 +5,12 @@
 //   sfx.installUnlock(window)  // creates/resumes the single AudioContext on the first gesture
 //
 // Bus graph:  osc -> note gain -> (sfx | ui bus) -> master -> destination.
-// (No music bus: this game has no music.)
+//             music element -> per-track gain (src/audio/bgm.js) -> music bus -> master.
+// The music bus shares the context and the master, so mute (master 0) silences music too.
+//   sfx.listen(fn)  // fn() after every gesture unlock and every setMuted(): lets bgm start/sync
 
 /** Linear bus gains. Master is low so a full classroom is not loud. */
-export const GAINS = { master: 0.25, sfx: 0.8, ui: 0.9 };
+export const GAINS = { master: 0.25, sfx: 0.8, ui: 0.9, music: 0.3 };
 
 /** Pitch spread per play: ±5%. */
 export const PITCH_SPREAD = 0.05;
@@ -79,6 +81,7 @@ export class Sfx {
     this.buses = null;
     this._muted = false;
     this._failed = false;
+    this._listeners = [];
     this._fireOk = createRateLimiter(FIRE_MIN_GAP_MS);
   }
 
@@ -87,6 +90,16 @@ export class Sfx {
   setMuted(v) {
     this._muted = !!v;
     if (this.buses) this.buses.master.gain.value = this._muted ? 0 : GAINS.master;
+    this._notify();
+  }
+
+  /** Subscribe to unlock/mute changes (bgm). Listener errors are swallowed. */
+  listen(fn) { this._listeners.push(fn); }
+
+  _notify() {
+    for (const fn of this._listeners) {
+      try { fn(); } catch { /* audio must never break gameplay */ }
+    }
   }
 
   /** Create (once) / resume the AudioContext. Safe to call any time; never throws. */
@@ -105,8 +118,11 @@ export class Sfx {
         const ui = ctx.createGain();
         ui.gain.value = GAINS.ui;
         ui.connect(master);
+        const music = ctx.createGain();
+        music.gain.value = GAINS.music;
+        music.connect(master);
         this.ctx = ctx;
-        this.buses = { master, sfx, ui };
+        this.buses = { master, sfx, ui, music };
       }
       // Anything but 'running' needs a resume: 'suspended' (autoplay policy) and iOS 'interrupted'
       // (call, Siri, app switch). Called from a user gesture, so the resume is allowed.
@@ -121,7 +137,7 @@ export class Sfx {
   /** Attach one-shot-ish gesture listeners that unlock audio. */
   installUnlock(target) {
     if (!target?.addEventListener) return;
-    const go = () => this.unlock();
+    const go = () => { this.unlock(); this._notify(); };
     for (const ev of ['pointerdown', 'touchend', 'keydown']) target.addEventListener(ev, go, { passive: true });
   }
 

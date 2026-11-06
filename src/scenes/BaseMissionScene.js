@@ -113,7 +113,7 @@
  *   results.<missionId> = { stars, wrongShots, restarts }. Reset to zeros on a fresh start
  *   (data.restarted falsy); restarts accumulate across heat restarts; stars/wrongShots are
  *   written by completeMission() from the finishing attempt (wrongShots count per attempt).
- *   'muted' (HUD; mirrored into sfx.setMuted). gaugeFinal / measuredCounts are written by the subclasses that own them.
+ *   'muted' (HUD; mirrored into sfx.setMuted, which also silences the music). gaugeFinal / measuredCounts are written by the subclasses that own them.
  *
  * ── HUD events (this.game.events) ── see HudScene.js for payloads.
  */
@@ -162,6 +162,7 @@ import { hpBarFraction, hpBarY } from '../logic/enemyHp.js';
 import { createPools, acquire, release, syncHalos, syncShields, syncHpBars, HP_BAR_H } from '../objects/Pools.js';
 import { FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
+import { bgm } from '../audio/bgm.js';
 
 // Backdrop dimming: stars must stay the brightest, most saturated things on screen.
 const BACKDROP_DIM = { color: 0x05070f, alpha: 0.45 };
@@ -254,6 +255,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   create() {
+    bgm.requestForScene(this.scene.key); // a restart (overheat) asks for the same track: it keeps playing
     makeStarTextures(this);
     this.pools = createPools(this);
 
