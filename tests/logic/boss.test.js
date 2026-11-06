@@ -32,7 +32,7 @@ describe('bossCycle', () => {
     expect(bossGapMs('zzz')).toBe(BOSS_GAP_MS.normal);
     expect(BOSS_GAP_MS.easy).toBeGreaterThan(BOSS_GAP_MS.normal);
     expect(BOSS_GAP_MS.normal).toBeGreaterThan(BOSS_GAP_MS.hard);
-    expect(BOSS_GAP_MS.easy).toBeLessThanOrEqual(4500);
+    expect(BOSS_GAP_MS.easy).toBeLessThan(4500);
   });
 });
 
@@ -170,8 +170,8 @@ describe('stageChangeVolleyMs / bossVolleyMs', () => {
 });
 
 describe('boss fan (per difficulty)', () => {
-  it('easy keeps the old fans; normal/hard are wider and fuller in stages 2-3', () => {
-    expect(BOSS_FAN.easy).toEqual({ 2: { count: [2, 3], spreadDeg: 30 }, 3: { count: [2, 3], spreadDeg: 36 } });
+  it('easy fans are a little wider than the old 30/36 deg; normal/hard are wider and fuller still in stages 2-3', () => {
+    expect(BOSS_FAN.easy).toEqual({ 2: { count: [2, 3], spreadDeg: 38 }, 3: { count: [2, 3], spreadDeg: 46 } });
     for (const st of [2, 3]) for (const k of ['normal', 'hard']) {
       expect(bossFan(st, k).spreadDeg).toBeGreaterThan(bossFan(st, 'easy').spreadDeg);
       expect(bossFan(st, k).count[1]).toBeGreaterThanOrEqual(bossFan(st, 'easy').count[1]);

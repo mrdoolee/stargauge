@@ -72,5 +72,5 @@ export const beamCanTouch = ({ chargeMode, y }) => !chargeMode || y > HUD_BAND_B
  * A bounce counts as a wrong shot only if the beam was charged when fired and was fired no earlier than the
  * enemy's current shield was set (a beam already in flight when the armor changed is not the student's mistake).
  */
-export const bounceCounts = ({ beamKey, firedAtMs, shieldChangedAtMs }) =>
-  !!beamKey && firedAtMs >= shieldChangedAtMs;
+export const bounceCounts = ({ beamKey, firedAtMs, shieldChangedAtMs, optionalTarget = false }) =>
+  !optionalTarget && !!beamKey && firedAtMs >= shieldChangedAtMs;

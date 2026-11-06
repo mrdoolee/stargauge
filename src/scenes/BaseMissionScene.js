@@ -78,7 +78,7 @@
  *     Setting enemy.collides = false disables the ship overlap for that enemy. Blocked => bounce spark + shield flash +
  *     onEnemyBlocked(enemy, beamKey) (beamKey = the beam's fire-time charge, null if uncharged) (+ a short hint toast,
  *     at most BLOCKED_TOAST_MAX per run). wrongShots += 1 only when bounceCounts says so: an uncharged beam, or a beam
- *     fired before the enemy's shield was last set, does not count.
+ *     fired before the enemy's shield was last set, does not count; nor does a bounce off an enemy for which the hook isOptionalEnemy(enemy) is true.
  *     hpBar: true (drones; default false, the boss has its own gauge) adds a small neutral-white hp bar above the shield ring
  *     (enemy.hpBar fill + enemy.hpBarBack, glued by syncHpBars, shrinks over 120 ms per hit, hidden by releaseEnemy); a pierce
  *     that does not down such an enemy also pops "-N" (N = res.damage) above the bar.
@@ -1102,6 +1102,9 @@ export default class BaseMissionScene extends Phaser.Scene {
     return obj;
   }
 
+  /** Hook: true = a bounce off this enemy is never a wrong shot (an optional target such as the m4 escort drones). Default false. */
+  isOptionalEnemy(_enemy) { return false; }
+
   canBeamEnemy(beam, enemy) {
     return this.playing && !this.transition && beam.active && enemy.active && beamCanTouch({ chargeMode: this.phase?.chargeMode, y: enemy.y });
   }
@@ -1140,7 +1143,7 @@ export default class BaseMissionScene extends Phaser.Scene {
       }
     } else {
       // Charge mode: a bounce is a wrong shot only if the beam was charged and fired after the shield was set.
-      if (!phase.chargeMode || bounceCounts({ beamKey, firedAtMs, shieldChangedAtMs: enemy.shieldChangedAtMs ?? 0 })) this.wrongShots += 1;
+      if (!phase.chargeMode || bounceCounts({ beamKey, firedAtMs, shieldChangedAtMs: enemy.shieldChangedAtMs ?? 0, optionalTarget: this.isOptionalEnemy(enemy) })) this.wrongShots += 1;
       this.blockedHits += 1;
       this.sparkAt(bx, by, 0xffffff);
       this.flashShield(enemy);

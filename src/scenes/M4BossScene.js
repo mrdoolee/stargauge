@@ -167,6 +167,9 @@ export default class M4BossScene extends BaseMissionScene {
     if (obj.colorKey in this.measured) this.measured[obj.colorKey] += 1;
   }
 
+  /** Escort drones are optional: a beam bounced by one is never a wrong shot (the bounce spark and hint stay). */
+  isOptionalEnemy(enemy) { return enemy.kind !== 'boss'; }
+
   onEnemyBlocked(enemy, beamKey) {
     if (enemy.kind === 'boss') this.flashBoss();
     if (this.blockedHits <= BLOCKED_TOAST_MAX) {

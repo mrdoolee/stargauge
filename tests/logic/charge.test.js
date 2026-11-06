@@ -102,6 +102,10 @@ describe('bounceCounts', () => {
   it('does not count a beam fired before the shield changed', () => {
     expect(bounceCounts({ beamKey: 'blue', firedAtMs: 900, shieldChangedAtMs: 1000 })).toBe(false);
   });
+  it('never counts a bounce off an optional target (m4 escort drone), however the beam was charged', () => {
+    expect(bounceCounts({ beamKey: 'red', firedAtMs: 2000, shieldChangedAtMs: 1000, optionalTarget: true })).toBe(false);
+    expect(bounceCounts({ beamKey: 'red', firedAtMs: 2000, shieldChangedAtMs: 1000, optionalTarget: false })).toBe(true);
+  });
   it('counts a charged beam fired at/after the shield was set', () => {
     expect(bounceCounts({ beamKey: 'red', firedAtMs: 1000, shieldChangedAtMs: 1000 })).toBe(true);
     expect(bounceCounts({ beamKey: 'red', firedAtMs: 2000, shieldChangedAtMs: 1000 })).toBe(true);

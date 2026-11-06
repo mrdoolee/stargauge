@@ -136,6 +136,10 @@ describe('m4 boss stages', () => {
       expect(requiredDodgeFraction('m4', k)).toBeGreaterThan(requiredDodgeFraction('m3', k));
     }
   });
+  it('m4 dodge is at least m3 dodge on EVERY difficulty, and easy m4 stays within 0.4 (controller ruling 2026-11-07)', () => {
+    for (const k of DIFFICULTY_KEYS) expect(requiredDodgeFraction('m4', k)).toBeGreaterThanOrEqual(requiredDodgeFraction('m3', k));
+    expect(requiredDodgeFraction('m4', 'easy')).toBeLessThanOrEqual(0.4);
+  });
   it('no-stage m4 is the worst stage', () => {
     for (const k of DIFFICULTY_KEYS) {
       expect(requiredDodgeFraction('m4', k)).toBeGreaterThanOrEqual(requiredDodgeFraction('m4', k, 3));

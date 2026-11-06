@@ -82,9 +82,10 @@ export const BOSS_ATTACK_MS = { 1: 4000, 2: 4500, 3: 5000 };
 // Boss pressure (2026-11-07, teacher: "보스가 제일 쉽다", .superpowers/sdd/boss-hard/brief.md). The tables below are PER DIFFICULTY because
 // the volley count of a window is ceil(attack / (interval x spawnInterval)) (a step function): the old shared table was tuned so that
 // easy stays at 1-2 volleys per window, and any denser shared table would push easy past its dodge cap (difficulty.test.js, <= 0.4).
-// Easy keeps the old numbers exactly; normal/hard are the new, harder values. All UNMEASURED: tune after classroom play.
+// Easy keeps the old volley intervals (only its gap and fan spread rise a little, see below); normal/hard are the new, harder values. All UNMEASURED: tune after classroom play.
 // Rest after every attack window (no launches). Shorter = the student gets less free time to shoot; was 4500 for everyone.
-export const BOSS_GAP_MS = { easy: 4500, normal: 3600, hard: 3200 };
+// Easy 4500 -> 3900 (controller ruling 2026-11-07: the boss must be at least as demanding as easy m3, dodge 0.335; easy stage 1 0.318 -> 0.354, still <= 0.4).
+export const BOSS_GAP_MS = { easy: 3900, normal: 3600, hard: 3200 };
 // Launch interval inside an attack window, base value (x difficulty spawnInterval: easy 1.35, hard 0.75).
 // Normal 2200/3400/3800 -> 2000/2800/3000 (2 volleys per window in every stage, the same count as before but the windows now repeat every
 // ~7.6-8.6 s instead of ~8.5-9.5 s); hard: stage 1 three volleys per window, stages 2-3 two (3000/3400 x 0.75 = 2250/2550 ms).
@@ -96,7 +97,7 @@ export const BOSS_VOLLEY_MS = {
 // Fan per volley in stages 2-3 (stage 1 is one straight shot). Normal/hard fans are wider and fuller (3-5 shots; at most 5 + 1 aimed per
 // volley, so POOL_BULLETS 48 is plenty). A wider fan spreads its shots farther apart at the ship row, so BOSS_FAN_SHIP_HITS stays 1.5.
 export const BOSS_FAN = {
-  easy: { 2: { count: [2, 3], spreadDeg: 30 }, 3: { count: [2, 3], spreadDeg: 36 } },
+  easy: { 2: { count: [2, 3], spreadDeg: 38 }, 3: { count: [2, 3], spreadDeg: 46 } }, // was 30 / 36
   normal: { 2: { count: [3, 3], spreadDeg: 50 }, 3: { count: [3, 4], spreadDeg: 60 } },
   hard: { 2: { count: [3, 4], spreadDeg: 56 }, 3: { count: [4, 5], spreadDeg: 72 } },
 };
