@@ -15,7 +15,7 @@ import { createRank } from '../logic/rank.js';
 import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
 import { fillFormationColors } from '../logic/spawner.js';
 import { bossArmorColor, piercingColors } from '../logic/charge.js';
-import { bossCycle, bossWarmup, bossStageFromHp, bossShotSpeed, fanVelocities, angleToward, swayOffset, formatTime } from '../logic/boss.js';
+import { bossCycle, bossWarmup, bossStageFromHp, bossShotSpeed, stageChangeVolleyMs, fanVelocities, angleToward, swayOffset, formatTime } from '../logic/boss.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { MISSION_TEXT } from '../data/copy.js';
 import { FONT } from '../objects/gaugeView.js';
@@ -29,6 +29,7 @@ const STAGES = BOSS_HP.length;
 const GAP_TINT = 0x8fa0c8;
 const HIT_TINT = 0xff9a9a;
 const EXPLODE_TO_QUESTIONS_MS = 1200;
+const GAP_TOAST_MAX = 2; // "지금이 기회!" shows for the first gaps of each stage only
 const FLEE_MS = 1400;
 const FLEE_TO_QUESTIONS_MS = 2000;
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -58,7 +59,7 @@ export default class M4BossScene extends BaseMissionScene {
     super('m4');
     this.sunRef = true;
     this.showGauge = true; // HUD charge cell
-    this.toastAt = 'low'; // toasts below the boss hull (y 337..523), never on top of it
+    this.toastAt = 'bottom'; // under the lowest ship row: covers neither the boss nor its bullet path
   }
 
   buildPhases() {
@@ -82,6 +83,7 @@ export default class M4BossScene extends BaseMissionScene {
     this.stage = 1;
     this.stageMs = 0;
     this.gapTint = false;
+    this.gapToasts = 0;
     this.measured = Object.fromEntries(ALL_COLOR_KEYS.map(k => [k, 0]));
     const restarts = this.registry.get('results')?.[this.missionId]?.restarts ?? 0;
     this.rank = createRank({ diffKey: this.diff.key, restarts });
@@ -99,7 +101,10 @@ export default class M4BossScene extends BaseMissionScene {
       x: BOSS_POS.x, y: BOSS_POS.y, shieldKey: bossArmorColor(1, this.diff.key), hp: BOSS_HP[0],
       kind: 'boss', texture: 'boss', scale: BOSS_WIDTH_PX / tex.width,
     });
-    if (boss) boss.clearTint();
+    if (boss) {
+      boss.clearTint();
+      boss.baseScale = BOSS_WIDTH_PX / tex.width; // the stage-change pulse always returns to this
+    }
     this.boss = boss;
     this.toast('별을 쏴서 빔을 충전하고, 뜨거운 색일수록 센 충전!', { tone: 'info' });
   }
@@ -132,10 +137,10 @@ export default class M4BossScene extends BaseMissionScene {
     if (obj.colorKey in this.measured) this.measured[obj.colorKey] += 1;
   }
 
-  onEnemyBlocked() {
+  onEnemyBlocked(_enemy, beamKey) {
     this.flashBoss();
     if (this.blockedHits <= BLOCKED_TOAST_MAX) {
-      this.toast('빔이 약해요. 장갑보다 뜨거운 색의 별로 충전하세요.', { tone: 'info' });
+      this.toast(beamKey ? '빔이 약해요. 장갑과 같거나 더 뜨거운 색의 별로 충전하세요.' : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'info' });
     }
   }
 
@@ -143,6 +148,7 @@ export default class M4BossScene extends BaseMissionScene {
   onEnemyPierced(enemy, res) {
     this.rank.onCorrect();
     this.director?.onCorrect();
+    this.resetBossScale(enemy); // a pulse cut short by an earlier hit must not leave the boss bigger
     if (res.hp > 0) {
       this.flashBoss();
       return false;
@@ -151,15 +157,26 @@ export default class M4BossScene extends BaseMissionScene {
     if (next.cleared) return false; // the engine explodes it, then onEnemyDown
     this.stage = next.stage;
     this.stageMs = 0;
-    this.volleyMs = 0;
+    this.gapToasts = 0;
+    this.volleyMs = stageChangeVolleyMs(this.stage, this.diff.key); // no volley until one full interval has passed
     enemy.hp = next.hp;
     enemy.maxHp = next.hp;
     this.setEnemyShield(enemy, bossArmorColor(this.stage, this.diff.key));
     this.releaseBullets();
-    this.cameras.main.flash(260, 255, 255, 255);
+    this.cameras.main.flash(90, 255, 255, 255); // short: it must not hide bullets
     this.toast('장갑이 더 뜨거운 색으로 바뀌었어요!', { tone: 'info' });
-    this.tweens.add({ targets: enemy, scaleX: enemy.scaleX * 1.12, scaleY: enemy.scaleY * 1.12, duration: 160, yoyo: true });
+    const k = enemy.baseScale ?? enemy.scaleX;
+    this.tweens.add({
+      targets: enemy, scaleX: k * 1.12, scaleY: k * 1.12, duration: 160, yoyo: true,
+      onComplete: () => this.resetBossScale(enemy),
+    });
     return true;
+  }
+
+  /** Stop the stage-change pulse and put the boss (and its body) back to its base scale. */
+  resetBossScale(enemy) {
+    this.tweens.killTweensOf(enemy);
+    if (enemy.baseScale) enemy.setScale(enemy.baseScale);
   }
 
   onEnemyDown() {
@@ -212,7 +229,10 @@ export default class M4BossScene extends BaseMissionScene {
     if (gapJustStarted && !this.gapTint) {
       this.gapTint = true;
       this.applyBossTint();
-      this.toast('지금이 기회!', { tone: 'info' }); // non-color cue, once per gap
+      if (this.gapToasts < GAP_TOAST_MAX) { // non-color cue; only the first gaps of a stage (not every 9 s)
+        this.gapToasts += 1;
+        this.toast('지금이 기회!', { tone: 'info' });
+      }
     } else if (attacking && this.gapTint) {
       this.gapTint = false;
       this.applyBossTint();
@@ -344,7 +364,7 @@ export default class M4BossScene extends BaseMissionScene {
     this.updateResult({ questions: this.answers });
     this.registry.set('measuredCounts', { ...this.measured });
     const cx = GAME_WIDTH / 2;
-    this.addUi(this.add.text(cx, 90, '내가 충전에 쓴 별의 색깔', {
+    this.addUi(this.add.text(cx, 90, '내가 측정한 별의 색', {
       fontFamily: FONT, fontSize: '46px', fontStyle: 'bold', color: '#8fd3ff',
     }).setOrigin(0.5));
 

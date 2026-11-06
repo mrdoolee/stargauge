@@ -1,9 +1,9 @@
 // Mission 4 boss logic (pure): attack/gap cycle, fans, aim, warm-up, hp stages, safe bullet speed, sway, timer text.
 import {
-  BOSS_ATTACK_MS, BOSS_GAP_MS, REACTION_FLOOR_SEC, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY, BOSS_HP, BOSS_MIN_SHOT_SPEED,
+  BOSS_ATTACK_MS, BOSS_GAP_MS, REACTION_FLOOR_SEC, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY, BOSS_HP, BOSS_MIN_SHOT_SPEED, BOSS_VOLLEY_MS,
 } from '../config/balance.js';
-import { getDifficulty } from './difficulty.js';
-import { speedFor, canLaunch } from './speed.js';
+import { scaleInterval } from './difficulty.js';
+import { cappedShotSpeed } from './speed.js';
 
 const MAX_FAN_ANGLE_DEG = 85; // keeps vy > 0 whatever the caller passes
 
@@ -63,12 +63,11 @@ export function bossStageFromHp({ stage, hp }) {
  * reaction floor holds (canLaunch). null when even the capped speed is below BOSS_MIN_SHOT_SPEED.
  */
 export function bossShotSpeed({ fromY, shipY, diffKey, tier = 0, rng = Math.random }) {
-  const key = getDifficulty(diffKey).key;
-  const cap = 0.999 * (shipY - fromY) / REACTION_FLOOR_SEC.hazard[key]; // 0.1% margin: no float edge
-  const v = Math.min(speedFor('hazard', key, tier, rng), cap);
-  if (!(v >= BOSS_MIN_SHOT_SPEED)) return null;
-  return canLaunch({ fromY, shipY, speedPxS: v, category: 'hazard', diffKey: key }) ? v : null;
+  return cappedShotSpeed({ fromY, shipY, diffKey, tier, minSpeed: BOSS_MIN_SHOT_SPEED, rng });
 }
+
+/** After a stage change: no volley until one full (difficulty-scaled) volley interval of the new stage has passed. */
+export const stageChangeVolleyMs = (stage, diffKey) => scaleInterval(BOSS_VOLLEY_MS[stage], diffKey);
 
 /** Horizontal sway offset (px) at time tMs. */
 export function swayOffset(tMs, amp, periodMs, phase = 0) {

@@ -55,10 +55,11 @@ describe('bossWarmup', () => {
   });
 });
 
-import { bossStageFromHp, bossShotSpeed } from '../../src/logic/boss.js';
+import { bossStageFromHp, bossShotSpeed, stageChangeVolleyMs } from '../../src/logic/boss.js';
 import { bossArmorColor, chargeLevel } from '../../src/logic/charge.js';
 import { speedFor } from '../../src/logic/speed.js';
-import { BOSS_HP, BOSS_POS, BOSS_MUZZLE_DY, BOSS_SWAY, HUD_BAND_BOTTOM, BOSS_WIDTH_PX, BOSS_ART } from '../../src/config/balance.js';
+import { BOSS_HP, BOSS_VOLLEY_MS, BOSS_POS, BOSS_MUZZLE_DY, BOSS_SWAY, HUD_BAND_BOTTOM, BOSS_WIDTH_PX, BOSS_ART } from '../../src/config/balance.js';
+import { scaleInterval } from '../../src/logic/difficulty.js';
 
 describe('bossStageFromHp', () => {
   it('stays on the stage while hp is left', () => {
@@ -133,5 +134,15 @@ describe('formatTime', () => {
     expect(formatTime(150)).toBe('2:30');
     expect(formatTime(61.2)).toBe('1:02');
     expect(formatTime(-3)).toBe('0:00');
+  });
+});
+
+describe('stageChangeVolleyMs', () => {
+  it('waits one full scaled volley interval of the new stage (never 0)', () => {
+    for (const diffKey of ['easy', 'normal', 'hard']) for (const stage of [2, 3]) {
+      const ms = stageChangeVolleyMs(stage, diffKey);
+      expect(ms).toBe(scaleInterval(BOSS_VOLLEY_MS[stage], diffKey));
+      expect(ms).toBeGreaterThanOrEqual(1500);
+    }
   });
 });
