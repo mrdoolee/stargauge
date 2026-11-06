@@ -26,9 +26,9 @@ export function droneFormation({ count, minX, maxX, rng = Math.random }) {
  * close the speed is capped (reaction floor holds) instead of skipping. null only when even the minimum speed is unsafe.
  * Easy / warm-up / no-aim shoot straight down.
  */
-export function droneShot({ drone, ship, diffKey, tier, aimAllowed, warmup, rng = Math.random }) {
+export function droneShot({ drone, ship, diffKey, tier, aimAllowed, warmup, rng = Math.random, minSpeed = DRONE_MIN_SHOT_SPEED }) {
   const from = { x: drone.x, y: drone.y + DRONE_MUZZLE_DY };
-  const speed = cappedShotSpeed({ fromY: from.y, shipY: ship.y, diffKey, tier, minSpeed: DRONE_MIN_SHOT_SPEED, rng });
+  const speed = cappedShotSpeed({ fromY: from.y, shipY: ship.y, diffKey, tier, minSpeed, rng });
   if (speed === null) return null;
   if (diffKey === 'easy' || warmup || !aimAllowed) return { vx: 0, vy: speed };
   return aimVelocity(from, ship, speed);

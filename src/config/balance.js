@@ -196,13 +196,14 @@ export const BOSS_ARMOR = {
 };
 // Boss hp per stage and difficulty under the damage rule (a hit = 1 + beam level - armor level). Armor-colored charge = 1 damage per hit
 // (hits = hp), one step hotter = 2, ... (hits = ceil(hp / damage)). 2026-11-07: the old 4/5/6 let one blue shot fell stage 1 (blue 7 on
-// yellowWhite 4 = 4 damage); now even a blue charge needs 3+ hits per stage on normal/hard:
+// yellowWhite 4 = 4 damage); now even a blue charge needs 3+ hits per stage on normal/hard (2+ on easy):
 //   normal [9, 8, 6] on yellowWhite / white / blueWhite: blue does 4 / 3 / 2 -> 3 / 3 / 3 hits; the armor's own color 9 / 8 / 6 hits.
 //   hard [9, 7, 6] on yellowWhite / blueWhite / blue: blue does 4 / 2 / 1 -> 3 / 4 / 6 hits.
 // Totals 23 (normal) and 22 (hard) armor-colored hits -> bossFightSec 198 s / 192 s of the 210 s limit (the conservative case; hotter charges are faster).
-// Easy keeps [4, 5, 6] (15 hits = 150 s): the easy total is at 895 s of the 900 s cap (flow.test.js), so easy cannot get longer. UNMEASURED.
+//   easy [6, 5, 4] on yellow / yellowWhite / white: blue does 5 / 4 / 3 -> 2 / 2 / 2 hits (was [4, 5, 6]: one blue shot felled stage 1).
+// Easy keeps the same 15 armor-colored hits = 150 s (only the order changed): the easy total is at 895.5 s of the 900 s cap (flow.test.js), so easy cannot get longer. UNMEASURED.
 // Overflow damage never carries to the next stage (bossStageFromHp).
-export const BOSS_HP = { easy: [4, 5, 6], normal: [9, 8, 6], hard: [9, 7, 6] };
+export const BOSS_HP = { easy: [6, 5, 4], normal: [9, 8, 6], hard: [9, 7, 6] };
 // Boss time model (boss.js bossFightSec): per stage, seconds to find a piercing star, charge and line up, before the shots
 // (M3_SEC_PER_SHOT each). 20 s x 3 + 15 shots x 6 s = 150 s, the same boss estimate flow.js used before damage existed. UNMEASURED.
 export const BOSS_STAGE_FIND_SEC = 20;
@@ -230,7 +231,10 @@ export const DRONE_MIN_SHOT_SPEED = 150; // a drone shot is skipped only if the 
 export const BOSS_ESCORTS = { easy: { 1: 0, 2: 0, 3: 1 }, normal: { 1: 0, 2: 1, 3: 1 }, hard: { 1: 0, 2: 1, 3: 2 } };
 // Hover rows: the boss hull bottom is BOSS_POS.y + BOSS_MUZZLE_DY = 524 and its shield ring reaches ~610, so a drone (radius ENEMY_BODY_R 34, hp bar
 // ~55 px above its centre) at y >= 680 keeps body, ring and hp bar clear of both (smoke screenshot 2026-11-07: at 600 the hp bar touched the ring).
-export const BOSS_ESCORT_BAND_Y = { min: 680, max: 740 };
+// Max 720: droneShot toward the ship start row (y 900) must always fire, also on easy (reaction floor 1.2 s: muzzle <= ~750 for a 100 px/s shot).
+export const BOSS_ESCORT_BAND_Y = { min: 680, max: 720 };
+// Escort shots may be slower than DRONE_MIN_SHOT_SPEED (150): easy's hazard band starts at 115 px/s, and a 150 px/s floor made ~30% of easy shots skip.
+export const BOSS_ESCORT_MIN_SHOT_SPEED = 100;
 export const BOSS_ESCORT_RESPAWN_MS = 8000; // a downed escort is replaced after this (UNMEASURED)
 export const BOSS_ESCORT_FIRST_MS = 3000; // after a stage change the first escort arrives after this (UNMEASURED)
 // Escorts shoot slower than the m3 drones (DRONE_FIRE_MS 4000/2800/2000): they are support for the boss, whose volleys already fill the screen. UNMEASURED.

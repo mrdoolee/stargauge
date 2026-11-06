@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
-  bossCycle, fanVelocities, bossWarmup, swayOffset, formatTime, bossStageFromHp, bossFightSec, bossHp, bossGapMs, bossFan, escortTarget,
+  bossCycle, fanVelocities, bossWarmup, swayOffset, formatTime, bossStageFromHp, bossFightSec, bossHp, bossGapMs, bossFan, escortTarget, bossVolleyShots,
 } from '../../src/logic/boss.js';
 import { hitsToDown, bossArmorColor, chargeLevel } from '../../src/logic/charge.js';
+import { droneShot } from '../../src/logic/drones.js';
 import { STAR_COLORS } from '../../src/logic/temperature.js';
 import { canLaunch } from '../../src/logic/speed.js';
 import {
-  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_HP, BOSS_FAN, BOSS_ESCORTS, BOSS_ESCORT_BAND_Y, BOSS_ESCORT_FIRE_MS, BOSS_ARMOR, DRONE_MIN_SHOT_SPEED, M4_TIME_LIMIT_SEC, BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, SHIP_START_Y, WARMUP_MS, WARMUP_DENSITY,
+  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_HP, BOSS_FAN, BOSS_ESCORTS, BOSS_ESCORT_BAND_Y, BOSS_ESCORT_FIRE_MS, BOSS_ARMOR, BOSS_ESCORT_MIN_SHOT_SPEED, M4_TIME_LIMIT_SEC, BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, SHIP_START_Y, WARMUP_MS, WARMUP_DENSITY,
 } from '../../src/config/balance.js';
 
 describe('bossCycle', () => {
@@ -221,6 +222,10 @@ describe('boss balance (damage by charge temperature)', () => {
       if (hotter(armor)) expect(hitsToDown(hotter(armor), armor, hp)).toBeLessThan(hp);
     }
   });
+  it('even a BLUE charge needs at least 2 hits per stage on easy (easy hp [6,5,4]: same 15 armor-colored shots as before)', () => {
+    expect(BOSS_HP.easy).toEqual([6, 5, 4]);
+    for (const stage of [1, 2, 3]) expect(hitsToDown('blue', bossArmorColor(stage, 'easy'), bossHp(stage, 'easy'))).toBeGreaterThanOrEqual(2);
+  });
   it('even a BLUE charge needs at least 3 hits per stage on normal and hard (no more one-shot stages)', () => {
     for (const diff of ['normal', 'hard']) for (const stage of [1, 2, 3]) {
       expect(hitsToDown('blue', bossArmorColor(stage, diff), bossHp(stage, diff))).toBeGreaterThanOrEqual(3);
@@ -251,6 +256,42 @@ describe('boss balance (damage by charge temperature)', () => {
   });
 });
 
+describe('bossVolleyShots: the aimed shot never sits on a fan bullet', () => {
+  const angles = v => v.map(s => Math.atan2(s.vx, s.vy) * 180 / Math.PI).sort((a, b) => a - b);
+  const minGap = a => a.slice(1).reduce((m, x, i) => Math.min(m, x - a[i]), Infinity);
+  const from = { x: 360, y: BOSS_POS.y + BOSS_MUZZLE_DY };
+  it('no two velocities of an aimed volley are equal (>= 5 deg apart) for every fan size, difficulty, ship position', () => {
+    for (const diffKey of ['normal', 'hard']) for (const stage of [2, 3]) {
+      for (const r of [0, 0.5, 0.9999]) for (const x of [20, 150, 300, 360, 420, 600, 700]) for (const y of [600, 800, 900, 960]) {
+        const v = bossVolleyShots({ stage, diffKey, from, ship: { x, y }, speed: 400, aim: true, rng: () => r });
+        const fan = bossFan(stage, diffKey);
+        expect(v.length).toBeGreaterThanOrEqual(fan.count[0] + 1);
+        expect(minGap(angles(v))).toBeGreaterThanOrEqual(5);
+      }
+    }
+  });
+  it('also holds when the ship is above the muzzle or exactly beneath it (degenerate aim)', () => {
+    for (const diffKey of ['normal', 'hard']) for (const stage of [2, 3]) for (const r of [0, 0.5, 0.9999]) {
+      for (const ship of [{ x: 360, y: 300 }, { x: 100, y: 300 }, { x: 360, y: 700 }]) {
+        const v = bossVolleyShots({ stage, diffKey, from, ship, speed: 400, aim: true, rng: () => r });
+        expect(minGap(angles(v))).toBeGreaterThan(0.5);
+      }
+    }
+  });
+  it('unaimed: just the fan (no extra shot); stage 1: one straight shot; every shot goes down', () => {
+    const f = bossFan(3, 'hard');
+    const v = bossVolleyShots({ stage: 3, diffKey: 'hard', from, ship: { x: 100, y: 900 }, speed: 400, aim: false, rng: () => 0.9999 });
+    expect(v).toHaveLength(f.count[1]);
+    const one = bossVolleyShots({ stage: 1, diffKey: 'hard', from, ship: { x: 100, y: 900 }, speed: 400, aim: true });
+    expect(one).toHaveLength(1);
+    for (const s of [...v, ...one]) expect(s.vy).toBeGreaterThan(0);
+  });
+  it('easy never aims (aim false) so it fires just the fan', () => {
+    const v = bossVolleyShots({ stage: 2, diffKey: 'easy', from, ship: { x: 100, y: 900 }, speed: 300, aim: false, rng: () => 0 });
+    expect(v).toHaveLength(2);
+  });
+});
+
 describe('escort drones (m4)', () => {
   it('escortTarget: none in stage 1; at most 1 on easy, 1 on normal, 2 on hard; never fewer in a later stage', () => {
     for (const k of ['easy', 'normal', 'hard']) {
@@ -267,6 +308,14 @@ describe('escort drones (m4)', () => {
     const hullBottom = BOSS_POS.y + BOSS_MUZZLE_DY;
     expect(BOSS_ESCORT_BAND_Y.min - 34).toBeGreaterThan(hullBottom);
     expect(BOSS_ESCORT_BAND_Y.max).toBeLessThan(SHIP_START_Y - 100);
+  });
+  it('droneShot from every hover row toward the ship start row is never null on any difficulty (so the escort shots counted in the heat model really fire)', () => {
+    for (const diffKey of ['easy', 'normal', 'hard']) for (const tier of [0, 3]) for (const rng of [0, 0.3, 0.9999]) {
+      for (const y of [BOSS_ESCORT_BAND_Y.min, BOSS_ESCORT_BAND_Y.max]) for (const aimAllowed of [false, true]) {
+        const s = droneShot({ drone: { x: 300, y }, ship: { x: 500, y: SHIP_START_Y }, diffKey, tier, aimAllowed, warmup: false, rng: () => rng, minSpeed: BOSS_ESCORT_MIN_SHOT_SPEED });
+        expect(s).not.toBeNull();
+      }
+    }
   });
   it('escorts shoot slower on easier difficulties, never faster than every 3 s', () => {
     for (const k of ['easy', 'normal', 'hard']) expect(BOSS_ESCORT_FIRE_MS[k]).toBeGreaterThanOrEqual(3000);

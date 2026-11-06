@@ -9,8 +9,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { ENEMY_TEX } from '../objects/starTextures.js';
 import {
   M4_TIME_LIMIT_SEC, M3_STAR_SCALE, M3_DECOY_SCALE, M4_STAR_POOL, BLOCKED_TOAST_MAX, BOSS_POS, BOSS_SWAY, BOSS_HIT_FLASH_MS,
-  TRANSITION_CLEAR_MS, BOSS_WIDTH_PX, BOSS_MUZZLE_DY, BOSS_AIMED_FROM_STAGE, WARMUP_MS,
-  DRONE_HP, DRONE_SPEED_X, DRONE_MUZZLE_DY, BOSS_ESCORT_BAND_Y, BOSS_ESCORT_RESPAWN_MS, BOSS_ESCORT_FIRST_MS, BOSS_ESCORT_FIRE_MS,
+  TRANSITION_CLEAR_MS, BOSS_WIDTH_PX, BOSS_MUZZLE_DY, WARMUP_MS,
+  DRONE_HP, DRONE_SPEED_X, DRONE_MUZZLE_DY, BOSS_ESCORT_BAND_Y, BOSS_ESCORT_RESPAWN_MS, BOSS_ESCORT_FIRST_MS, BOSS_ESCORT_FIRE_MS, BOSS_ESCORT_MIN_SHOT_SPEED,
 } from '../config/balance.js';
 import { createRank } from '../logic/rank.js';
 import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
@@ -18,8 +18,8 @@ import { fillFormationColors } from '../logic/spawner.js';
 import { bossArmorColor, piercingColors, pickShieldColor } from '../logic/charge.js';
 import { droneShot } from '../logic/drones.js';
 import {
-  bossCycle, bossWarmup, bossStageFromHp, bossShotSpeed, stageChangeVolleyMs, bossVolleyMs, bossHp, bossFan, escortTarget, BOSS_STAGES,
-  fanVelocities, angleToward, swayOffset, formatTime,
+  bossCycle, bossWarmup, bossStageFromHp, bossShotSpeed, stageChangeVolleyMs, bossVolleyMs, bossHp, escortTarget, BOSS_STAGES, bossVolleyShots,
+  swayOffset, formatTime,
 } from '../logic/boss.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { MISSION_TEXT, BANNER_TEXT } from '../data/copy.js';
@@ -41,7 +41,6 @@ const GAP_TINT = 0x8fa0c8;
 const HIT_TINT = 0xff9a9a;
 const GAP_TOAST_MAX = 2; // "지금이 기회!" shows for the first gaps of each stage only
 const FLEE_MS = TRANSITION_CLEAR_MS; // the boss is gone before the flee banner appears
-const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const rand = (a, b) => a + Math.random() * (b - a);
 
 const QUESTIONS = [
@@ -93,6 +92,7 @@ export default class M4BossScene extends BaseMissionScene {
     this.stageMs = 0;
     this.gapTint = false;
     this.gapToasts = 0;
+    this.bossBlockedHits = 0; // blocked hits on the boss only (the hint budget; escort bounces are not counted)
     this.escortWaitMs = BOSS_ESCORT_FIRST_MS; // escorts only exist in stages that want them (escortTarget)
     this._escortBuf = [];
     this.measured = Object.fromEntries(ALL_COLOR_KEYS.map(k => [k, 0]));
@@ -171,8 +171,10 @@ export default class M4BossScene extends BaseMissionScene {
   isOptionalEnemy(enemy) { return enemy.kind !== 'boss'; }
 
   onEnemyBlocked(enemy, beamKey) {
-    if (enemy.kind === 'boss') this.flashBoss();
-    if (this.blockedHits <= BLOCKED_TOAST_MAX) {
+    if (enemy.kind !== 'boss') return; // escort: bounce spark only; no boss-armor hint and it does not use up the hint budget
+    this.flashBoss();
+    this.bossBlockedHits += 1;
+    if (this.bossBlockedHits <= BLOCKED_TOAST_MAX) {
       this.toast(beamKey ? '빔이 약해요. 장갑과 같거나\n더 뜨거운 색의 별로 충전하세요.' : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'info' });
     }
   }
@@ -218,9 +220,7 @@ export default class M4BossScene extends BaseMissionScene {
   }
 
   onEnemyDown(enemy) {
-    if (enemy.kind !== 'boss') { // an escort drone shot down: counts like an m3 drone for the tension rank, nothing else
-      this.rank.onCorrect();
-      this.director?.onCorrect();
+    if (enemy.kind !== 'boss') { // an escort drone shot down: optional target, so no rank / tension change (it must not make the boss harder)
       this.escortWaitMs = BOSS_ESCORT_RESPAWN_MS;
       return;
     }
@@ -315,15 +315,7 @@ export default class M4BossScene extends BaseMissionScene {
     const from = { x: boss.x, y: boss.y + BOSS_MUZZLE_DY };
     const speed = bossShotSpeed({ fromY: from.y, shipY: ship.y, diffKey: this.diff.key, tier: this.rank.tier });
     if (speed === null) return; // the ship is right under the muzzle: no shot it could not react to
-    const shots = [];
-    const fan = bossFan(this.stage, this.diff.key); // null in stage 1: one straight shot
-    if (!fan) {
-      shots.push(...fanVelocities(aim ? angleToward(from, ship) : 0, 1, 0, speed));
-    } else {
-      shots.push(...fanVelocities(aim ? angleToward(from, ship) : 0, randInt(fan.count[0], fan.count[1]),
-        fan.spreadDeg, speed));
-      if (this.stage >= BOSS_AIMED_FROM_STAGE && aim) shots.push(aimVelocity(from, ship, speed));
-    }
+    const shots = bossVolleyShots({ stage: this.stage, diffKey: this.diff.key, from, ship, speed, aim }); // fan (+ aimed shot between two fan bullets)
     for (const v of shots) this.spawnBullet({ x: from.x, y: from.y, vx: v.vx, vy: v.vy });
   }
 
@@ -366,7 +358,7 @@ export default class M4BossScene extends BaseMissionScene {
     d.fireMs = BOSS_ESCORT_FIRE_MS[this.diff.key];
     const shot = droneShot({
       drone: { x: d.x, y: d.y }, ship: { x: this.ship.x, y: this.ship.y }, diffKey: this.diff.key,
-      tier: this.rank.tier, aimAllowed: this.rank.aimAllowed, warmup: this.elapsed < WARMUP_MS,
+      tier: this.rank.tier, aimAllowed: this.rank.aimAllowed, warmup: this.elapsed < WARMUP_MS, minSpeed: BOSS_ESCORT_MIN_SHOT_SPEED,
     });
     if (shot) this.spawnBullet({ x: d.x, y: d.y + DRONE_MUZZLE_DY, vx: shot.vx, vy: shot.vy });
   }

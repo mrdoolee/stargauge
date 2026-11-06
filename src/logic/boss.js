@@ -1,10 +1,10 @@
 // Mission 4 boss logic (pure): attack/gap cycle, fans, aim, warm-up, hp stages, safe bullet speed, sway, timer text.
 import {
   BOSS_ATTACK_MS, BOSS_GAP_MS, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY, BOSS_HP, BOSS_MIN_SHOT_SPEED, BOSS_VOLLEY_MS,
-  BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, BOSS_FAN, BOSS_ESCORTS,
+  BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, BOSS_FAN, BOSS_ESCORTS, BOSS_AIMED_FROM_STAGE,
 } from '../config/balance.js';
 import { scaleInterval, getDifficulty } from './difficulty.js';
-import { cappedShotSpeed } from './speed.js';
+import { cappedShotSpeed, aimVelocity } from './speed.js';
 import { bossArmorColor, hitsToDown } from './charge.js';
 
 export const BOSS_STAGES = BOSS_HP.normal.length;
@@ -45,6 +45,24 @@ export function fanVelocities(baseAngleDeg, count, spreadDeg, speed) {
     out.push({ vx: speed * Math.sin(a), vy: speed * Math.cos(a) });
   }
   return out;
+}
+
+/**
+ * Velocities of one boss volley. Stage 1: one straight (or aimed) shot. Stages 2-3: a fan of fan.count shots; from BOSS_AIMED_FROM_STAGE an
+ * aimed volley adds one aimed shot. The fan centre and the aimed shot would be the same direction (both clamp to +-AIM_MAX_ANGLE_DEG), so an
+ * ODD fan is shifted by half its spacing and the aimed shot passes between two fan bullets (an even fan already has a gap there): no two shots
+ * of a volley ever coincide (they would be one bullet that hits the ship twice).
+ */
+export function bossVolleyShots({ stage, diffKey, from, ship, speed, aim, rng = Math.random }) {
+  const base = aim ? angleToward(from, ship) : 0;
+  const fan = bossFan(stage, diffKey);
+  if (!fan) return fanVelocities(base, 1, 0, speed);
+  const n = fan.count[0] + Math.floor(rng() * (fan.count[1] - fan.count[0] + 1));
+  const aimed = aim && stage >= BOSS_AIMED_FROM_STAGE;
+  const shift = aimed && n % 2 === 1 && n > 1 ? fan.spreadDeg / (n - 1) / 2 : 0;
+  const shots = fanVelocities(base + shift, n, fan.spreadDeg, speed);
+  if (aimed) shots.push(aimVelocity(from, ship, speed));
+  return shots;
 }
 
 /** Angle (deg from straight down) from `from` toward `to`, clamped to +-AIM_MAX_ANGLE_DEG; 0 if `to` is not below. */
