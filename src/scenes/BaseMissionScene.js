@@ -71,7 +71,8 @@
  *     shield-<shieldKey> kept over it). Not a star: a beam that pierces (resolveBeamOnEnemy: charge level >= shield level)
  *     costs 1 hp (an enemy with shieldKey null is always pierced); then onEnemyPierced(enemy, res); hp 0 (unless the hook kept it) =>
  *     explosion, releaseEnemy, onEnemyDown(enemy) (receives the ALREADY RELEASED enemy: inactive, shield hidden, x/y still readable).
- *     Setting enemy.collides = false disables the ship overlap for that enemy. Blocked => bounce spark + shield flash +
+ *     Setting enemy.collides = false disables the ship overlap for that enemy. Beams pass enemies still behind the HUD
+ *     band (y < HUD_BAND_BOTTOM, enemyBeamable). Blocked => bounce spark + shield flash +
  *     wrongShots += 1 + onEnemyBlocked(enemy) (+ a short hint toast, at most BLOCKED_TOAST_MAX per run).
  *   releaseEnemy(enemy), setEnemyShield(enemy, shieldKey|null) (recolor / drop the shield).
  *   spawnBullet({ x, y, vx, vy }) -> bullet|null (pool POOL_BULLETS; never targetable by beams).
@@ -129,7 +130,7 @@ import { StarGauge } from '../logic/gauge.js';
 import { zigzagVx } from '../logic/formations.js';
 import { Spawner } from '../logic/spawner.js';
 import { WaveDirector } from '../logic/waves.js';
-import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome } from '../logic/charge.js';
+import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome, enemyBeamable } from '../logic/charge.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { missionStars } from '../logic/scoring.js';
 import { MISSION_TEXT, wrongShotMessage } from '../data/copy.js';
@@ -933,7 +934,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   canBeamEnemy(beam, enemy) {
-    return this.playing && beam.active && enemy.active;
+    return this.playing && beam.active && enemy.active && enemyBeamable(enemy); // a hidden enemy never bounces a beam
   }
 
   handleBeamEnemy(beam, enemy) {

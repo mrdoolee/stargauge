@@ -55,3 +55,18 @@ describe('charge', () => {
     expect(initialCharge()).toBe(null);
   });
 });
+
+import { enemyBeamable } from '../../src/logic/charge.js';
+import { HUD_BAND_BOTTOM, BOSS_POS, DRONE_LANES_Y } from '../../src/config/balance.js';
+
+describe('enemyBeamable', () => {
+  it('an enemy still behind the HUD band (flying in) cannot be hit, so no invisible bounce costs a star', () => {
+    expect(enemyBeamable({ y: -40 })).toBe(false);
+    expect(enemyBeamable({ y: HUD_BAND_BOTTOM - 1 })).toBe(false);
+    expect(enemyBeamable({ y: HUD_BAND_BOTTOM })).toBe(true);
+  });
+  it('patrolling drones and the boss are hittable', () => {
+    for (const y of DRONE_LANES_Y) expect(enemyBeamable({ y })).toBe(true);
+    expect(enemyBeamable({ y: BOSS_POS.y })).toBe(true);
+  });
+});

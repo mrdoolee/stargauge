@@ -1,7 +1,10 @@
 // Star-charged beam and shield rules (pure). Charge level = star color temperature step (blue 7 ... red 1).
 import { STAR_COLORS } from './temperature.js';
 import { getDifficulty } from './difficulty.js';
-import { DRONE_SHIELDS, BOSS_ARMOR } from '../config/balance.js';
+import { DRONE_SHIELDS, BOSS_ARMOR, HUD_BAND_BOTTOM } from '../config/balance.js';
+
+/** Beams only meet enemies the student can see: not while they fly in behind the HUD band (above HUD_BAND_BOTTOM). */
+export const enemyBeamable = enemy => enemy.y >= HUD_BAND_BOTTOM;
 
 const LEVELS = STAR_COLORS.length;
 
