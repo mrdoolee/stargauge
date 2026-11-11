@@ -55,9 +55,9 @@ Vercel 프로젝트 `stargauge`가 이 GitHub 저장소에 연결되어 있습�
 
 ## 사용한 자료
 
-- 그림: OpenAI Images API로 만든 그림, 교사 승인(2026-11-11). 별은 코드가 색을 입힙니다.
+- 그림: OpenAI Images API로 만든 그림, 교사 승인(2026-11-11, 선장 2026-11-12). 별은 코드가 색을 입힙니다.
 - 글꼴: Orbit (SIL Open Font License 1.1, `public/fonts/OFL.txt`)
-- 음악: `public/music/` 3곡. 출처 기록은 `art/PROVENANCE.md`의 Music 항목에 있습니다.
+- 음악: `public/music/` 3곡, 교사가 Google Lyria로 생성 (`art/PROVENANCE.md`의 Music 항목).
 
 ## 주의
 

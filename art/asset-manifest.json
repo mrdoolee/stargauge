@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "art_direction_brief": "art/art-direction-brief.md",
-  "status": "stills generated 2026-11-04 and approved by the teacher 2026-11-11 (public/img/); captain shipped as 4 expression edits (public/img/captain.png, look approval pending); fire-button not generated (code-drawn)",
+  "status": "stills generated 2026-11-04 and approved by the teacher 2026-11-11 (public/img/); captain shipped as 4 expression edits (public/img/captain.png), approved by the teacher 2026-11-12; fire-button not generated (code-drawn)",
   "assets": [
     {
       "id": "ship",
@@ -43,7 +43,7 @@
       "id": "captain-base",
       "role": "briefing captain (base portrait, expression sheet source)",
       "path": "public/img/captain-base.png",
-      "status": "planned",
+      "status": "generated",
       "technical": {
         "target_size": "512x640",
         "alpha": false,
@@ -63,7 +63,7 @@
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "",
+        "created_at": "2026-11-04",
         "license": "",
         "attribution": "",
         "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
@@ -71,8 +71,8 @@
       "verification": {
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
-        "technical_checks_passed": false,
-        "approved_by": ""
+        "technical_checks_passed": true,
+        "approved_by": "teacher 2026-11-12 (shipped as public/img/captain.png, 4 expression edits)"
       }
     },
     {
