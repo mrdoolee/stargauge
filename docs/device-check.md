@@ -250,7 +250,7 @@ npm run build && npm run preview -- --host
 | 미션 2에서 필요한 색이 늦게 나온다 | `SPAWN_NEEDED_GUARANTEE` (3, 작을수록 빨리 나옴) |
 | 미션 4 시간이 부족/남는다 | `M4_TIME_LIMIT_SEC` (210초) |
 | 미션 1·2 별점이 너무 짜다/후하다 | `STARS_THREE_MAX_WRONG` (1, 오답 이하면 ★3), `STARS_TWO_MAX_WRONG` (4, 이하면 ★2) |
-| 미션 3·4 별점이 너무 짜다/후하다 | `CHARGE_STARS_THREE_MAX_WRONG` (3), `CHARGE_STARS_TWO_MAX_WRONG` (8). 튕긴 빔만 오답이고, 충전 전에 쏜 빔과 방어막·장갑 색이 바뀌기 전에 쏜 빔은 세지 않는다. **임시값 — 교사 확인 필요** |
+| 미션 3·4 별점이 너무 짜다/후하다 | `CHARGE_STARS_THREE_MAX_WRONG` (3), `CHARGE_STARS_TWO_MAX_WRONG` (8). 튕긴 빔만 오답이고, 충전 전에 쏜 빔과 방어막·장갑 색이 바뀌기 전에 쏜 빔은 세지 않는다. 미션 4에서 시간이 끝나 보스가 도망가면 별점은 최대 `STARS_TIMEOUT_MAX` (2)개. **임시값 — 교사 확인 필요** |
 | 난이도 차이가 너무 크다 / 작다 | `DIFFICULTY_MULTIPLIERS` (easy·normal·hard 각각 `speed` 속도, `spawnInterval` 나오는 간격(클수록 적게), `heat` 부딪힘 온도). 중간은 모두 1 |
 | 선체 온도가 너무 빨리 찬다 / 안 찬다 | `STAR_HEAT`, `FURNACE_HEAT`, `ASTEROID_HEAT` (15), `WRONG_SHOT_HEAT` (5) |
 | 식는 속도 | `COOL_PER_SEC` (4, 클수록 빨리 식음) |

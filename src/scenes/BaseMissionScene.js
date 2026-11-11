@@ -106,7 +106,7 @@
  *   stays true, so returning from the background still opens the pause overlay. showBanner(copy)/hideBanner() drive the banner by hand
  *   (overheat); clearField() is the same fade-and-return clear without the banner (advance it with updateFade(dt)).
  *   Overheat: a full hull shows the BANNER_TEXT.overheat banner for RESTART_DELAY_MS, then restarts (the new run hides the banner).
- *   Helpers: advancePhase(), completePhase(), endGameplay(), completeMission({ next, nextData }),
+ *   Helpers: advancePhase(), completePhase(), endGameplay(), completeMission({ next, nextData, timedOut }) (timedOut: time ran out before the goal, stars capped at STARS_TIMEOUT_MAX),
  *   refreshGoal(), toast(text, opts: { colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert', priority? } — shown in the instruction strip, then the instruction returns), setInstruction(text), emitGauge(), updateResult(patch).
  *
  * ── Registry ───────────────────────────────────────────────────────────────────────
@@ -653,13 +653,13 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   /** Write results, sleep the HUD and start `next` (if given). Returns the 1–3 star rating. */
-  completeMission({ next, nextData } = {}) {
+  completeMission({ next, nextData, timedOut = false } = {}) {
     if (this.finished) return null;
     this.finished = true;
     this.playing = false;
     this.controls.cancel();
     const restarts = this.registry.get('results')?.[this.missionId]?.restarts ?? 0;
-    const stars = missionStars({ wrongShots: this.wrongShots, restarts, chargeMode: !!this.phase?.chargeMode });
+    const stars = missionStars({ wrongShots: this.wrongShots, restarts, chargeMode: !!this.phase?.chargeMode, timedOut });
     this.updateResult({ stars, wrongShots: this.wrongShots, restarts });
     sfx.play('clear');
     this.game.events.emit('mission-end', { key: this.scene.key });

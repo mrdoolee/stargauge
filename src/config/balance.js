@@ -17,6 +17,9 @@ export const STARS_TWO_MAX_WRONG = 4;
 // Charge-mode missions (m3/m4): only COUNTED bounces are wrong (see bounceCounts in charge.js). Provisional values, 교사 확인 필요.
 export const CHARGE_STARS_THREE_MAX_WRONG = 3;
 export const CHARGE_STARS_TWO_MAX_WRONG = 8;
+// m4: the time limit ran out before the boss fell (not a failure, the boss flies away) -> at most this many stars, so a run that never
+// shot is not rated like a clean win (final-review m5). Provisional, 교사 확인 필요.
+export const STARS_TIMEOUT_MAX = 2;
 
 // Task 6 additions — touch controls, ship, beam, pools, HUD layout.
 // Controls revised 2026-10-31 (teacher field test): fixed virtual joystick bottom-left (left thumb)

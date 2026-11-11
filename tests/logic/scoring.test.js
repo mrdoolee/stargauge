@@ -23,3 +23,20 @@ describe('missionStars in charge mode', () => {
     expect(CHARGE_STARS_TWO_MAX_WRONG).toBe(8);
   });
 });
+
+import { STARS_TIMEOUT_MAX } from '../../src/config/balance.js';
+
+describe('missionStars when the time ran out before the goal (m4 boss fled)', () => {
+  it('caps the rating at STARS_TIMEOUT_MAX (2): a run with no shots does not earn 3 stars', () => {
+    expect(STARS_TIMEOUT_MAX).toBe(2);
+    expect(missionStars({ wrongShots: 0, restarts: 0, chargeMode: true, timedOut: true })).toBe(2);
+    expect(missionStars({ wrongShots: 8, restarts: 0, chargeMode: true, timedOut: true })).toBe(2);
+    expect(missionStars({ wrongShots: 9, restarts: 0, chargeMode: true, timedOut: true })).toBe(1);
+    expect(missionStars({ wrongShots: 0, restarts: 1, chargeMode: true, timedOut: true })).toBe(2);
+  });
+  it('without timedOut (or false) the rating is unchanged', () => {
+    expect(missionStars({ wrongShots: 0, restarts: 0, chargeMode: true })).toBe(3);
+    expect(missionStars({ wrongShots: 0, restarts: 0, chargeMode: true, timedOut: false })).toBe(3);
+    expect(missionStars({ wrongShots: 1, restarts: 0, timedOut: false })).toBe(3);
+  });
+});
