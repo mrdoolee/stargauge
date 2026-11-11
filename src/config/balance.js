@@ -83,6 +83,9 @@ export const BOSS_FAN = { 2: { count: [2, 3], spreadDeg: 30 }, 3: { count: [2, 3
 // a near 3-fan (launched 100-200 px above the ship, only 32-55 px wide at the ship row) can land two.
 export const BOSS_FAN_SHIP_HITS = 1.5;
 export const BOSS_GAP_DIM_ALPHA = 0.55;
+export const BOSS_STAGE_FLASH_MS = 260; // white camera flash when the armor stage rises
+// After a stage rise the first volley waits this long: the flash (BOSS_STAGE_FLASH_MS) + time to read the armor toast.
+export const BOSS_STAGE_GRACE_MS = 1000;
 
 // Difficulty (2026-10-31). Multipliers on the base values above; `normal` is 1 everywhere = the shipped feel.
 // speed: every falling/moving hazard or target (m1 blobs + asteroids, m2 stars, m3 stars + drone patrol,

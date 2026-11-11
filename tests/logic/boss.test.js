@@ -135,3 +135,32 @@ describe('formatTime', () => {
     expect(formatTime(-3)).toBe('0:00');
   });
 });
+
+import { bossVolleyTick } from '../../src/logic/boss.js';
+import { BOSS_STAGE_GRACE_MS, BOSS_STAGE_FLASH_MS, BOSS_VOLLEY_MS } from '../../src/config/balance.js';
+
+describe('bossVolleyTick', () => {
+  it('counts down inside the attack window and fires at 0; outside the window it re-arms to fire as the next one opens', () => {
+    expect(bossVolleyTick({ volleyMs: 100, dtMs: 16, attacking: true })).toEqual({ volleyMs: 84, fire: false });
+    expect(bossVolleyTick({ volleyMs: 10, dtMs: 16, attacking: true })).toEqual({ volleyMs: -6, fire: true });
+    expect(bossVolleyTick({ volleyMs: 900, dtMs: 16, attacking: false })).toEqual({ volleyMs: 0, fire: false });
+  });
+  it('after a stage advance no volley launches during the white flash + grace (BOSS_STAGE_GRACE_MS)', () => {
+    expect(BOSS_STAGE_GRACE_MS - BOSS_STAGE_FLASH_MS).toBeGreaterThanOrEqual(500); // flash, then time to read the toast
+    for (const stage of [2, 3]) for (const dt of [8, 16, 33, 100]) {
+      // the scene on a stage advance: stageMs = 0, volleyMs = BOSS_STAGE_GRACE_MS
+      let stageMs = 0;
+      let volleyMs = BOSS_STAGE_GRACE_MS;
+      let firstFireMs = null;
+      while (stageMs < BOSS_STAGE_GRACE_MS + 2 * BOSS_VOLLEY_MS[stage] && firstFireMs === null) {
+        const prev = stageMs;
+        stageMs += dt;
+        const t = bossVolleyTick({ volleyMs, dtMs: dt, attacking: bossCycle(stage, stageMs, prev).attacking });
+        volleyMs = t.volleyMs;
+        if (t.fire) firstFireMs = stageMs;
+      }
+      expect(firstFireMs).not.toBeNull();
+      expect(firstFireMs).toBeGreaterThanOrEqual(BOSS_STAGE_GRACE_MS);
+    }
+  });
+});

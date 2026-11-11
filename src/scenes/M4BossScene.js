@@ -8,14 +8,14 @@ import BaseMissionScene from './BaseMissionScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import {
   M4_TIME_LIMIT_SEC, M3_STAR_SCALE, BLOCKED_TOAST_MAX, BOSS_HP, BOSS_POS, BOSS_SWAY, BOSS_HIT_FLASH_MS,
-  BOSS_WIDTH_PX, BOSS_MUZZLE_DY, BOSS_VOLLEY_MS, BOSS_FAN,
+  BOSS_WIDTH_PX, BOSS_MUZZLE_DY, BOSS_VOLLEY_MS, BOSS_FAN, BOSS_STAGE_FLASH_MS, BOSS_STAGE_GRACE_MS,
 } from '../config/balance.js';
 import { scaleInterval } from '../logic/difficulty.js';
 import { createRank } from '../logic/rank.js';
 import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
 import { fillFormationColors } from '../logic/spawner.js';
 import { bossArmorColor, piercingColors } from '../logic/charge.js';
-import { bossCycle, bossWarmup, bossStageFromHp, bossShotSpeed, fanVelocities, angleToward, swayOffset, formatTime } from '../logic/boss.js';
+import { bossCycle, bossVolleyTick, bossWarmup, bossStageFromHp, bossShotSpeed, fanVelocities, angleToward, swayOffset, formatTime } from '../logic/boss.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { MISSION_TEXT } from '../data/copy.js';
 import { FONT } from '../objects/gaugeView.js';
@@ -151,12 +151,12 @@ export default class M4BossScene extends BaseMissionScene {
     if (next.cleared) return false; // the engine explodes it, then onEnemyDown
     this.stage = next.stage;
     this.stageMs = 0;
-    this.volleyMs = 0;
+    this.volleyMs = BOSS_STAGE_GRACE_MS; // no launch under the white flash; the student reads the toast first
     enemy.hp = next.hp;
     enemy.maxHp = next.hp;
     this.setEnemyShield(enemy, bossArmorColor(this.stage, this.diff.key));
     this.releaseBullets();
-    this.cameras.main.flash(260, 255, 255, 255);
+    this.cameras.main.flash(BOSS_STAGE_FLASH_MS, 255, 255, 255);
     this.toast('장갑이 더 뜨거운 색으로 바뀌었어요!', { tone: 'info' });
     this.tweens.add({ targets: enemy, scaleX: enemy.scaleX * 1.12, scaleY: enemy.scaleY * 1.12, duration: 160, yoyo: true });
     return true;
@@ -217,12 +217,9 @@ export default class M4BossScene extends BaseMissionScene {
       this.gapTint = false;
       this.applyBossTint();
     }
-    if (!attacking) {
-      this.volleyMs = 0;
-      return;
-    }
-    this.volleyMs -= dt;
-    if (this.volleyMs > 0) return;
+    const tick = bossVolleyTick({ volleyMs: this.volleyMs, dtMs: dt, attacking });
+    this.volleyMs = tick.volleyMs;
+    if (!tick.fire) return;
     const aimOk = this.rank.aimAllowed && this.diff.key !== 'easy';
     const w = bossWarmup(this.elapsed, aimOk, scaleInterval(BOSS_VOLLEY_MS[this.stage], this.diff.key));
     this.volleyMs = w.intervalMs;

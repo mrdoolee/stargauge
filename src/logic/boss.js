@@ -42,6 +42,17 @@ export function angleToward(from, to, maxDeg = AIM_MAX_ANGLE_DEG) {
   return Math.max(-maxDeg, Math.min(maxDeg, deg));
 }
 
+/**
+ * One frame of the volley timer. In the attack window it counts down and fires at <= 0 (the caller then sets the next
+ * interval); outside it re-arms to 0, so a volley fires as the next window opens. A stage rise sets it to
+ * BOSS_STAGE_GRACE_MS (no launch under the white flash).
+ */
+export function bossVolleyTick({ volleyMs, dtMs, attacking }) {
+  if (!attacking) return { volleyMs: 0, fire: false };
+  const left = volleyMs - dtMs;
+  return { volleyMs: left, fire: left <= 0 };
+}
+
 /** Spec 3.1 warm-up for the boss: no aimed shots, sparser volleys during the first WARMUP_MS. */
 export function bossWarmup(elapsedMs, aimAllowed, intervalMs) {
   const warm = elapsedMs < WARMUP_MS;
