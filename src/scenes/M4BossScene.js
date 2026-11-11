@@ -58,7 +58,7 @@ export default class M4BossScene extends BaseMissionScene {
     super('m4');
     this.sunRef = true;
     this.showGauge = true; // HUD charge cell
-    this.toastAt = 'low'; // toasts below the boss hull (y 337..523), never on top of it
+    this.toastAt = 'low'; // toasts (y 660) below the boss hull (y 356..544) and its shield (to y 560), never on top of it
   }
 
   buildPhases() {

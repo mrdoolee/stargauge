@@ -136,7 +136,7 @@ import { MISSION_TEXT, wrongShotMessage } from '../data/copy.js';
 import { TouchControls, fireButtonRect, joystickLayout, shipMaxY, stepShip } from '../input/TouchControls.js';
 import { hasImage, addBackdrop } from '../config/assets.js';
 import {
-  makeStarTextures, textureFor, loadedAsteroidKeys, ASTEROID_TEX, ENEMY_TEX, shieldTextureKey,
+  makeStarTextures, textureFor, loadedAsteroidKeys, ASTEROID_TEX, ENEMY_TEX, shieldTextureKey, bossShieldTextureKey,
 } from '../objects/starTextures.js';
 import { createParallax, PARALLAX_SPACE } from '../objects/parallax.js';
 import { createPools, acquire, release, syncHalos, syncShields } from '../objects/Pools.js';
@@ -159,6 +159,8 @@ const FX_BITS = 6;
 const EXPLODE_MS = 280; // downed enemy burst (<= 300 ms)
 const SPARK_MS = 160;
 const SHIELD_ALPHA = 0.85;
+/** The loaded 512x320 boss art (rectangle hull body, ellipse shield); the code placeholder boss is 80x80. */
+const isLoadedBossArt = obj => obj.kind === 'boss' && obj.width === BOSS_ART.canvasW && obj.height === BOSS_ART.canvasH;
 
 export default class BaseMissionScene extends Phaser.Scene {
   constructor(key) {
@@ -881,7 +883,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     });
     obj.setTexture(texture).setScale(scale);
     const r = ENEMY_BODY_R * (obj.width / ENEMY_TEX); // hitbox follows the art size (a loaded image of another size keeps the footprint)
-    if (kind === 'boss' && obj.width === BOSS_ART.canvasW && obj.height === BOSS_ART.canvasH) {
+    if (isLoadedBossArt(obj)) {
       // loaded boss art: rectangle fitted to the hull's alpha bbox (center on the hull, not the canvas)
       const h = BOSS_ART.hull;
       obj.body.setSize(h.w, h.h, false);
@@ -898,7 +900,10 @@ export default class BaseMissionScene extends Phaser.Scene {
     release(obj);
   }
 
-  /** Recolor (or, with null, remove) an enemy's shield ring. */
+  /**
+   * Recolor (or, with null, remove) an enemy's shield ring. The loaded boss art gets the hull-fitted ellipse
+   * (shield-boss-<key>, baked in screen px, scale 1; the hull bbox centre is the canvas centre); everything else the round ring.
+   */
   setEnemyShield(obj, shieldKey) {
     obj.shieldKey = shieldKey ?? null;
     const sh = obj.shield;
@@ -908,9 +913,15 @@ export default class BaseMissionScene extends Phaser.Scene {
       sh.setVisible(false);
       return;
     }
-    obj.shieldScale = SHIELD_UNIT * obj.scaleX * (obj.width / ENEMY_TEX);
-    sh.setTexture(shieldTextureKey(obj.shieldKey)).setPosition(obj.x, obj.y).setScale(obj.shieldScale)
-      .setAlpha(SHIELD_ALPHA).setVisible(true);
+    const bossKey = bossShieldTextureKey(obj.shieldKey);
+    if (isLoadedBossArt(obj) && this.textures.exists(bossKey)) {
+      obj.shieldScale = 1;
+      sh.setTexture(bossKey);
+    } else {
+      obj.shieldScale = SHIELD_UNIT * obj.scaleX * (obj.width / ENEMY_TEX);
+      sh.setTexture(shieldTextureKey(obj.shieldKey));
+    }
+    sh.setPosition(obj.x, obj.y).setScale(obj.shieldScale).setAlpha(SHIELD_ALPHA).setVisible(true);
   }
 
   spawnBullet({ x, y, vx = 0, vy = 0 }) {
