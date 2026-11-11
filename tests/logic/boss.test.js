@@ -7,7 +7,7 @@ import { droneShot } from '../../src/logic/drones.js';
 import { STAR_COLORS } from '../../src/logic/temperature.js';
 import { canLaunch } from '../../src/logic/speed.js';
 import {
-  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_HP, BOSS_FAN, BOSS_ESCORTS, BOSS_ESCORT_LANES_Y, BOSS_ESCORT_FIRE_MS, BOSS_ARMOR, BOSS_ESCORT_MIN_SHOT_SPEED, M4_TIME_LIMIT_SEC, BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, SHIP_START_Y, WARMUP_MS, WARMUP_DENSITY,
+  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_HP, BOSS_DAMAGE_UNIT, BOSS_FAN, BOSS_ESCORTS, BOSS_ESCORT_LANES_Y, BOSS_ESCORT_FIRE_MS, BOSS_ARMOR, BOSS_ESCORT_MIN_SHOT_SPEED, M4_TIME_LIMIT_SEC, BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, SHIP_START_Y, WARMUP_MS, WARMUP_DENSITY,
 } from '../../src/config/balance.js';
 
 describe('bossCycle', () => {
@@ -214,38 +214,50 @@ describe('boss balance (damage by charge temperature)', () => {
     expect(bossHp(3, 'easy')).toBe(BOSS_HP.easy[2]);
     expect(bossHp(2, 'zzz')).toBe(BOSS_HP.normal[1]);
   });
-  it('armor-colored beams need hp hits; one hotter step needs fewer (where a hotter color exists)', () => {
+  it('armor-colored beams need hp / BOSS_DAMAGE_UNIT hits; one hotter step needs fewer (where a hotter color exists)', () => {
+    expect(BOSS_DAMAGE_UNIT).toBe(3);
     for (const diff of ['easy', 'normal', 'hard']) for (const stage of [1, 2, 3]) {
       const armor = bossArmorColor(stage, diff);
       const hp = bossHp(stage, diff);
-      expect(hitsToDown(armor, armor, hp)).toBe(hp);
-      if (hotter(armor)) expect(hitsToDown(hotter(armor), armor, hp)).toBeLessThan(hp);
+      expect(hp % BOSS_DAMAGE_UNIT).toBe(0);
+      expect(hitsToDown(armor, armor, hp, BOSS_DAMAGE_UNIT)).toBe(hp / BOSS_DAMAGE_UNIT);
+      if (hotter(armor)) expect(hitsToDown(hotter(armor), armor, hp, BOSS_DAMAGE_UNIT)).toBeLessThan(hp / BOSS_DAMAGE_UNIT);
     }
   });
-  it('even a BLUE charge needs at least 2 hits per stage on easy (easy hp [6,5,4]: same 15 armor-colored shots as before)', () => {
-    expect(BOSS_HP.easy).toEqual([6, 5, 4]);
-    for (const stage of [1, 2, 3]) expect(hitsToDown('blue', bossArmorColor(stage, 'easy'), bossHp(stage, 'easy'))).toBeGreaterThanOrEqual(2);
+  it('hp never drops from one stage to the next', () => {
+    for (const diff of ['easy', 'normal', 'hard']) {
+      expect(bossHp(2, diff)).toBeGreaterThanOrEqual(bossHp(1, diff));
+      expect(bossHp(3, diff)).toBeGreaterThanOrEqual(bossHp(2, diff));
+    }
   });
-  it('even a BLUE charge needs at least 3 hits per stage on normal and hard (no more one-shot stages)', () => {
-    for (const diff of ['normal', 'hard']) for (const stage of [1, 2, 3]) {
-      expect(hitsToDown('blue', bossArmorColor(stage, diff), bossHp(stage, diff))).toBeGreaterThanOrEqual(3);
+  it('a BLUE charge needs 1.5x..2x the hits of the 2026-11-07 table (easy 6, normal 9, hard 13 in all)', () => {
+    const before = { easy: 6, normal: 9, hard: 13 };
+    for (const diff of ['easy', 'normal', 'hard']) {
+      const blue = [1, 2, 3].reduce((a, st) => a + hitsToDown('blue', bossArmorColor(st, diff), bossHp(st, diff), BOSS_DAMAGE_UNIT), 0);
+      expect(blue / before[diff]).toBeGreaterThanOrEqual(1.5);
+      expect(blue / before[diff]).toBeLessThanOrEqual(2);
+    }
+  });
+  it('even a BLUE charge needs at least 2 hits per stage on easy and 4 on normal and hard', () => {
+    for (const diff of ['easy', 'normal', 'hard']) for (const stage of [1, 2, 3]) {
+      expect(hitsToDown('blue', bossArmorColor(stage, diff), bossHp(stage, diff), BOSS_DAMAGE_UNIT)).toBeGreaterThanOrEqual(diff === 'easy' ? 2 : 4);
     }
   });
   it('hard armor: stage 3 is blue (only blue pierces)', () => {
     expect(BOSS_ARMOR.hard[2]).toBe('blue');
     expect(bossArmorColor(3, 'hard')).toBe('blue');
   });
-  it('hp totals: easy 15 (unchanged), normal and hard clearly more', () => {
-    const tot = k => BOSS_HP[k].reduce((a, b) => a + b, 0);
+  it('armor-colored hit totals: easy 15 (the 900 s easy cap), normal and hard clearly more', () => {
+    const tot = k => BOSS_HP[k].reduce((a, b) => a + b, 0) / BOSS_DAMAGE_UNIT;
     expect(tot('easy')).toBe(15);
     expect(tot('normal')).toBeGreaterThanOrEqual(20);
     expect(tot('hard')).toBeGreaterThanOrEqual(20);
   });
   it('bossFightSec = per stage find time + armor-colored shots x seconds per shot, and fits the time limit', () => {
     for (const diff of ['easy', 'normal', 'hard']) {
-      const want = [1, 2, 3].reduce((a, st) => a + BOSS_STAGE_FIND_SEC + hitsToDown(bossArmorColor(st, diff), bossArmorColor(st, diff), bossHp(st, diff)) * M3_SEC_PER_SHOT, 0);
+      const want = [1, 2, 3].reduce((a, st) => a + BOSS_STAGE_FIND_SEC + hitsToDown(bossArmorColor(st, diff), bossArmorColor(st, diff), bossHp(st, diff), BOSS_DAMAGE_UNIT) * M3_SEC_PER_SHOT, 0);
       expect(bossFightSec(diff)).toBe(want);
-      expect(bossFightSec(diff)).toBeLessThanOrEqual(M4_TIME_LIMIT_SEC);
+      expect(bossFightSec(diff)).toBeLessThan(M4_TIME_LIMIT_SEC);
     }
   });
   it('easy stays at the old 150 s; normal is noticeably longer (170..210 s)', () => {

@@ -1,7 +1,7 @@
 // Mission 4 boss logic (pure): attack/gap cycle, fans, aim, warm-up, hp stages, safe bullet speed, sway, timer text.
 import {
   BOSS_ATTACK_MS, BOSS_GAP_MS, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY, BOSS_HP, BOSS_MIN_SHOT_SPEED, BOSS_VOLLEY_MS,
-  BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, BOSS_FAN, BOSS_ESCORTS, BOSS_AIMED_FROM_STAGE,
+  BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, BOSS_DAMAGE_UNIT, BOSS_FAN, BOSS_ESCORTS, BOSS_AIMED_FROM_STAGE,
 } from '../config/balance.js';
 import { scaleInterval, getDifficulty } from './difficulty.js';
 import { cappedShotSpeed, aimVelocity } from './speed.js';
@@ -91,13 +91,13 @@ export function bossStageFromHp({ stage, hp, diffKey = 'normal' }) {
 
 /**
  * Time-model estimate (seconds) of the whole boss fight: per stage, BOSS_STAGE_FIND_SEC plus the shots needed when the student charges
- * with the armor's own color (1 damage per hit: the conservative case) x M3_SEC_PER_SHOT. Hotter charges would be faster.
+ * with the armor's own color (BOSS_DAMAGE_UNIT per hit: the conservative case) x M3_SEC_PER_SHOT. Hotter charges would be faster.
  */
 export function bossFightSec(diffKey) {
   let sec = 0;
   for (let st = 1; st <= BOSS_STAGES; st++) {
     const armor = bossArmorColor(st, diffKey);
-    sec += BOSS_STAGE_FIND_SEC + hitsToDown(armor, armor, bossHp(st, diffKey)) * M3_SEC_PER_SHOT;
+    sec += BOSS_STAGE_FIND_SEC + hitsToDown(armor, armor, bossHp(st, diffKey), BOSS_DAMAGE_UNIT) * M3_SEC_PER_SHOT;
   }
   return sec;
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   chargeLevel, canPierce, piercingColors, pickShieldColor, bossArmorColor, resolveBeamOnEnemy, initialCharge, enemyHitOutcome,
-  beamDamage, hitsToDown,
+  beamDamage, hitsToDown, guaranteeColors,
   beamCanTouch, bounceCounts,
 } from '../../src/logic/charge.js';
 import { DRONE_SHIELDS, HUD_BAND_BOTTOM } from '../../src/config/balance.js';
@@ -53,6 +53,20 @@ describe('charge', () => {
     expect(hitsToDown('white', 'white', 3)).toBe(3);
     expect(hitsToDown('blueWhite', 'white', 3)).toBe(2);
     expect(hitsToDown('yellow', 'white', 3)).toBe(Infinity);
+  });
+  it('damage unit (the boss uses 3): unit + (beam level - shield level), so each hotter step adds less in proportion', () => {
+    expect(beamDamage('white', 'white', 3)).toBe(3);
+    expect(beamDamage('blue', 'white', 3)).toBe(5);
+    expect(beamDamage('yellow', 'white', 3)).toBe(0);
+    expect(beamDamage('red', null, 3)).toBe(3);
+    expect(hitsToDown('white', 'white', 15, 3)).toBe(5);
+    expect(hitsToDown('blue', 'white', 15, 3)).toBe(3);
+    expect(resolveBeamOnEnemy({ charge: 'blue', shieldKey: 'white', hp: 15, unit: 3 })).toEqual({ pierced: true, hp: 10, down: false, damage: 5 });
+  });
+  it('guaranteeColors: the piercing colors without blue, unless only blue pierces', () => {
+    expect(guaranteeColors('white')).toEqual(['blueWhite', 'white']);
+    expect(guaranteeColors('blueWhite')).toEqual(['blueWhite']);
+    expect(guaranteeColors('blue')).toEqual(['blue']);
   });
   it('unshielded enemy (shieldKey null) is pierced, even by a plain beam', () => {
     expect(resolveBeamOnEnemy({ charge: 'red', shieldKey: null, hp: 2 })).toEqual({ pierced: true, hp: 1, down: false, damage: 1 });

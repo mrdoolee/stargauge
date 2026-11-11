@@ -8,14 +8,14 @@ import BaseMissionScene from './BaseMissionScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { ENEMY_TEX } from '../objects/starTextures.js';
 import {
-  M4_TIME_LIMIT_SEC, M3_STAR_SCALE, M3_DECOY_SCALE, M4_STAR_POOL, BLOCKED_TOAST_MAX, BOSS_POS, BOSS_SWAY, BOSS_HIT_FLASH_MS,
+  M4_TIME_LIMIT_SEC, BOSS_DAMAGE_UNIT, M3_STAR_SCALE, M3_DECOY_SCALE, M4_STAR_POOL, BLOCKED_TOAST_MAX, BOSS_POS, BOSS_SWAY, BOSS_HIT_FLASH_MS,
   TRANSITION_CLEAR_MS, BOSS_WIDTH_PX, BOSS_MUZZLE_DY, WARMUP_MS,
   DRONE_HP, DRONE_SPEED_X, DRONE_MUZZLE_DY, BOSS_ESCORT_LANES_Y, BOSS_ESCORT_RESPAWN_MS, BOSS_ESCORT_FIRST_MS, BOSS_ESCORT_FIRE_MS, BOSS_ESCORT_MIN_SHOT_SPEED,
 } from '../config/balance.js';
 import { createRank } from '../logic/rank.js';
 import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
 import { fillFormationColors } from '../logic/spawner.js';
-import { bossArmorColor, piercingColors, pickShieldColor } from '../logic/charge.js';
+import { bossArmorColor, guaranteeColors, pickShieldColor } from '../logic/charge.js';
 import { droneShot, pickDroneLane } from '../logic/drones.js';
 import {
   bossCycle, bossWarmup, bossStageFromHp, bossShotSpeed, stageChangeVolleyMs, bossVolleyMs, bossHp, escortTarget, BOSS_STAGES, bossVolleyShots,
@@ -129,6 +129,7 @@ export default class M4BossScene extends BaseMissionScene {
     });
     if (boss) {
       boss.clearTint();
+      boss.damageUnit = BOSS_DAMAGE_UNIT; // same-color hit = 3, +1 per hotter step (escorts keep the drone unit 1)
       boss.baseScale = BOSS_WIDTH_PX / tex.width; // the stage-change pulse always returns to this
     }
     this.boss = boss;
@@ -142,7 +143,7 @@ export default class M4BossScene extends BaseMissionScene {
     if (slot.formationIndex !== this.formIndex) {
       this.formIndex = slot.formationIndex;
       const r = fillFormationColors({
-        slotCount: slot.formationSize, needed: piercingColors(this.boss.shieldKey), all: M4_STAR_POOL,
+        slotCount: slot.formationSize, needed: guaranteeColors(this.boss.shieldKey), all: M4_STAR_POOL, // blue only when nothing else pierces
         sinceNeeded: this.sinceNeeded, rng: Math.random,
       });
       this.formColors = r.colors;

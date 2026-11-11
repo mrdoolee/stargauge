@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { droneFormation, droneShot, neededChargeColors } from '../../src/logic/drones.js';
 import { fillFormationColors } from '../../src/logic/spawner.js';
-import { piercingColors } from '../../src/logic/charge.js';
+import { piercingColors, guaranteeColors } from '../../src/logic/charge.js';
 import {
   M3_STAR_POOL, M4_STAR_POOL, M3_DECOY_SCALE, BOSS_ARMOR, SPAWN_NEEDED_GUARANTEE, SHIP_START_Y, SHIP_HALF_HEIGHT, DRONE_LANES_Y, DRONE_MUZZLE_DY, REACTION_FLOOR_SEC,
 } from '../../src/config/balance.js';
@@ -113,18 +113,21 @@ describe('m4 charge stars: decoys and the needed-color guarantee', () => {
     const decoys = count('red') + count('orange');
     expect(decoys / M4_STAR_POOL.length).toBeGreaterThanOrEqual(0.5);
     expect(count('blue')).toBeLessThan(count('red'));
+    expect(count('blue') / M4_STAR_POOL.length).toBeLessThanOrEqual(0.05); // 2026-11-12: blue halved (was 1 of 11)
+    for (const c of ['yellow', 'yellowWhite', 'white', 'blueWhite']) expect(count(c)).toBe(2 * count('blue'));
     expect(M3_DECOY_SCALE.min).toBeGreaterThan(1); // decoys are drawn big (reused from m3)
   });
   it('the piercing color of every armor (every difficulty and stage, incl. hard blue) never misses more than SPAWN_NEEDED_GUARANTEE formations', () => {
     for (const diff of Object.keys(BOSS_ARMOR)) for (const armor of BOSS_ARMOR[diff]) {
       const rng = seeded(7);
       const needed = piercingColors(armor);
+      const guaranteed = guaranteeColors(armor); // what M4BossScene passes to the guarantee (blue only when nothing else pierces)
       let since = 0;
       let streak = 0;
       let worst = 0;
       for (let i = 0; i < 300; i++) {
         const size = 3 + Math.floor(rng() * 3);
-        const r = fillFormationColors({ slotCount: size, needed, all: M4_STAR_POOL, sinceNeeded: since, rng });
+        const r = fillFormationColors({ slotCount: size, needed: guaranteed, all: M4_STAR_POOL, sinceNeeded: since, rng });
         since = r.sinceNeeded;
         streak = r.colors.some(c => needed.includes(c)) ? 0 : streak + 1;
         worst = Math.max(worst, streak);

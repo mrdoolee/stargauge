@@ -203,25 +203,33 @@ export const M3_SEC_PER_SHOT = 6;
 export const BOSS_ARMOR = {
   easy: ['yellow', 'yellowWhite', 'white'],
   normal: ['yellowWhite', 'white', 'blueWhite'],
-  hard: ['yellowWhite', 'blueWhite', 'blue'], // 2026-11-07: stage 2 one step hotter and stage 3 blue (only blue pierces: 1 damage per hit)
+  hard: ['yellowWhite', 'blueWhite', 'blue'], // 2026-11-07: stage 2 one step hotter and stage 3 blue (only blue pierces: BOSS_DAMAGE_UNIT per hit)
 };
-// Boss hp per stage and difficulty under the damage rule (a hit = 1 + beam level - armor level). Armor-colored charge = 1 damage per hit
-// (hits = hp), one step hotter = 2, ... (hits = ceil(hp / damage)). 2026-11-07: the old 4/5/6 let one blue shot fell stage 1 (blue 7 on
-// yellowWhite 4 = 4 damage); now even a blue charge needs 3+ hits per stage on normal/hard (2+ on easy):
-//   normal [9, 8, 6] on yellowWhite / white / blueWhite: blue does 4 / 3 / 2 -> 3 / 3 / 3 hits; the armor's own color 9 / 8 / 6 hits.
-//   hard [9, 7, 6] on yellowWhite / blueWhite / blue: blue does 4 / 2 / 1 -> 3 / 4 / 6 hits.
-// Totals 23 (normal) and 22 (hard) armor-colored hits -> bossFightSec 198 s / 192 s of the 210 s limit (the conservative case; hotter charges are faster).
-//   easy [6, 5, 4] on yellow / yellowWhite / white: blue does 5 / 4 / 3 -> 2 / 2 / 2 hits (was [4, 5, 6]: one blue shot felled stage 1).
-// Easy keeps the same 15 armor-colored hits = 150 s (only the order changed): the easy total is at 895.5 s of the 900 s cap (flow.test.js), so easy cannot get longer. UNMEASURED.
-// Overflow damage never carries to the next stage (bossStageFromHp).
-export const BOSS_HP = { easy: [6, 5, 4], normal: [9, 8, 6], hard: [9, 7, 6] };
+// Boss damage unit (2026-11-12, teacher: "파란 별을 충전하고 연사하면 게임이 바로 끝나버려"). The boss uses
+// beamDamage(charge, armor, BOSS_DAMAGE_UNIT): an armor-colored hit does 3 and each hotter step adds 1 (drones keep unit 1).
+// Hotter is still stronger, but a blue charge is only (3 + steps) / 3 times an armor-colored one instead of (1 + steps) times.
+export const BOSS_DAMAGE_UNIT = 3;
+// Boss hp per stage and difficulty, in damage points (multiples of BOSS_DAMAGE_UNIT). Never lower in a later stage.
+// Armor-colored hits = hp / 3; blue hits = ceil(hp / (3 + steps above the armor)). Blue totals vs the 2026-11-07 table (x1.5..x2):
+//   easy   [12, 15, 18] on yellow / yellowWhite / white: armor 4 / 5 / 6 = 15 hits (unchanged: easy total sits at the 900 s cap),
+//          blue does 7 / 6 / 5 -> 2 / 3 / 4 = 9 hits (was 2 / 2 / 2 = 6, x1.5).
+//   normal [21, 24, 24] on yellowWhite / white / blueWhite: armor 7 / 8 / 8 = 23 hits (unchanged, 198 s),
+//          blue does 6 / 5 / 4 -> 4 / 5 / 6 = 15 hits (was 3 / 3 / 3 = 9, x1.67).
+//   hard   [21, 21, 30] on yellowWhite / blueWhite / blue: armor 7 / 7 / 10 = 24 hits (was 22, 204 s of the 210 s limit),
+//          blue does 6 / 4 / 3 -> 4 / 6 / 10 = 20 hits (was 3 / 4 / 6 = 13, x1.54).
+// Overflow damage never carries to the next stage (bossStageFromHp). UNMEASURED: tune after classroom play.
+export const BOSS_HP = { easy: [12, 15, 18], normal: [21, 24, 24], hard: [21, 21, 30] };
 // Boss time model (boss.js bossFightSec): per stage, seconds to find a piercing star, charge and line up, before the shots
 // (M3_SEC_PER_SHOT each). 20 s x 3 + 15 shots x 6 s = 150 s, the same boss estimate flow.js used before damage existed. UNMEASURED.
 export const BOSS_STAGE_FIND_SEC = 20;
-// m4 charge-star pool (2026-11-07): like m3 big red/orange decoys (weight = repeats; red 3, orange 3 of 11) and hot stars rarer than
-// "one of seven colors" (the old m4 drew all seven colors evenly, hot stars were easy to find). The needed-color guarantee
-// (fillFormationColors with the current armor's piercing colors) still brings the required colour in, at the latest every SPAWN_NEEDED_GUARANTEE-th formation.
-export const M4_STAR_POOL = ['red', 'red', 'red', 'orange', 'orange', 'orange', 'yellow', 'yellowWhite', 'white', 'blueWhite', 'blue'];
+// m4 charge-star pool (weight = repeats): big red/orange decoys are the largest share, as in m3. 2026-11-12: blue halved
+// (1 of 21, was 1 of 11; every other color doubled), so a blue charge is a rare find. The needed-color guarantee
+// (fillFormationColors with guaranteeColors(armor): the piercing colors WITHOUT blue unless only blue pierces, i.e. hard stage 3)
+// still brings a piercing colour in, at the latest every SPAWN_NEEDED_GUARANTEE-th formation.
+export const M4_STAR_POOL = [
+  'red', 'red', 'red', 'red', 'red', 'red', 'orange', 'orange', 'orange', 'orange', 'orange', 'orange',
+  'yellow', 'yellow', 'yellowWhite', 'yellowWhite', 'white', 'white', 'blueWhite', 'blueWhite', 'blue',
+];
 export const M3_STAR_POOL = ['red', 'red', 'red', 'orange', 'orange', 'orange', 'yellow', 'yellowWhite', 'white', 'blueWhite', 'blue']; // weight = repeats
 export const M3_DECOY_SCALE = { min: 1.4, max: 1.8 }; // red / orange stars
 export const M3_STAR_SCALE = { min: 0.55, max: 0.85 }; // the other stars

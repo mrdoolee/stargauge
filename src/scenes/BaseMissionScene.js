@@ -72,7 +72,8 @@
  *   spawnEnemy({ x, y, vx=0, vy=0, shieldKey=null, hp=1, kind='drone', texture='drone', scale=1, hpBar=false }) -> enemy|null
  *     (pool POOL_ENEMIES; fields kind, shieldKey, hp, maxHp, colorKey null, collides, hitCooldownUntil; obj.shield = ring image
  *     shield-<shieldKey> kept over it; the loaded boss art uses the hull-fitted ellipse shield-boss-<shieldKey>). Not a star: a beam that pierces (resolveBeamOnEnemy: charge level >= shield level)
- *     costs res.damage hp = 1 + (beam level - shield level), clamped at 0 (an enemy with shieldKey null is always pierced for 1);
+ *     costs res.damage hp = enemy.damageUnit + (beam level - shield level), clamped at 0 (an enemy with shieldKey null is always pierced
+ *     for enemy.damageUnit). damageUnit is 1 on spawn (drones); m4 sets the boss to BOSS_DAMAGE_UNIT;
  *     then onEnemyPierced(enemy, res); hp 0 (unless the hook kept it) =>
  *     explosion, releaseEnemy, onEnemyDown(enemy) (receives the ALREADY RELEASED enemy: inactive, shield hidden, x/y still readable).
  *     Setting enemy.collides = false disables the ship overlap for that enemy. Blocked => bounce spark + shield flash +
@@ -1026,7 +1027,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     if (!obj) return null;
     Object.assign(obj, {
       kind, colorKey: null, targetable: false, collides: true, persistent: false, keepOnMark: false,
-      starId: null, name: '', marked: false, hitCooldownUntil: 0, zigzag: null, hp, maxHp: hp, shieldKey: null,
+      starId: null, name: '', marked: false, hitCooldownUntil: 0, zigzag: null, hp, maxHp: hp, shieldKey: null, damageUnit: 1,
     });
     obj.setTexture(texture).setScale(scale);
     const r = ENEMY_BODY_R * (obj.width / ENEMY_TEX); // hitbox follows the art size (a loaded image of another size keeps the footprint)
@@ -1128,7 +1129,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     const phase = this.phase;
     if (!phase || this.phaseDone || this.restarting) return;
     const beamHex = this.chargeHex(beamKey) ?? 0xffffff;
-    const res = resolveBeamOnEnemy({ charge: beamKey, shieldKey: enemy.shieldKey, hp: enemy.hp });
+    const res = resolveBeamOnEnemy({ charge: beamKey, shieldKey: enemy.shieldKey, hp: enemy.hp, unit: enemy.damageUnit ?? 1 });
     if (res.pierced) {
       enemy.hp = res.hp;
       this.updateHpBar(enemy);

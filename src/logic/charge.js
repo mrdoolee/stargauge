@@ -34,24 +34,35 @@ export function pickShieldColor(diffKey, rng = Math.random) {
 /** Boss armor color of a stage (1..3). */
 export const bossArmorColor = (stage, diffKey) => BOSS_ARMOR[getDifficulty(diffKey).key][stage - 1];
 
-/** Damage of one beam hit: 0 = bounced; unshielded = 1; else 1 + (beam level - shield level) when it pierces. */
-export function beamDamage(chargeKey, shieldKey) {
-  if (!shieldKey) return 1;
+/**
+ * Damage of one beam hit: 0 = bounced; unshielded = unit; else unit + (beam level - shield level) when it pierces.
+ * unit 1 (drones): each hotter step adds a whole same-color hit. The boss uses BOSS_DAMAGE_UNIT (3): a same-color hit does 3 and
+ * each hotter step adds 1, so hotter is still stronger but a blue charge no longer ends a stage in a few shots.
+ */
+export function beamDamage(chargeKey, shieldKey, unit = 1) {
+  if (!shieldKey) return unit;
   if (!canPierce(chargeKey, shieldKey)) return 0;
-  return 1 + (chargeLevel(chargeKey) - chargeLevel(shieldKey));
+  return unit + (chargeLevel(chargeKey) - chargeLevel(shieldKey));
 }
 
-/** One beam hit on an enemy: hp drops by beamDamage (never below 0). */
-export function resolveBeamOnEnemy({ charge, shieldKey, hp }) {
-  const damage = beamDamage(charge, shieldKey);
+/** Colors the needed-color guarantee brings in for this shield: the piercing colors without blue, unless only blue pierces. */
+export function guaranteeColors(shieldKey) {
+  const all = piercingColors(shieldKey);
+  const notBlue = all.filter(c => c !== 'blue');
+  return notBlue.length > 0 ? notBlue : all;
+}
+
+/** One beam hit on an enemy: hp drops by beamDamage (never below 0). unit = the enemy's damage unit (1, boss BOSS_DAMAGE_UNIT). */
+export function resolveBeamOnEnemy({ charge, shieldKey, hp, unit = 1 }) {
+  const damage = beamDamage(charge, shieldKey, unit);
   if (damage === 0) return { pierced: false, hp, down: false, damage: 0 };
   const next = Math.max(0, hp - damage);
   return { pierced: true, hp: next, down: next === 0, damage };
 }
 
 /** Hits needed to bring hp down with this charge against this shield (Infinity = cannot pierce). */
-export function hitsToDown(chargeKey, shieldKey, hp) {
-  const d = beamDamage(chargeKey, shieldKey);
+export function hitsToDown(chargeKey, shieldKey, hp, unit = 1) {
+  const d = beamDamage(chargeKey, shieldKey, unit);
   return d === 0 ? Infinity : Math.ceil(hp / d);
 }
 
