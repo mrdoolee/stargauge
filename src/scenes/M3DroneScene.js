@@ -13,7 +13,7 @@ import { fillFormationColors } from '../logic/spawner.js';
 import { pickShieldColor } from '../logic/charge.js';
 import { droneFormation, droneShot, neededChargeColors, pickDroneLane } from '../logic/drones.js';
 import { createRank } from '../logic/rank.js';
-import { MISSION_TEXT } from '../data/copy.js';
+import { MISSION_TEXT, blockedBeamHint } from '../data/copy.js';
 
 // Single place to wire the next mission.
 const NEXT_AFTER_M3 = 'm4';
@@ -100,7 +100,7 @@ export default class M3DroneScene extends BaseMissionScene {
 
   onEnemyBlocked() {
     if (this.blockedHits <= BLOCKED_TOAST_MAX) {
-      this.toast('빔이 약해요. 더 뜨거운 색의 별로 충전하세요.', { tone: 'info' });
+      this.toast(blockedBeamHint(this.charge, '빔이 약해요. 더 뜨거운 색의 별로 충전하세요.'), { tone: 'info' });
     }
   }
 

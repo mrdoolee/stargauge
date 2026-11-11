@@ -44,3 +44,7 @@ function byColor(phaseId, key) {
 export function wrongShotMessage(phaseId, target) {
   return byColor(phaseId, target?.colorKey);
 }
+
+// m3/m4 blocked beam (charge too weak for the shield). With no charge at all the hint is to charge first.
+export const NO_CHARGE_HINT = '먼저 별을 맞혀 빔을 충전해요!';
+export const blockedBeamHint = (charge, weakText) => (charge ? weakText : NO_CHARGE_HINT);

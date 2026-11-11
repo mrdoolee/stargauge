@@ -19,3 +19,14 @@ describe('copy', () => {
     expect(wrongShotMessage('m3', { colorKey: 'red' })).toContain('적색');
   });
 });
+
+import { blockedBeamHint, NO_CHARGE_HINT } from '../../src/data/copy.js';
+
+describe('blockedBeamHint', () => {
+  it('no charge at all -> tell the student to charge first; a weak charge -> the scene\'s "too weak" text', () => {
+    expect(NO_CHARGE_HINT).toBe('먼저 별을 맞혀 빔을 충전해요!');
+    expect(blockedBeamHint(null, '빔이 약해요.')).toBe(NO_CHARGE_HINT);
+    expect(blockedBeamHint(undefined, '빔이 약해요.')).toBe(NO_CHARGE_HINT);
+    expect(blockedBeamHint('red', '빔이 약해요.')).toBe('빔이 약해요.');
+  });
+});

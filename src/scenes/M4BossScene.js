@@ -17,7 +17,7 @@ import { fillFormationColors } from '../logic/spawner.js';
 import { bossArmorColor, piercingColors } from '../logic/charge.js';
 import { bossCycle, bossVolleyTick, bossWarmup, bossStageFromHp, bossShotSpeed, fanVelocities, angleToward, swayOffset, formatTime } from '../logic/boss.js';
 import { STAR_COLORS } from '../logic/temperature.js';
-import { MISSION_TEXT } from '../data/copy.js';
+import { MISSION_TEXT, blockedBeamHint } from '../data/copy.js';
 import { FONT } from '../objects/gaugeView.js';
 import { armButton } from '../ui/button.js';
 
@@ -135,7 +135,7 @@ export default class M4BossScene extends BaseMissionScene {
   onEnemyBlocked() {
     this.flashBoss();
     if (this.blockedHits <= BLOCKED_TOAST_MAX) {
-      this.toast('빔이 약해요. 장갑보다 뜨거운 색의 별로 충전하세요.', { tone: 'info' });
+      this.toast(blockedBeamHint(this.charge, '빔이 약해요. 장갑보다 뜨거운 색의 별로 충전하세요.'), { tone: 'info' });
     }
   }
 

@@ -133,7 +133,7 @@ import { WaveDirector } from '../logic/waves.js';
 import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome, enemyBeamable } from '../logic/charge.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { missionStars } from '../logic/scoring.js';
-import { MISSION_TEXT, wrongShotMessage } from '../data/copy.js';
+import { MISSION_TEXT, wrongShotMessage, blockedBeamHint } from '../data/copy.js';
 import { TouchControls, fireButtonRect, joystickLayout, shipMaxY, stepShip } from '../input/TouchControls.js';
 import { hasImage, addBackdrop } from '../config/assets.js';
 import {
@@ -979,9 +979,7 @@ export default class BaseMissionScene extends Phaser.Scene {
       this.flashShield(enemy);
       sfx.play('wrong');
       if (phase.blockedToast !== false && this.blockedHits <= BLOCKED_TOAST_MAX) {
-        this.toast(this.charge
-          ? '방어막을 뚫기엔 빔이 약해요. 더 뜨거운(푸른쪽) 별을 맞혀 충전해요!'
-          : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'wrong' });
+        this.toast(blockedBeamHint(this.charge, '방어막을 뚫기엔 빔이 약해요. 더 뜨거운(푸른쪽) 별을 맞혀 충전해요!'), { tone: 'wrong' });
       }
       this.onEnemyBlocked(enemy);
     }
