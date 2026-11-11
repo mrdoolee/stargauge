@@ -1,5 +1,7 @@
 # 플레이 중 안내·단계 전환·피해 누적·보스 게이지·줄바꿈 Implementation Plan
 
+> **상태 (2026-11-12):** 완료(옛 PC, 2026-11-06~07). 2026-11-11 새 PC의 수정과 병합했다(`449c9b5`, 뒤이은 m4 수정 4개). 아래 체크박스는 갱신하지 않았다. 진행 기록은 git 커밋이다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 플레이 중 안내가 화면을 가리지 않게 상단 안내 줄로 옮기고, 멈춘 순간에만 가운데 큰 안내를 쓰며(2라운드·1라운드 단계 전환 연출 포함), 드론·보스가 충전 온도만큼 피해를 누적해 받고, 보스 체력 게이지를 보이며, 모든 문구의 어색한 줄바꿈을 고친다.

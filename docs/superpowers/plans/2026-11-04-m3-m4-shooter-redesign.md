@@ -1,5 +1,7 @@
 # 미션 3·4 슈팅 재설계 + 미션 1 조정 Implementation Plan
 
+> **상태 (2026-11-12):** 완료. 아래 체크박스는 갱신하지 않았다. 진행 기록은 git 커밋이다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 3·4라운드를 "별빛 충전 빔으로 방해 드론·보스 함선을 격추하는" 슈팅으로 바꾸고, 1라운드에 여러 시작 색 쇳물과 짧은 연습을 넣는다.

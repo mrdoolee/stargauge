@@ -1,5 +1,7 @@
 # 플레이 패턴·난이도, 그림, 선장 브리핑 Implementation Plan
 
+> **상태 (2026-11-12):** 완료. 선장 깜빡임·엔진 불꽃 애니메이션(sprite-gen)만 보류(Codex 사용량 초기화 2026-11-20 뒤 교사 결정, `art/PROVENANCE.md`). 아래 체크박스는 갱신하지 않았다. 진행 기록은 git 커밋이다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 별이 편대로 다양하게 나오고 중간·어려움이 분석한 아케이드 게임 수준으로 어려워지며, 생성 그림(A안)으로 바뀌고, 미션마다 선장 브리핑 화면이 나오게 한다.

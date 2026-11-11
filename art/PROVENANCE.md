@@ -1,6 +1,6 @@
 # Asset provenance
 
-Status: 2026-11-04 정지 그림 16개 생성·정리 완료(`public/img/`). 선장(captain-base)과 fire-button은 아직 생성 안 함. 원본은 `art/raw/`(git 제외).
+Status (2026-11-12): 정지 그림 생성·정리 완료(`public/img/`), 2026-11-11 교사 승인(`art/asset-manifest.json`의 `approved_by`). 선장은 표정 4개 편집본(`public/img/captain.png`)으로 들어가 있고 모습 승인은 아직이다. fire-button은 생성하지 않았다(코드로 그림). 원본은 `art/raw/`(git 제외).
 
 Stars (7 colors) stay code-drawn; star-shape/furnace-shape are grayscale textures that code tints.
 
@@ -74,3 +74,9 @@ Then add `{ key: 'ship', path: 'img/ship.png' }` to `src/config/assets.js` (only
 | font | file | source | license | date |
 |---|---|---|---|---|
 | Orbit (Regular, only weight) | public/fonts/Orbit-Regular.woff2 (converted from Orbit-Regular.ttf with fontTools + brotli, glyphs unchanged) | https://github.com/google/fonts/tree/main/ofl/orbit | SIL Open Font License 1.1, "Copyright 2022 The Orbit Project Authors (https://github.com/JAMO-TYPEFACE/Orbit)"; license text shipped as public/fonts/OFL.txt | 2026-11-07 |
+
+## Music
+
+| file | used on | source | license / terms | date |
+|---|---|---|---|---|
+| public/music/bgm-a.mp3, bgm-b.mp3, bgm-c.mp3 | background music A/B/C by screen (`src/audio/bgm.js`) | added on the old PC with `6dd25e0` (2026-11-06). Each file carries a C2PA manifest signed by "Google C2PA Media Services", so they look AI-generated with a Google tool. The exact tool and prompt were not recorded | **not recorded — teacher to confirm** the tool, its terms for public classroom use, and fill this row | 2026-11-06 |

@@ -1,5 +1,7 @@
 # 별빛 탐사선 스타게이지호 Implementation Plan
 
+> **상태 (2026-11-12):** 완료. 실기기 확인·main 병합·Vercel 배포(Task 13 뒷부분)는 2026-11-12에 진행했다. 아래 체크박스는 갱신하지 않았다. 진행 기록은 git 커밋이다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 중2 「색으로 비교하는 별의 표면 온도」 차시용, 터치 기반 세로 스크롤 슈팅 웹게임(약 15분, 미션 4개 + 귀환 보고서)을 만들어 GitHub → Vercel로 배포한다.

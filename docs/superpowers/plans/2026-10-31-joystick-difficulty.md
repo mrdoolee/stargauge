@@ -1,5 +1,7 @@
 # 조이스틱 조작 + 난이도 선택 Implementation Plan
 
+> **상태 (2026-11-12):** 완료. 아래 체크박스는 갱신하지 않았다. 진행 기록은 git 커밋이다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** 교사 실기기 피드백 반영 — 화면 드래그 이동을 왼쪽 아래 가상 조이스틱으로 바꾸고(C안: 반투명, 조작판 없음), 타이틀에서 쉬움/중간/어려움 난이도를 고르게 한다.
