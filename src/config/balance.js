@@ -172,6 +172,7 @@ export const DRONE_ALIVE_DUTY = 0.6;
 export const DRONE_FIRE_MS = { easy: 4000, normal: 2800, hard: 2000 };
 export const DRONE_BAND_Y = { min: 380, max: 560 }; // hover rows
 export const DRONE_SPEED_X = 90; // px/s patrol
+export const DRONE_MUZZLE_DY = 30; // drone bullets start this far below the drone centre (droneShot checks canLaunch from here)
 
 // Mission 4 boss ship (2026-11-04). The boss is not a star: it can be shot down. Armor color rises with stages (BOSS_ARMOR).
 // BOSS_POS.y 430: the 300 px hull spans y 280..580, so everything below the HUD band (344) is visible and the muzzle

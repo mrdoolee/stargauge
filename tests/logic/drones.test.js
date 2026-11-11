@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { droneFormation, droneShot, neededChargeColors } from '../../src/logic/drones.js';
 import { fillFormationColors } from '../../src/logic/spawner.js';
 import { piercingColors } from '../../src/logic/charge.js';
-import { M3_STAR_POOL } from '../../src/config/balance.js';
+import { M3_STAR_POOL, DRONE_MUZZLE_DY } from '../../src/config/balance.js';
+import { canLaunch, safeDistancePx, speedFor } from '../../src/logic/speed.js';
 
 const seeded = seed => () => {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -31,6 +32,30 @@ describe('droneShot', () => {
     expect(s.vy).toBeGreaterThan(0);
     const l = droneShot({ ...base, drone: { x: 650, y: 400 }, ship: { x: 100, y: 1100 }, diffKey: 'hard', aimAllowed: true });
     expect(Math.sign(l.vx)).toBe(-1);
+  });
+  it('checks the safe distance from the real muzzle (drone.y + DRONE_MUZZLE_DY) and launches from there', () => {
+    expect(DRONE_MUZZLE_DY).toBe(30);
+    const rng = () => 0.5;
+    for (const diffKey of ['easy', 'normal', 'hard']) for (let tier = 0; tier < 4; tier++) {
+      for (let y = 380; y <= 900; y += 5) {
+        const drone = { x: 300, y };
+        const shot = droneShot({ ...base, drone, ship: { x: 300, y: 900 }, diffKey, tier, aimAllowed: true, rng });
+        if (!shot) continue;
+        expect(shot.y).toBe(y + DRONE_MUZZLE_DY);
+        const speed = Math.hypot(shot.vx, shot.vy);
+        expect(canLaunch({ fromY: y + DRONE_MUZZLE_DY, shipY: 900, speedPxS: speed, category: 'hazard', diffKey })).toBe(true);
+      }
+    }
+  });
+  it('is null when only the drone centre (not the muzzle) is far enough', () => {
+    const rng = () => 0.5;
+    for (const diffKey of ['easy', 'normal', 'hard']) {
+      const speed = speedFor('hazard', diffKey, 0, rng);
+      const shipY = 900;
+      const droneY = shipY - safeDistancePx('hazard', diffKey, speed) - DRONE_MUZZLE_DY / 2; // centre passes, muzzle does not
+      expect(canLaunch({ fromY: droneY, shipY, speedPxS: speed, category: 'hazard', diffKey })).toBe(true);
+      expect(droneShot({ ...base, drone: { x: 300, y: droneY }, ship: { x: 300, y: shipY }, diffKey, aimAllowed: false, rng })).toBeNull();
+    }
   });
 });
 

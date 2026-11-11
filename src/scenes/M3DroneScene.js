@@ -169,7 +169,7 @@ export default class M3DroneScene extends BaseMissionScene {
       drone: { x: d.x, y: d.y }, ship: { x: this.ship.x, y: this.ship.y }, diffKey: this.diff.key,
       tier: this.droneRank.tier, aimAllowed: this.droneRank.aimAllowed, warmup: this.droneElapsedMs < WARMUP_MS,
     });
-    if (shot) this.spawnBullet({ x: d.x, y: d.y + 30, vx: shot.vx, vy: shot.vy });
+    if (shot) this.spawnBullet({ x: d.x, y: shot.y, vx: shot.vx, vy: shot.vy }); // shot.y = drone.y + DRONE_MUZZLE_DY (checked point)
   }
 
   onPhaseComplete() {

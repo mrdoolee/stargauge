@@ -1,6 +1,7 @@
 // Mission 3 drones (pure): wave layout, enemy shots, and which charge colors pierce what is on screen.
 import { speedFor, canLaunch, aimVelocity } from './speed.js';
 import { chargeLevel, piercingColors } from './charge.js';
+import { DRONE_MUZZLE_DY } from '../config/balance.js';
 
 const MIN_GAP = 120; // px between drones of one wave
 const MAX_COUNT = 3;
@@ -20,12 +21,16 @@ export function droneFormation({ count, minX, maxX, rng = Math.random }) {
   return xs.map((x, i) => ({ x, enterDelayMs: Math.round(i * STAGGER_MS + rng() * 150) }));
 }
 
-/** One drone shot: { vx, vy } or null when the ship is too close to react. Easy / warm-up / no-aim shoot straight down. */
-export function droneShot({ drone, ship, diffKey, tier, aimAllowed, warmup, rng = Math.random }) {
+/**
+ * One drone shot: { vx, vy, y } (y = launch point, drone.y + muzzleDy) or null when the ship is too close to react
+ * from that launch point. Easy / warm-up / no-aim shoot straight down.
+ */
+export function droneShot({ drone, ship, diffKey, tier, aimAllowed, warmup, muzzleDy = DRONE_MUZZLE_DY, rng = Math.random }) {
   const speed = speedFor('hazard', diffKey, tier, rng);
-  if (!canLaunch({ fromY: drone.y, shipY: ship.y, speedPxS: speed, category: 'hazard', diffKey })) return null;
-  if (diffKey === 'easy' || warmup || !aimAllowed) return { vx: 0, vy: speed };
-  return aimVelocity(drone, ship, speed);
+  const from = { x: drone.x, y: drone.y + muzzleDy };
+  if (!canLaunch({ fromY: from.y, shipY: ship.y, speedPxS: speed, category: 'hazard', diffKey })) return null;
+  if (diffKey === 'easy' || warmup || !aimAllowed) return { vx: 0, vy: speed, y: from.y };
+  return { ...aimVelocity(from, ship, speed), y: from.y };
 }
 
 /** Star colors that pierce every shield on screen (set by the highest one); no drones -> what pierces white. */
