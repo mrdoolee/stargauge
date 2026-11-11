@@ -120,6 +120,7 @@ import {
   FORMATION_GAP_MS,
   BLOCKED_TOAST_MAX,
   ENEMY_BODY_R,
+  SHIELD_UNIT,
   BOSS_ART,
 } from '../config/balance.js';
 import { HeatMeter } from '../logic/heat.js';
@@ -158,7 +159,6 @@ const FX_BITS = 6;
 const EXPLODE_MS = 280; // downed enemy burst (<= 300 ms)
 const SPARK_MS = 160;
 const SHIELD_ALPHA = 0.85;
-const SHIELD_UNIT = 0.8; // shield ring scale per enemy scale unit (ring just outside the 80 px body)
 
 export default class BaseMissionScene extends Phaser.Scene {
   constructor(key) {

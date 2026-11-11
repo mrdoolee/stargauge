@@ -104,3 +104,47 @@ describe('m3 star formations keep the needed color coming', () => {
     expect(worst).toBeLessThanOrEqual(3);
   });
 });
+
+import { pickDroneLane } from '../../src/logic/drones.js';
+import { DRONE_LANES_Y, DRONE_MAX_ON_SCREEN, SHIELD_UNIT } from '../../src/config/balance.js';
+import { SHIELD_RING_R } from '../../src/objects/starTextures.js';
+
+describe('drone lanes', () => {
+  it('lanes are at least one shield ring diameter apart and there is a lane for every drone on screen', () => {
+    expect(DRONE_LANES_Y).toEqual([380, 470, 560]);
+    expect(DRONE_LANES_Y.length).toBeGreaterThanOrEqual(DRONE_MAX_ON_SCREEN);
+    const ringDiameter = 2 * SHIELD_RING_R * SHIELD_UNIT; // a drone's shieldScale is SHIELD_UNIT (art scaled to the 80 px footprint)
+    for (let i = 1; i < DRONE_LANES_Y.length; i++) {
+      expect(DRONE_LANES_Y[i] - DRONE_LANES_Y[i - 1]).toBeGreaterThanOrEqual(ringDiameter);
+    }
+  });
+  it('pickDroneLane never returns a taken lane and reaches every free one', () => {
+    const rng = seeded(3);
+    const seen = new Set();
+    for (let i = 0; i < 300; i++) {
+      const lane = pickDroneLane([1], 3, rng);
+      expect([0, 2]).toContain(lane);
+      seen.add(lane);
+    }
+    expect([...seen].sort()).toEqual([0, 2]);
+    expect(pickDroneLane([0, 2], 3, rng)).toBe(1);
+    expect(pickDroneLane([], 3, () => 0)).toBe(0);
+    expect(pickDroneLane([], 3, () => 0.9999)).toBe(2);
+  });
+  it('pickDroneLane returns null when every lane is taken', () => {
+    expect(pickDroneLane([0, 1, 2], 3, Math.random)).toBeNull();
+    expect(pickDroneLane([2, 0, 1, 1], 3, Math.random)).toBeNull();
+  });
+  it('a wave filling every free lane gives each drone its own lane', () => {
+    const rng = seeded(11);
+    for (let i = 0; i < 200; i++) {
+      const taken = [];
+      for (let k = 0; k < DRONE_MAX_ON_SCREEN; k++) {
+        const lane = pickDroneLane(taken, DRONE_LANES_Y.length, rng);
+        expect(lane).not.toBeNull();
+        taken.push(lane);
+      }
+      expect(new Set(taken).size).toBe(DRONE_MAX_ON_SCREEN);
+    }
+  });
+});

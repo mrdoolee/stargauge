@@ -17,7 +17,7 @@ export const STAR_CORE_R = 36; // core disc radius in texture px == Arcade body 
 export const GLOW_TEX = 192;
 export const ENEMY_TEX = 80; // drone / boss texture edge (px); body radius ENEMY_BODY_R at this size
 export const SHIELD_TEX = 128; // shield ring edge (px)
-const SHIELD_RING_R = 56; // ring radius in texture px
+export const SHIELD_RING_R = 56; // ring radius in texture px
 const SHIELD_RING_W = 8; // ring thickness in texture px
 const BULLET_COLOR = 0xff5fd2; // pink: not one of the 7 star colors
 

@@ -42,6 +42,7 @@ export const POOL_ASTEROIDS = 12;
 export const POOL_ENEMIES = 8; // shielded drones + the boss ship
 export const POOL_BULLETS = 48; // enemy bullets (never targetable by beams)
 export const ENEMY_BODY_R = 34; // enemy hitbox radius for an 80 px enemy texture (scales with sprite scale)
+export const SHIELD_UNIT = 0.8; // round shield ring scale per enemy scale unit (ring just outside the 80 px body)
 export const BULLET_BODY_R = 8;
 export const BLOCKED_TOAST_MAX = 3; // "beam too weak" hints shown per run; later blocked hits only bounce
 export const CULL_MARGIN = 120; // release pooled objects this far past the screen edge
@@ -173,7 +174,9 @@ export const DRONE_MAX_ON_SCREEN = 3;
 // (drones get shot down, new waves come every DRONE_WAVE_MS). Tune after classroom play.
 export const DRONE_ALIVE_DUTY = 0.6;
 export const DRONE_FIRE_MS = { easy: 4000, normal: 2800, hard: 2000 };
-export const DRONE_BAND_Y = { min: 380, max: 560 }; // hover rows
+// Patrol lanes (hover y), one drone per lane so shields never overlap: 90 px apart >= the drone shield ring diameter
+// (2 x SHIELD_RING_R 56 x SHIELD_UNIT 0.8 = 89.6 px). Needs at least DRONE_MAX_ON_SCREEN lanes.
+export const DRONE_LANES_Y = [380, 470, 560];
 export const DRONE_SPEED_X = 90; // px/s patrol
 export const DRONE_MUZZLE_DY = 30; // drone bullets start this far below the drone centre (droneShot checks canLaunch from here)
 
