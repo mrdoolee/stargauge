@@ -28,3 +28,13 @@ describe('hpBarY', () => {
     expect(hpBarY(408, -60, 8, 344)).toBe(348 - 0); // 348 - 4 = 344 top
   });
 });
+
+import { hpBarOffsetY } from '../../src/logic/enemyHp.js';
+import { HP_BAR_GAP, HP_BAR_H } from '../../src/config/balance.js';
+
+describe('hpBarOffsetY', () => {
+  it('puts the bar HP_BAR_GAP above the larger of the body and the shield ring (negative = above)', () => {
+    expect(hpBarOffsetY(40, 51.2)).toBeCloseTo(-(51.2 + HP_BAR_GAP + HP_BAR_H / 2), 6);
+    expect(hpBarOffsetY(60, 10)).toBeCloseTo(-(60 + HP_BAR_GAP + HP_BAR_H / 2), 6);
+  });
+});

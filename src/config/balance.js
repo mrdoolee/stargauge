@@ -48,6 +48,9 @@ export const POOL_ASTEROIDS = 12;
 export const POOL_ENEMIES = 8; // shielded drones + the boss ship
 export const POOL_BULLETS = 48; // enemy bullets (never targetable by beams)
 export const ENEMY_BODY_R = 34; // enemy hitbox radius for an 80 px enemy texture (scales with sprite scale)
+export const SHIELD_UNIT = 0.8; // round shield ring scale per enemy scale unit (ring just outside the 80 px body; a drone's ring = 0.8)
+export const HP_BAR_H = 8; // small enemy hp bar height (px); width = the enemy's display width
+export const HP_BAR_GAP = 8; // gap between the shield ring's top and the hp bar (logic/enemyHp.js hpBarOffsetY)
 export const BULLET_BODY_R = 8;
 export const BLOCKED_TOAST_MAX = 3; // "beam too weak" hints shown per run; later blocked hits only bounce
 export const CULL_MARGIN = 120; // release pooled objects this far past the screen edge
@@ -228,7 +231,10 @@ export const DRONE_MAX_ON_SCREEN = 3;
 // (drones get shot down, new waves come every DRONE_WAVE_MS). Tune after classroom play.
 export const DRONE_ALIVE_DUTY = 0.6;
 export const DRONE_FIRE_MS = { easy: 4000, normal: 2800, hard: 2000 };
-export const DRONE_BAND_Y = { min: 380, max: 560 }; // hover rows
+// Patrol lanes (final-review m1): one drone per lane, so shield rings never overlap (the shield colour is what the student reads).
+// Spacing 118 px = ring outer radius ~49 + hp bar reach above the ring ~67 (+2): a drone's hp bar never touches the ring above it.
+// The top lane's bar starts at y 344.8, just below the HUD band (no flip). Was a random hover row in 380..560 (~75% overlap chance).
+export const DRONE_LANES_Y = [412, 530, 648];
 export const DRONE_SPEED_X = 90; // px/s patrol (fixed: the difficulty speed multiplier does not apply)
 export const DRONE_MUZZLE_DY = 30; // drone bullets spawn this far below the drone centre
 export const DRONE_MIN_SHOT_SPEED = 150; // a drone shot is skipped only if the safe-distance cap is below this
@@ -237,10 +243,11 @@ export const DRONE_MIN_SHOT_SPEED = 150; // a drone shot is skipped only if the 
 // the boss hull) and patrols a row below the boss. Optional targets: not part of the goal; they vanish when the boss falls or flees.
 // Max on screen by stage (stage 1 has none). Easy: one, only in stage 3 (easy is at its dodge cap); normal one; hard one then two.
 export const BOSS_ESCORTS = { easy: { 1: 0, 2: 0, 3: 1 }, normal: { 1: 0, 2: 1, 3: 1 }, hard: { 1: 0, 2: 1, 3: 2 } };
-// Hover rows: the boss hull bottom is BOSS_POS.y + BOSS_MUZZLE_DY = 524 and its shield ring reaches ~610, so a drone (radius ENEMY_BODY_R 34, hp bar
-// ~55 px above its centre) at y >= 680 keeps body, ring and hp bar clear of both (smoke screenshot 2026-11-07: at 600 the hp bar touched the ring).
-// Max 720: droneShot toward the ship start row (y 900) must always fire, also on easy (reaction floor 1.2 s: muzzle <= ~750 for a 100 px/s shot).
-export const BOSS_ESCORT_BAND_Y = { min: 680, max: 720 };
+// Hover lanes, one escort per lane like the m3 drones (final-review m1: hard stage 3 has two escorts). The boss hull bottom is
+// BOSS_POS.y + BOSS_MUZZLE_DY = 524 and its hull-fitted shield ellipse ends at ~541, so an escort at y >= 610 keeps its ring and hp bar
+// (bar top ~67 px above its centre) clear of both; lanes 118 px apart as DRONE_LANES_Y. Max 728: droneShot toward the ship start row
+// (y 900) must always fire, also on easy (reaction floor 1.2 s: muzzle 758, 142 px >= 1.2 s x 100 px/s). drones.test.js / boss.test.js.
+export const BOSS_ESCORT_LANES_Y = [610, 728];
 // Escort shots may be slower than DRONE_MIN_SHOT_SPEED (150): easy's hazard band starts at 115 px/s, and a 150 px/s floor made ~30% of easy shots skip.
 export const BOSS_ESCORT_MIN_SHOT_SPEED = 100;
 export const BOSS_ESCORT_RESPAWN_MS = 8000; // a downed escort is replaced after this (UNMEASURED)

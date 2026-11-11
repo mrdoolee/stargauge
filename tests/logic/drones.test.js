@@ -3,7 +3,7 @@ import { droneFormation, droneShot, neededChargeColors } from '../../src/logic/d
 import { fillFormationColors } from '../../src/logic/spawner.js';
 import { piercingColors } from '../../src/logic/charge.js';
 import {
-  M3_STAR_POOL, M4_STAR_POOL, M3_DECOY_SCALE, BOSS_ARMOR, SPAWN_NEEDED_GUARANTEE, SHIP_START_Y, SHIP_HALF_HEIGHT, DRONE_BAND_Y, DRONE_MUZZLE_DY, REACTION_FLOOR_SEC,
+  M3_STAR_POOL, M4_STAR_POOL, M3_DECOY_SCALE, BOSS_ARMOR, SPAWN_NEEDED_GUARANTEE, SHIP_START_Y, SHIP_HALF_HEIGHT, DRONE_LANES_Y, DRONE_MUZZLE_DY, REACTION_FLOOR_SEC,
 } from '../../src/config/balance.js';
 import { shipMaxY } from '../../src/input/TouchControls.js';
 import { speedFor } from '../../src/logic/speed.js';
@@ -17,7 +17,7 @@ describe('droneShot', () => {
   const rng = () => 0.9999; // fastest speed of the tier
   const base = { drone: { x: 100, y: 400 }, ship: { x: 600, y: SHIP_START_Y }, tier: 0, warmup: false, rng };
   const shipYs = [SHIP_START_Y, shipMaxY({ shipHalfHeight: SHIP_HALF_HEIGHT })];
-  const droneYs = [DRONE_BAND_Y.min, (DRONE_BAND_Y.min + DRONE_BAND_Y.max) / 2, DRONE_BAND_Y.max];
+  const droneYs = DRONE_LANES_Y;
 
   it('is null only when the ship is right under the drone', () => {
     for (const diffKey of ['easy', 'normal', 'hard']) {
@@ -130,6 +130,71 @@ describe('m4 charge stars: decoys and the needed-color guarantee', () => {
         worst = Math.max(worst, streak);
       }
       expect(worst).toBeLessThanOrEqual(SPAWN_NEEDED_GUARANTEE);
+    }
+  });
+});
+
+import { pickDroneLane } from '../../src/logic/drones.js';
+import { hpBarOffsetY, hpBarY } from '../../src/logic/enemyHp.js';
+import {
+  DRONE_MAX_ON_SCREEN, SHIELD_UNIT, HP_BAR_H, HUD_BAND_BOTTOM, BOSS_ESCORT_LANES_Y, BOSS_ESCORTS, BOSS_POS, BOSS_MUZZLE_DY,
+} from '../../src/config/balance.js';
+import { SHIELD_RING_R, SHIELD_RING_W, SHIELD_TEX, ENEMY_TEX, bossShieldGeometry } from '../../src/objects/starTextures.js';
+
+/** Screen rows a drone at y covers: its shield ring (outer edge + soft edge) and its hp bar (flipped below near the HUD band). */
+function droneExtentY(y) {
+  const ringOuter = (SHIELD_RING_R + SHIELD_RING_W / 2 + 1) * SHIELD_UNIT; // a drone's shieldScale is SHIELD_UNIT (80 px footprint)
+  const offY = hpBarOffsetY(ENEMY_TEX / 2, (SHIELD_TEX * SHIELD_UNIT) / 2); // as BaseMissionScene.showHpBar
+  const barY = hpBarY(y, offY, HP_BAR_H, HUD_BAND_BOTTOM);
+  return [Math.min(y - ringOuter, barY - HP_BAR_H / 2), Math.max(y + ringOuter, barY + HP_BAR_H / 2)];
+}
+const lanesApart = lanes => {
+  for (let i = 1; i < lanes.length; i++) expect(droneExtentY(lanes[i])[0], `lane ${lanes[i]}`).toBeGreaterThan(droneExtentY(lanes[i - 1])[1]);
+};
+
+describe('drone patrol lanes (final-review m1)', () => {
+  it('m3: one lane per drone on screen; neighbouring drones never overlap ring or hp bar', () => {
+    expect(DRONE_LANES_Y.length).toBeGreaterThanOrEqual(DRONE_MAX_ON_SCREEN);
+    lanesApart(DRONE_LANES_Y);
+    expect(droneExtentY(DRONE_LANES_Y[0])[0]).toBeGreaterThanOrEqual(HUD_BAND_BOTTOM - 4); // the top drone's bar stays out of the HUD band
+  });
+  it('m4 escorts: one lane per escort the boss can want; lanes apart and the top one clear of the boss hull and shield ellipse', () => {
+    const most = Math.max(...Object.values(BOSS_ESCORTS).flatMap(t => Object.values(t)));
+    expect(BOSS_ESCORT_LANES_Y.length).toBeGreaterThanOrEqual(most);
+    lanesApart(BOSS_ESCORT_LANES_Y);
+    const g = bossShieldGeometry();
+    const ringBottom = BOSS_POS.y + g.ry + g.lineW / 2 + 1;
+    expect(ringBottom).toBeGreaterThan(BOSS_POS.y + BOSS_MUZZLE_DY); // the ring is below the hull bottom
+    expect(droneExtentY(BOSS_ESCORT_LANES_Y[0])[0]).toBeGreaterThan(ringBottom);
+  });
+  it('pickDroneLane never returns a taken lane and reaches every free one', () => {
+    const rng = seeded(3);
+    const seen = new Set();
+    for (let i = 0; i < 300; i++) {
+      const lane = pickDroneLane([1], 3, rng);
+      expect([0, 2]).toContain(lane);
+      seen.add(lane);
+    }
+    expect([...seen].sort()).toEqual([0, 2]);
+    expect(pickDroneLane([0, 2], 3, rng)).toBe(1);
+    expect(pickDroneLane([], 3, () => 0)).toBe(0);
+    expect(pickDroneLane([], 3, () => 0.9999)).toBe(2);
+    expect(pickDroneLane([undefined, null], 2, () => 0)).toBe(0); // enemies without a lane do not block one
+  });
+  it('pickDroneLane returns null when every lane is taken', () => {
+    expect(pickDroneLane([0, 1, 2], 3, Math.random)).toBeNull();
+    expect(pickDroneLane([2, 0, 1, 1], 3, Math.random)).toBeNull();
+  });
+  it('a wave filling every free lane gives each drone its own lane', () => {
+    const rng = seeded(11);
+    for (let i = 0; i < 200; i++) {
+      const taken = [];
+      for (let k = 0; k < DRONE_MAX_ON_SCREEN; k++) {
+        const lane = pickDroneLane(taken, DRONE_LANES_Y.length, rng);
+        expect(lane).not.toBeNull();
+        taken.push(lane);
+      }
+      expect(new Set(taken).size).toBe(DRONE_MAX_ON_SCREEN);
     }
   });
 });

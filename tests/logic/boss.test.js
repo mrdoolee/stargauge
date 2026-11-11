@@ -7,7 +7,7 @@ import { droneShot } from '../../src/logic/drones.js';
 import { STAR_COLORS } from '../../src/logic/temperature.js';
 import { canLaunch } from '../../src/logic/speed.js';
 import {
-  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_HP, BOSS_FAN, BOSS_ESCORTS, BOSS_ESCORT_BAND_Y, BOSS_ESCORT_FIRE_MS, BOSS_ARMOR, BOSS_ESCORT_MIN_SHOT_SPEED, M4_TIME_LIMIT_SEC, BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, SHIP_START_Y, WARMUP_MS, WARMUP_DENSITY,
+  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_HP, BOSS_FAN, BOSS_ESCORTS, BOSS_ESCORT_LANES_Y, BOSS_ESCORT_FIRE_MS, BOSS_ARMOR, BOSS_ESCORT_MIN_SHOT_SPEED, M4_TIME_LIMIT_SEC, BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, SHIP_START_Y, WARMUP_MS, WARMUP_DENSITY,
 } from '../../src/config/balance.js';
 
 describe('bossCycle', () => {
@@ -304,14 +304,14 @@ describe('escort drones (m4)', () => {
     expect(escortTarget(2, 'zzz')).toBe(BOSS_ESCORTS.normal[2]);
     expect(escortTarget(9, 'hard')).toBe(0);
   });
-  it('hover rows keep the whole drone body below the boss hull and well above the ship start row', () => {
+  it('hover lanes keep the whole drone body below the boss hull and well above the ship start row', () => {
     const hullBottom = BOSS_POS.y + BOSS_MUZZLE_DY;
-    expect(BOSS_ESCORT_BAND_Y.min - 34).toBeGreaterThan(hullBottom);
-    expect(BOSS_ESCORT_BAND_Y.max).toBeLessThan(SHIP_START_Y - 100);
+    expect(Math.min(...BOSS_ESCORT_LANES_Y) - 34).toBeGreaterThan(hullBottom);
+    expect(Math.max(...BOSS_ESCORT_LANES_Y)).toBeLessThan(SHIP_START_Y - 100);
   });
   it('droneShot from every hover row toward the ship start row is never null on any difficulty (so the escort shots counted in the heat model really fire)', () => {
     for (const diffKey of ['easy', 'normal', 'hard']) for (const tier of [0, 3]) for (const rng of [0, 0.3, 0.9999]) {
-      for (const y of [BOSS_ESCORT_BAND_Y.min, BOSS_ESCORT_BAND_Y.max]) for (const aimAllowed of [false, true]) {
+      for (const y of BOSS_ESCORT_LANES_Y) for (const aimAllowed of [false, true]) {
         const s = droneShot({ drone: { x: 300, y }, ship: { x: 500, y: SHIP_START_Y }, diffKey, tier, aimAllowed, warmup: false, rng: () => rng, minSpeed: BOSS_ESCORT_MIN_SHOT_SPEED });
         expect(s).not.toBeNull();
       }

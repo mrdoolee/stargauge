@@ -6,12 +6,12 @@ import { GAME_WIDTH } from '../config/game.js';
 import { ENEMY_TEX } from '../objects/starTextures.js';
 import {
   M3_DRONE_GOAL, DRONE_HP, M3_STAR_POOL, M3_DECOY_SCALE, M3_STAR_SCALE, DRONE_WAVE_MS, DRONE_MAX_ON_SCREEN,
-  DRONE_FIRE_MS, DRONE_BAND_Y, DRONE_SPEED_X, DRONE_MUZZLE_DY, BLOCKED_TOAST_MAX, WARMUP_MS,
+  DRONE_FIRE_MS, DRONE_LANES_Y, DRONE_SPEED_X, DRONE_MUZZLE_DY, BLOCKED_TOAST_MAX, WARMUP_MS,
 } from '../config/balance.js';
 import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
 import { fillFormationColors } from '../logic/spawner.js';
 import { pickShieldColor } from '../logic/charge.js';
-import { droneFormation, droneShot, neededChargeColors } from '../logic/drones.js';
+import { droneFormation, droneShot, neededChargeColors, pickDroneLane } from '../logic/drones.js';
 import { createRank } from '../logic/rank.js';
 import { MISSION_TEXT } from '../data/copy.js';
 
@@ -48,7 +48,7 @@ export default class M3DroneScene extends BaseMissionScene {
     this.downs = 0;
     this.droneElapsedMs = 0;
     this.waveInMs = FIRST_WAVE_MS;
-    this.pendingDrones = []; // { x, delayMs }
+    this.pendingDrones = []; // { x, delayMs, lane }
     this.decoyTipShown = false;
     const restarts = this.registry.get('results')?.[this.missionId]?.restarts ?? 0;
     this.droneRank = createRank({ diffKey: this.diff.key, restarts });
@@ -133,7 +133,7 @@ export default class M3DroneScene extends BaseMissionScene {
       const p = pend[i];
       p.delayMs -= dt;
       if (p.delayMs > 0) pend[keep++] = p;
-      else this.spawnDrone(p.x);
+      else this.spawnDrone(p.x, p.lane);
     }
     pend.length = keep;
     this.waveInMs -= dt;
@@ -144,20 +144,28 @@ export default class M3DroneScene extends BaseMissionScene {
       return;
     }
     const count = Math.min(room, 1 + Math.floor(Math.random() * DRONE_MAX_ON_SCREEN));
+    // one drone per patrol lane (live + already planned), so shield rings never overlap while patrolling
+    const taken = [];
+    for (const d of this.activeDrones()) taken.push(d.lane);
+    for (const p of pend) taken.push(p.lane);
     for (const d of droneFormation({ count, minX: DRONE_MIN_X, maxX: DRONE_MAX_X, rng: Math.random })) {
-      this.pendingDrones.push({ x: d.x, delayMs: d.enterDelayMs });
+      const lane = pickDroneLane(taken, DRONE_LANES_Y.length, Math.random);
+      if (lane === null) break; // cannot happen while lanes >= DRONE_MAX_ON_SCREEN (room counts the same drones)
+      taken.push(lane);
+      this.pendingDrones.push({ x: d.x, delayMs: d.enterDelayMs, lane });
     }
     this.waveInMs = DRONE_WAVE_MS[this.diff.key];
   }
 
-  spawnDrone(x) {
+  spawnDrone(x, lane) {
     const e = this.spawnEnemy({
       x, y: DRONE_ENTRY_Y, vx: 0, vy: DRONE_ENTRY_SPEED, hp: DRONE_HP, hpBar: true,
       scale: ENEMY_TEX / this.textures.get('drone').getSourceImage().width, // loaded art (128) keeps the 80 px enemy footprint
       shieldKey: pickShieldColor(this.diff.key),
     });
     if (!e) return;
-    e.hoverY = rand(DRONE_BAND_Y.min, DRONE_BAND_Y.max);
+    e.lane = lane;
+    e.hoverY = DRONE_LANES_Y[lane];
     e.dir = Math.random() < 0.5 ? -1 : 1;
     e.fireMs = DRONE_FIRE_MS[this.diff.key] * rand(0.6, 1);
   }

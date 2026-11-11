@@ -135,7 +135,7 @@ import {
   COLLISION_COOLDOWN_MS,
   MARK_FADE_MS,
   RESTART_DELAY_MS,
-  TRANSITION_CLEAR_MS, HUD_BAND_BOTTOM,
+  TRANSITION_CLEAR_MS, HUD_BAND_BOTTOM, SHIELD_UNIT,
   FORMATION_GAP_MS,
   BLOCKED_TOAST_MAX,
   ENEMY_BODY_R,
@@ -158,7 +158,7 @@ import {
   makeStarTextures, textureFor, loadedAsteroidKeys, ASTEROID_TEX, ENEMY_TEX, shieldTextureKey, bossShieldTextureKey,
 } from '../objects/starTextures.js';
 import { createParallax, PARALLAX_SPACE } from '../objects/parallax.js';
-import { hpBarFraction, hpBarY } from '../logic/enemyHp.js';
+import { hpBarFraction, hpBarY, hpBarOffsetY } from '../logic/enemyHp.js';
 import { createPools, acquire, release, syncHalos, syncShields, syncHpBars, HP_BAR_H } from '../objects/Pools.js';
 import { FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
@@ -179,10 +179,8 @@ const FX_BURSTS = 4; // pooled explosion / spark bursts: 1 ring + FX_BITS sparks
 const FX_BITS = 6;
 const EXPLODE_MS = 280; // downed enemy burst (<= 300 ms)
 const SPARK_MS = 160;
-const HP_BAR_GAP = 8; // gap between the shield ring's top and the bar
 const HP_BAR_TWEEN_MS = 120;
 const SHIELD_ALPHA = 1; // exact palette color: no dimming over the dark backdrop
-const SHIELD_UNIT = 0.8; // shield ring scale per enemy scale unit (ring just outside the 80 px body)
 /** The loaded 512x320 boss art (rectangle hull body, hull-fitted ellipse shield); the code placeholder boss is 80x80. */
 const isLoadedBossArt = obj => obj.kind === 'boss' && obj.width === BOSS_ART.canvasW && obj.height === BOSS_ART.canvasH;
 
@@ -1056,7 +1054,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     if (!on) return;
     const ringHalf = obj.shield?.visible ? obj.shield.displayHeight / 2 : 0;
     obj.hpBarW = obj.displayWidth;
-    obj.hpBarOffY = -(Math.max(obj.displayHeight / 2, ringHalf) + HP_BAR_GAP + HP_BAR_H / 2);
+    obj.hpBarOffY = hpBarOffsetY(obj.displayHeight / 2, ringHalf);
     obj.hpBarBack.setSize(obj.hpBarW, HP_BAR_H);
     this.applyHpBar(obj);
     syncHpBars(this.pools.enemies);

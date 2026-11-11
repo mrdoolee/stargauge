@@ -34,6 +34,15 @@ export function droneShot({ drone, ship, diffKey, tier, aimAllowed, warmup, rng 
   return aimVelocity(from, ship, speed);
 }
 
+/** A random free patrol lane index (not in `taken`) out of laneCount, or null when every lane is taken. */
+export function pickDroneLane(taken, laneCount, rng = Math.random) {
+  const used = new Set(taken ?? []);
+  const free = [];
+  for (let i = 0; i < laneCount; i++) if (!used.has(i)) free.push(i);
+  if (!free.length) return null;
+  return free[Math.min(free.length - 1, Math.floor(rng() * free.length))];
+}
+
 /** Star colors that pierce every shield on screen (set by the highest one); no drones -> what pierces white. */
 export function neededChargeColors(shieldKeys) {
   const keys = (shieldKeys ?? []).filter(Boolean);

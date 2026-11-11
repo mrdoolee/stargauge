@@ -10,13 +10,13 @@ import { ENEMY_TEX } from '../objects/starTextures.js';
 import {
   M4_TIME_LIMIT_SEC, M3_STAR_SCALE, M3_DECOY_SCALE, M4_STAR_POOL, BLOCKED_TOAST_MAX, BOSS_POS, BOSS_SWAY, BOSS_HIT_FLASH_MS,
   TRANSITION_CLEAR_MS, BOSS_WIDTH_PX, BOSS_MUZZLE_DY, WARMUP_MS,
-  DRONE_HP, DRONE_SPEED_X, DRONE_MUZZLE_DY, BOSS_ESCORT_BAND_Y, BOSS_ESCORT_RESPAWN_MS, BOSS_ESCORT_FIRST_MS, BOSS_ESCORT_FIRE_MS, BOSS_ESCORT_MIN_SHOT_SPEED,
+  DRONE_HP, DRONE_SPEED_X, DRONE_MUZZLE_DY, BOSS_ESCORT_LANES_Y, BOSS_ESCORT_RESPAWN_MS, BOSS_ESCORT_FIRST_MS, BOSS_ESCORT_FIRE_MS, BOSS_ESCORT_MIN_SHOT_SPEED,
 } from '../config/balance.js';
 import { createRank } from '../logic/rank.js';
 import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
 import { fillFormationColors } from '../logic/spawner.js';
 import { bossArmorColor, piercingColors, pickShieldColor } from '../logic/charge.js';
-import { droneShot } from '../logic/drones.js';
+import { droneShot, pickDroneLane } from '../logic/drones.js';
 import {
   bossCycle, bossWarmup, bossStageFromHp, bossShotSpeed, stageChangeVolleyMs, bossVolleyMs, bossHp, escortTarget, BOSS_STAGES, bossVolleyShots,
   swayOffset, formatTime,
@@ -330,16 +330,21 @@ export default class M4BossScene extends BaseMissionScene {
     this.spawnEscort();
   }
 
-  /** Flies in from a side edge at a hover row below the boss hull (never through it), then patrols sideways. */
+  /** Flies in from a side edge on a free hover lane below the boss hull (never through it, never on another escort's lane), then patrols sideways. */
   spawnEscort() {
+    const taken = [];
+    for (const d of this.activeEscorts()) taken.push(d.lane);
+    const lane = pickDroneLane(taken, BOSS_ESCORT_LANES_Y.length, Math.random);
+    if (lane === null) return; // cannot happen while lanes >= the most escorts a stage wants (drones.test.js)
     const fromLeft = Math.random() < 0.5;
     const e = this.spawnEnemy({
-      x: fromLeft ? -ESCORT_ENTRY_X : GAME_WIDTH + ESCORT_ENTRY_X, y: rand(BOSS_ESCORT_BAND_Y.min, BOSS_ESCORT_BAND_Y.max),
+      x: fromLeft ? -ESCORT_ENTRY_X : GAME_WIDTH + ESCORT_ENTRY_X, y: BOSS_ESCORT_LANES_Y[lane],
       vx: fromLeft ? ESCORT_ENTRY_SPEED : -ESCORT_ENTRY_SPEED, vy: 0, hp: DRONE_HP, hpBar: true,
       scale: ENEMY_TEX / this.textures.get('drone').getSourceImage().width,
       shieldKey: pickShieldColor(this.diff.key),
     });
     if (!e) return;
+    e.lane = lane;
     e.dir = fromLeft ? 1 : -1;
     e.entering = true;
     e.fireMs = BOSS_ESCORT_FIRE_MS[this.diff.key] * rand(0.6, 1);
