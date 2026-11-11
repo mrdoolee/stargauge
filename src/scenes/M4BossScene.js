@@ -275,7 +275,8 @@ export default class M4BossScene extends BaseMissionScene {
     for (const b of this.pools.beams.members) if (b.active) this.releaseObject(b);
     for (const e of this.pools.enemies.members) if (e.active) this.releaseEnemy(e);
     this.releaseBullets();
-    this.completeMission(); // writes results.m4 (stars/wrongShots/restarts) and sleeps the HUD
+    // writes results.m4 (stars/wrongShots/restarts) and sleeps the HUD; a timeout is not a failure but caps the stars at 2
+    this.completeMission({ timedOut: this.timedOut });
     this.answers = [];
     this.ui = [];
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x05070f, 1).setDepth(D);

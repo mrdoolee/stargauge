@@ -89,7 +89,7 @@
  *   wrongShotMessage, beam consumed, object keeps flying. Collision heat =
  *   heatOnCollision(kind, colorKey) only. Heat full ⇒ registry results.<missionId>.restarts += 1
  *   and scene.restart({ ...initData, restarted: true }).
- *   Helpers: advancePhase(), completePhase(), endGameplay(), completeMission({ next, nextData }),
+ *   Helpers: advancePhase(), completePhase(), endGameplay(), completeMission({ next, nextData, timedOut }),
  *   refreshGoal(), toast(text, opts), setInstruction(text), emitGauge(), updateResult(patch).
  *
  * ── Registry ───────────────────────────────────────────────────────────────────────
@@ -510,14 +510,17 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.fireButton.setVisible(false);
   }
 
-  /** Write results, sleep the HUD and start `next` (if given). Returns the 1–3 star rating. */
-  completeMission({ next, nextData } = {}) {
+  /**
+   * Write results, sleep the HUD and start `next` (if given). Returns the 1–3 star rating.
+   * timedOut: the mission's time limit ran out before its goal (m4) — not a failure, stars capped at STARS_TIMEOUT_MAX.
+   */
+  completeMission({ next, nextData, timedOut = false } = {}) {
     if (this.finished) return null;
     this.finished = true;
     this.playing = false;
     this.controls.cancel();
     const restarts = this.registry.get('results')?.[this.missionId]?.restarts ?? 0;
-    const stars = missionStars({ wrongShots: this.wrongShots, restarts });
+    const stars = missionStars({ wrongShots: this.wrongShots, restarts, timedOut });
     this.updateResult({ stars, wrongShots: this.wrongShots, restarts });
     sfx.play('clear');
     this.game.events.emit('mission-end', { key: this.scene.key });

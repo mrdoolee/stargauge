@@ -14,6 +14,7 @@ export const SPAWN_NEEDED_GUARANTEE = 3; // force a needed color after this many
 export const MISSION_GOAL_COUNTS = { m1: 8 };
 export const STARS_THREE_MAX_WRONG = 1;
 export const STARS_TWO_MAX_WRONG = 4;
+export const STARS_TIMEOUT_MAX = 2; // m4: time ran out before the boss fell (not a failure, but not a full clear)
 
 // Task 6 additions — touch controls, ship, beam, pools, HUD layout.
 // Controls revised 2026-10-31 (teacher field test): fixed virtual joystick bottom-left (left thumb)
