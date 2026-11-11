@@ -82,17 +82,22 @@ export const BOSS_ATTACK_MS = { 1: 4000, 2: 4500, 3: 5000 };
 // Boss pressure (2026-11-07, teacher: "보스가 제일 쉽다", .superpowers/sdd/boss-hard/brief.md). The tables below are PER DIFFICULTY because
 // the volley count of a window is ceil(attack / (interval x spawnInterval)) (a step function): the old shared table was tuned so that
 // easy stays at 1-2 volleys per window, and any denser shared table would push easy past its dodge cap (difficulty.test.js, <= 0.4).
-// Easy keeps the old volley intervals (only its gap and fan spread rise a little, see below); normal/hard are the new, harder values. All UNMEASURED: tune after classroom play.
+// (2026-11-11: easy no longer keeps the old intervals, see BOSS_VOLLEY_MS.) All UNMEASURED: tune after classroom play.
 // Rest after every attack window (no launches). Shorter = the student gets less free time to shoot; was 4500 for everyone.
-// Easy 4500 -> 3900 (controller ruling 2026-11-07: the boss must be at least as demanding as easy m3, dodge 0.335; easy stage 1 0.318 -> 0.354, still <= 0.4).
+// Easy 4500 -> 3900 (controller ruling 2026-11-07: the boss must be at least as demanding as easy m3, dodge 0.335, and stay <= 0.4; the
+// 2026-11-07 numbers were computed at blue-star bullet heat, the 2026-11-11 ones under BOSS_VOLLEY_MS at the engine's asteroid heat).
 export const BOSS_GAP_MS = { easy: 3900, normal: 3600, hard: 3200 };
 // Launch interval inside an attack window, base value (x difficulty spawnInterval: easy 1.35, hard 0.75).
-// Normal 2200/3400/3800 -> 2000/2800/3000 (2 volleys per window in every stage, the same count as before but the windows now repeat every
-// ~7.6-8.6 s instead of ~8.5-9.5 s); hard: stage 1 three volleys per window, stages 2-3 two (3000/3400 x 0.75 = 2250/2550 ms).
+// 2026-11-11 (final-review I1): the balance model now counts boss bullets at the asteroid heat the engine applies (it used blue-star heat,
+// twice as much), so the 2026-11-07 table under-delivered its targets (easy m4 0.05 < easy m3 0.335). Re-derived volleys per window
+// (ceil(attack / scaled interval)) and required dodge, stages 1/2/3:
+//   easy 2/3/2 -> 0.000/0.380/0.304 (worst 0.380: >= easy m3 0.335, <= 0.4); normal 2/3/2 -> 0.462/0.797/0.726 (> m3 0.710);
+//   hard 3/3/3 -> 0.721/0.863/0.873 (> m3 0.841, < 0.9). Every window has >= 2 volleys and attack / interval stays >= 15% away from an
+//   integer (difficulty.test.js), so a small retune can not silently flip a window's volley count. Scaled intervals stay hard < normal < easy.
 export const BOSS_VOLLEY_MS = {
-  easy: { 1: 2200, 2: 3400, 3: 3800 },
-  normal: { 1: 2000, 2: 2800, 3: 3000 },
-  hard: { 1: 1800, 2: 3000, 3: 3400 },
+  easy: { 1: 2200, 2: 1400, 3: 2500 },
+  normal: { 1: 2400, 2: 1800, 3: 3000 },
+  hard: { 1: 2100, 2: 2200, 3: 2600 },
 };
 // Fan per volley in stages 2-3 (stage 1 is one straight shot). Normal/hard fans are wider and fuller (3-5 shots; at most 5 + 1 aimed per
 // volley, so POOL_BULLETS 48 is plenty). A wider fan spreads its shots farther apart at the ship row, so BOSS_FAN_SHIP_HITS stays 1.5.

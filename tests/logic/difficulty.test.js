@@ -104,25 +104,38 @@ describe('m3/m4 shooter density stays up (not fitted by thinning the game)', () 
 });
 
 describe('m4 boss stages', () => {
-  it('stage 1 and stage 3 respect the easy / hard bounds and the difficulty order', () => {
-    for (const st of [1, 3]) {
+  it('every stage respects the easy / hard bounds and the difficulty order', () => {
+    for (const st of [1, 2, 3]) {
       const [e, n, h] = DIFFICULTY_KEYS.map(k => requiredDodgeFraction('m4', k, st));
       expect(e).toBeLessThanOrEqual(0.4); expect(h).toBeLessThan(0.9);
       expect(e).toBeLessThanOrEqual(n); expect(n).toBeLessThanOrEqual(h);
     }
   });
-  it('= missed charge stars (M4_STAR_POOL mean x MISSED_STAR_SHARE) + boss volleys (ceil per window, fan = BOSS_FAN_SHIP_HITS shots, aimed shot from stage 2, not on easy) + escort bullets (alive duty, BOSS_ESCORT_FIRE_MS)', () => {
+  it('= missed charge stars (M4_STAR_POOL mean x MISSED_STAR_SHARE) + boss volleys (ceil per window, fan = BOSS_FAN_SHIP_HITS shots, aimed shot from stage 2, not on easy; every boss bullet at the asteroid heat the engine applies) + escort bullets (alive duty, BOSS_ESCORT_FIRE_MS)', () => {
     expect(BOSS_FAN_SHIP_HITS).toBe(1.5);
     expect(BOSS_AIMED_FROM_STAGE).toBe(2);
     for (const k of DIFFICULTY_KEYS) for (const st of [1, 2, 3]) {
       const volleys = Math.ceil(BOSS_ATTACK_MS[st] / (BOSS_VOLLEY_MS[k][st] * DIFFICULTY[k].spawnInterval));
-      const heat = scaledHeat('star', 'blue', k);
+      const heat = scaledHeat('asteroid', null, k); // BaseMissionScene.handleBulletHit
       const aimed = k !== 'easy' && st >= BOSS_AIMED_FROM_STAGE ? 1 : 0;
       const boss = (volleys * ((st === 1 ? 1 : BOSS_FAN_SHIP_HITS) + aimed) * heat) / ((BOSS_ATTACK_MS[st] + BOSS_GAP_MS[k]) / 1000);
       const poolStar = M4_STAR_POOL.reduce((a, c) => a + scaledHeat('star', c, k), 0) / M4_STAR_POOL.length;
       const stars = formationSlotsPerSec(FORMATION_GAP_MS.m4, k) * poolStar * MISSED_STAR_SHARE;
       const escorts = BOSS_ESCORTS[k][st] * DRONE_ALIVE_DUTY * (1000 / BOSS_ESCORT_FIRE_MS[k]) * scaledHeat('asteroid', null, k);
       expect(heatInflowPerSec('m4', k, st)).toBeCloseTo(boss + stars + escorts, 6);
+    }
+  });
+  it('no stage sits near a volley-count cliff: attack / scaled interval stays >= 15% away from an integer', () => {
+    for (const k of DIFFICULTY_KEYS) for (const st of [1, 2, 3]) {
+      const r = BOSS_ATTACK_MS[st] / scaleInterval(BOSS_VOLLEY_MS[k][st], k);
+      const frac = r - Math.floor(r);
+      expect(frac, `${k} stage ${st}: ${r.toFixed(3)}`).toBeGreaterThanOrEqual(0.15);
+      expect(frac, `${k} stage ${st}: ${r.toFixed(3)}`).toBeLessThanOrEqual(0.85);
+    }
+  });
+  it('no single-volley windows: at least 2 volleys per attack window on every difficulty and stage', () => {
+    for (const k of DIFFICULTY_KEYS) for (const st of [1, 2, 3]) {
+      expect(Math.ceil(BOSS_ATTACK_MS[st] / scaleInterval(BOSS_VOLLEY_MS[k][st], k))).toBeGreaterThanOrEqual(2);
     }
   });
   it('escorts add heat only in the stages that have them', () => {

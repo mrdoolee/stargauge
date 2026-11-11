@@ -41,7 +41,8 @@ export const formationSlotsPerSec = (gapMs, key) =>
  *   each firing every DRONE_FIRE_MS, one asteroid-heat hit per bullet (every bullet lands).
  * m4: the charge-star formations (mean star heat over the M4_STAR_POOL weights at FORMATION_GAP_MS.m4, x MISSED_STAR_SHARE) PLUS the boss PLUS the escort drones.
  *   Boss cycle = BOSS_ATTACK_MS[stage] + BOSS_GAP_MS[difficulty]. One volley every scaleInterval(BOSS_VOLLEY_MS[difficulty][stage]) in
- *   the attack window, each blue (30) shot hits. Volleys per window = ceil(attack / interval) (the first fires at the window
+ *   the attack window, each shot that hits costs the asteroid heat (scaledHeat('asteroid'), as BaseMissionScene.handleBulletHit applies to every
+ *   enemy bullet). Volleys per window = ceil(attack / interval) (the first fires at the window
  *   start). A fan lands BOSS_FAN_SHIP_HITS shots on average on a standing ship (see balance.js); from BOSS_AIMED_FROM_STAGE a volley adds one aimed shot where the
  *   difficulty allows aim (not easy). Escorts: BOSS_ESCORTS[difficulty][stage] drones x DRONE_ALIVE_DUTY (the same UNMEASURED share of the time they are alive and firing as
  *   the m3 drones) each firing every BOSS_ESCORT_FIRE_MS, one asteroid-heat hit per bullet (every bullet lands, like m3).
@@ -61,7 +62,7 @@ export function heatInflowPerSec(mission, key, stage) {
     const volleys = Math.ceil(attack / scaleInterval(BOSS_VOLLEY_MS[dk][st], key)); // a volley fires as the window opens
     const aimed = dk !== 'easy' && st >= BOSS_AIMED_FROM_STAGE ? 1 : 0;
     const fan = st === 1 ? 1 : BOSS_FAN_SHIP_HITS;
-    const shots = (volleys * (fan + aimed) * h('star', 'blue')) / ((attack + BOSS_GAP_MS[dk]) / 1000);
+    const shots = (volleys * (fan + aimed) * h('asteroid')) / ((attack + BOSS_GAP_MS[dk]) / 1000); // engine: every enemy bullet = asteroid heat
     const escorts = BOSS_ESCORTS[dk][st] * DRONE_ALIVE_DUTY * (1000 / BOSS_ESCORT_FIRE_MS[dk]) * h('asteroid');
     return shots + escorts;
   };

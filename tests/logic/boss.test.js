@@ -160,10 +160,10 @@ describe('stageChangeVolleyMs / bossVolleyMs', () => {
       expect(ms).toBeGreaterThanOrEqual(1500);
     }
   });
-  it('easy keeps the old volley table; hard < normal < easy in every stage (2026-11-07)', () => {
-    expect(BOSS_VOLLEY_MS.easy).toEqual({ 1: 2200, 2: 3400, 3: 3800 });
+  it('the boss fires more often on harder difficulties: scaled interval hard < normal < easy in every stage (2026-11-07)', () => {
+    // The 2026-11-07 pin of the old easy table (2200/3400/3800) and its base-value order were dropped with the asteroid-heat
+    // model fix (2026-11-11): at the heat the engine applies, the old easy table left easy m4 below easy m3 (difficulty.test.js).
     for (const st of [1, 2, 3]) {
-      expect(BOSS_VOLLEY_MS.normal[st]).toBeLessThanOrEqual(BOSS_VOLLEY_MS.easy[st]);
       expect(bossVolleyMs(st, 'hard')).toBeLessThan(bossVolleyMs(st, 'normal'));
       expect(bossVolleyMs(st, 'normal')).toBeLessThan(bossVolleyMs(st, 'easy'));
     }
