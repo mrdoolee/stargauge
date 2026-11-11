@@ -15,7 +15,7 @@ describe('showBootError', () => {
   it('shows the plain Korean message in the page', () => {
     const doc = fakeDoc();
     const el = showBootError(doc);
-    expect(BOOT_ERROR_TEXT).toBe('불러오지 못했어요. 새로고침해 주세요.');
+    expect(BOOT_ERROR_TEXT).toBe('불러오지 못했어요.\n새로고침해 주세요.');
     expect(el.textContent).toBe(BOOT_ERROR_TEXT);
     expect(doc.body.children).toHaveLength(1);
   });

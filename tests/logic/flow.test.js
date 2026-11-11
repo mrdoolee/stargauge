@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { estimateFlow, buildResultSummary, clearRunKeys, PACE } from '../../src/logic/flow.js';
+import { DRONE_HP, DRONE_SHIELDS, M3_DRONE_FIND_SEC, M3_SEC_PER_SHOT } from '../../src/config/balance.js';
+import { hitsToDown } from '../../src/logic/charge.js';
+import { bossFightSec } from '../../src/logic/boss.js';
 
 describe('estimateFlow', () => {
   it('rows sum to total and cover every stage', () => {
@@ -33,6 +36,13 @@ describe('estimateFlow', () => {
     expect(m3(g, 'normal')).toBe(PACE.read.m3 + 6 * PACE.m3SecPerDrone + PACE.read.card);
     expect(m3(g, 'easy')).toBe(PACE.read.m3 + 5 * PACE.m3SecPerDrone + PACE.read.card);
     expect(m3({ ...g, normal: 12 }, 'normal')).toBeGreaterThan(m3(g, 'normal'));
+  });
+  it('m3SecPerDrone = find time + shots to down x seconds per shot (charge = the shield color: the conservative case)', () => {
+    expect(DRONE_HP).toBe(3);
+    for (const shields of Object.values(DRONE_SHIELDS)) {
+      for (const shield of Object.keys(shields)) expect(hitsToDown(shield, shield, DRONE_HP)).toBe(DRONE_HP);
+    }
+    expect(PACE.m3SecPerDrone).toBe(M3_DRONE_FIND_SEC + DRONE_HP * M3_SEC_PER_SHOT);
   });
   it('m4 = read + min(limit, boss estimate) + questions/chart read, and has no picture pace', () => {
     expect(PACE.read).not.toHaveProperty('picture');
@@ -97,10 +107,20 @@ describe('estimateFlow per difficulty', () => {
   it('normal equals the default estimate', () => {
     expect(estimateFlow({ difficulty: 'normal' }).totalSec).toBe(estimateFlow().totalSec);
   });
-  it('easy and normal finish within 17 minutes, hard within 16', () => {
+  // Hard cap 16 -> 17 min (2026-11-07, controller ruling in .superpowers/sdd/boss-hard/brief.md): the boss fight got longer
+  // (hard 150 -> 192 s) and hard was at 15.8 min, so only that growth moves the cap, by at most one minute. Easy stays <= 900 s (above).
+  it('easy, normal and hard finish within 17 minutes', () => {
     expect(min('easy')).toBeLessThanOrEqual(17);
     expect(min('normal')).toBeLessThanOrEqual(17);
-    expect(min('hard')).toBeLessThanOrEqual(16);
+    expect(min('hard')).toBeLessThanOrEqual(17);
+  });
+  it('the boss fight is the long part of the run on normal and hard (bossFightSec 170..210 s) and easy stays at 150 s', () => {
+    expect(bossFightSec('easy')).toBe(150);
+    for (const d of ['normal', 'hard']) {
+      expect(bossFightSec(d)).toBeGreaterThanOrEqual(170);
+      expect(bossFightSec(d)).toBeLessThanOrEqual(210);
+      expect(estimateFlow({ difficulty: d }).rows.find(r => r.id === 'm4').sec).toBe(PACE.read.m4 + bossFightSec(d) + PACE.read.chart);
+    }
   });
   it('all difficulties stay above 12 minutes', () => {
     for (const d of ['easy', 'normal', 'hard']) expect(min(d)).toBeGreaterThanOrEqual(12);

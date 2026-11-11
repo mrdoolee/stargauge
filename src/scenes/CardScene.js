@@ -12,6 +12,7 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { armButton } from '../ui/button.js';
+import { bgm } from '../audio/bgm.js';
 
 export default class CardScene extends Phaser.Scene {
   constructor() {
@@ -24,6 +25,7 @@ export default class CardScene extends Phaser.Scene {
   }
 
   create() {
+    bgm.requestForScene(this.scene.key);
     const d = this.cardData;
     const cx = GAME_WIDTH / 2;
 
@@ -31,7 +33,7 @@ export default class CardScene extends Phaser.Scene {
       .setStrokeStyle(4, 0x8fd3ff);
 
     this.add
-      .text(cx, 300, d.title ?? '정리 카드', { fontFamily: FONT, fontSize: '48px', fontStyle: 'bold', color: '#8fd3ff' })
+      .text(cx, 300, d.title ?? '정리 카드', { fontFamily: FONT, fontSize: '48px', color: '#8fd3ff' })
       .setOrigin(0.5);
 
     let bodyY = 460;

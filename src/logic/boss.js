@@ -1,19 +1,32 @@
 // Mission 4 boss logic (pure): attack/gap cycle, fans, aim, warm-up, hp stages, safe bullet speed, sway, timer text.
 import {
-  BOSS_ATTACK_MS, BOSS_GAP_MS, REACTION_FLOOR_SEC, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY, BOSS_HP, BOSS_MIN_SHOT_SPEED,
+  BOSS_ATTACK_MS, BOSS_GAP_MS, AIM_MAX_ANGLE_DEG, WARMUP_MS, WARMUP_DENSITY, BOSS_HP, BOSS_MIN_SHOT_SPEED, BOSS_VOLLEY_MS,
+  BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, BOSS_FAN, BOSS_ESCORTS, BOSS_AIMED_FROM_STAGE,
 } from '../config/balance.js';
-import { getDifficulty } from './difficulty.js';
-import { speedFor, canLaunch } from './speed.js';
+import { scaleInterval, getDifficulty } from './difficulty.js';
+import { cappedShotSpeed, aimVelocity } from './speed.js';
+import { bossArmorColor, hitsToDown } from './charge.js';
 
+export const BOSS_STAGES = BOSS_HP.normal.length;
 const MAX_FAN_ANGLE_DEG = 85; // keeps vy > 0 whatever the caller passes
 
+/** Per-difficulty balance tables (unknown key -> normal). */
+export const bossHp = (stage, diffKey) => BOSS_HP[getDifficulty(diffKey).key][stage - 1];
+export const bossGapMs = diffKey => BOSS_GAP_MS[getDifficulty(diffKey).key];
+/** Fan of a stage-2/3 volley { count: [min, max], spreadDeg }; null in stage 1 (one straight shot). */
+export const bossFan = (stage, diffKey) => BOSS_FAN[getDifficulty(diffKey).key][stage] ?? null;
+/** Scaled launch interval inside an attack window of this stage. */
+export const bossVolleyMs = (stage, diffKey) => scaleInterval(BOSS_VOLLEY_MS[getDifficulty(diffKey).key][stage], diffKey);
+/** Escort drones the boss wants on screen in this stage (0 in stage 1 / unknown stage). */
+export const escortTarget = (stage, diffKey) => BOSS_ESCORTS[getDifficulty(diffKey).key][stage] ?? 0;
+
 /**
- * Attack (BOSS_ATTACK_MS[stage]) then gap (BOSS_GAP_MS), repeating, from tInStageMs = 0.
+ * Attack (BOSS_ATTACK_MS[stage]) then gap (BOSS_GAP_MS[difficulty]), repeating, from tInStageMs = 0.
  * gapJustStarted is true when an attack->gap boundary lies in (prevTMs, tMs]; pass the previous frame's time.
  */
-export function bossCycle(stage, tInStageMs, prevTMs = null) {
+export function bossCycle(stage, tInStageMs, prevTMs = null, diffKey = 'normal') {
   const attack = BOSS_ATTACK_MS[stage];
-  const period = attack + BOSS_GAP_MS;
+  const period = attack + bossGapMs(diffKey);
   const t = Math.max(0, tInStageMs);
   const gapStarts = x => Math.floor((x - attack) / period) + 1; // boundaries at attack + k*period, k >= 0
   return {
@@ -34,23 +47,30 @@ export function fanVelocities(baseAngleDeg, count, spreadDeg, speed) {
   return out;
 }
 
+/**
+ * Velocities of one boss volley. Stage 1: one straight (or aimed) shot. Stages 2-3: a fan of fan.count shots; from BOSS_AIMED_FROM_STAGE an
+ * aimed volley adds one aimed shot. The fan centre and the aimed shot would be the same direction (both clamp to +-AIM_MAX_ANGLE_DEG), so an
+ * ODD fan is shifted by half its spacing and the aimed shot passes between two fan bullets (an even fan already has a gap there): no two shots
+ * of a volley ever coincide (they would be one bullet that hits the ship twice).
+ */
+export function bossVolleyShots({ stage, diffKey, from, ship, speed, aim, rng = Math.random }) {
+  const base = aim ? angleToward(from, ship) : 0;
+  const fan = bossFan(stage, diffKey);
+  if (!fan) return fanVelocities(base, 1, 0, speed);
+  const n = fan.count[0] + Math.floor(rng() * (fan.count[1] - fan.count[0] + 1));
+  const aimed = aim && stage >= BOSS_AIMED_FROM_STAGE;
+  const shift = aimed && n % 2 === 1 && n > 1 ? fan.spreadDeg / (n - 1) / 2 : 0;
+  const shots = fanVelocities(base + shift, n, fan.spreadDeg, speed);
+  if (aimed) shots.push(aimVelocity(from, ship, speed));
+  return shots;
+}
+
 /** Angle (deg from straight down) from `from` toward `to`, clamped to +-AIM_MAX_ANGLE_DEG; 0 if `to` is not below. */
 export function angleToward(from, to, maxDeg = AIM_MAX_ANGLE_DEG) {
   const dy = to.y - from.y;
   if (dy <= 0) return 0;
   const deg = Math.atan2(to.x - from.x, dy) * 180 / Math.PI;
   return Math.max(-maxDeg, Math.min(maxDeg, deg));
-}
-
-/**
- * One frame of the volley timer. In the attack window it counts down and fires at <= 0 (the caller then sets the next
- * interval); outside it re-arms to 0, so a volley fires as the next window opens. A stage rise sets it to
- * BOSS_STAGE_GRACE_MS (no launch under the white flash).
- */
-export function bossVolleyTick({ volleyMs, dtMs, attacking }) {
-  if (!attacking) return { volleyMs: 0, fire: false };
-  const left = volleyMs - dtMs;
-  return { volleyMs: left, fire: left <= 0 };
 }
 
 /** Spec 3.1 warm-up for the boss: no aimed shots, sparser volleys during the first WARMUP_MS. */
@@ -60,13 +80,26 @@ export function bossWarmup(elapsedMs, aimAllowed, intervalMs) {
 }
 
 /**
- * After a pierce: hp left -> same stage; hp 0 -> next stage with its full hp (BOSS_HP[stage]);
+ * After a pierce: hp left -> same stage; hp 0 -> next stage with its full hp (bossHp of that stage and difficulty);
  * hp 0 on the last stage -> cleared.
  */
-export function bossStageFromHp({ stage, hp }) {
+export function bossStageFromHp({ stage, hp, diffKey = 'normal' }) {
   if (hp > 0) return { stage, hp, cleared: false };
-  if (stage >= BOSS_HP.length) return { stage, hp: 0, cleared: true };
-  return { stage: stage + 1, hp: BOSS_HP[stage], cleared: false };
+  if (stage >= BOSS_STAGES) return { stage, hp: 0, cleared: true };
+  return { stage: stage + 1, hp: bossHp(stage + 1, diffKey), cleared: false };
+}
+
+/**
+ * Time-model estimate (seconds) of the whole boss fight: per stage, BOSS_STAGE_FIND_SEC plus the shots needed when the student charges
+ * with the armor's own color (1 damage per hit: the conservative case) x M3_SEC_PER_SHOT. Hotter charges would be faster.
+ */
+export function bossFightSec(diffKey) {
+  let sec = 0;
+  for (let st = 1; st <= BOSS_STAGES; st++) {
+    const armor = bossArmorColor(st, diffKey);
+    sec += BOSS_STAGE_FIND_SEC + hitsToDown(armor, armor, bossHp(st, diffKey)) * M3_SEC_PER_SHOT;
+  }
+  return sec;
 }
 
 /**
@@ -74,12 +107,11 @@ export function bossStageFromHp({ stage, hp }) {
  * reaction floor holds (canLaunch). null when even the capped speed is below BOSS_MIN_SHOT_SPEED.
  */
 export function bossShotSpeed({ fromY, shipY, diffKey, tier = 0, rng = Math.random }) {
-  const key = getDifficulty(diffKey).key;
-  const cap = 0.999 * (shipY - fromY) / REACTION_FLOOR_SEC.hazard[key]; // 0.1% margin: no float edge
-  const v = Math.min(speedFor('hazard', key, tier, rng), cap);
-  if (!(v >= BOSS_MIN_SHOT_SPEED)) return null;
-  return canLaunch({ fromY, shipY, speedPxS: v, category: 'hazard', diffKey: key }) ? v : null;
+  return cappedShotSpeed({ fromY, shipY, diffKey, tier, minSpeed: BOSS_MIN_SHOT_SPEED, rng });
 }
+
+/** After a stage change: no volley until one full (difficulty-scaled) volley interval of the new stage has passed. */
+export const stageChangeVolleyMs = (stage, diffKey) => bossVolleyMs(stage, diffKey);
 
 /** Horizontal sway offset (px) at time tMs. */
 export function swayOffset(tMs, amp, periodMs, phase = 0) {

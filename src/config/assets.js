@@ -3,7 +3,6 @@
 // { key, path: 'img/<file>.png' } here. Opaque backgrounds/title/briefing art are JPEG (q85) to keep the boot download small. Loaded keys: ship (256x304, scaled to the 64x76 footprint),
 // asteroid-1..3, drone (128x128, shown on the 80 px enemy footprint), boss (512x320, 300 px wide on screen), star-shape, furnace-shape (grayscale, tinted by code), bg-space-far, bg-space-near, bg-furnace,
 // title-art, glass-craft, briefing-m1..m4. Scenes read them by key (some are wired in later tasks).
-// public/img/bg-cluster.jpg is kept but NOT listed: only the old m4 used it, and nothing should download unused art at boot.
 // Code-baked textures (starTextures.js) skip baking when a loaded texture already has the same key.
 export const IMAGE_ASSETS = [
   { key: 'ship', path: 'img/ship.png' },

@@ -1,6 +1,7 @@
 import { GAME_WIDTH, GAME_HEIGHT } from './config/game.js';
 import { ROTATE_QUERY, applyOrientation } from './config/orientation.js';
 import { showBootError } from './config/bootError.js';
+import { loadGameFont } from './config/fontLoad.js';
 import { parseDebug, debugRegistryDefaults } from './config/debug.js';
 
 export { GAME_WIDTH, GAME_HEIGHT };
@@ -10,11 +11,15 @@ async function boot() {
   // JS is the only thing that shows it: CSS reads <html class="rotate"> (see config/orientation.js).
   const mq = window.matchMedia(ROTATE_QUERY);
   let game = null;
-  const sync = () => applyOrientation(mq.matches, {
-    root: document.documentElement,
-    loop: game?.loop,
-    onWake: () => game.events.emit('loop-wake'), // DebugFpsScene ignores the first frames after this
-  });
+  let bgm = null; // loaded below; sync() runs once before that
+  const sync = () => {
+    bgm?.setSuspended('rotate', mq.matches); // music follows the landscape sleep
+    return applyOrientation(mq.matches, {
+      root: document.documentElement,
+      loop: game?.loop,
+      onWake: () => game.events.emit('loop-wake'), // DebugFpsScene ignores the first frames after this
+    });
+  };
   sync();
   mq.addEventListener('change', sync);
 
@@ -22,6 +27,9 @@ async function boot() {
   const { default: Phaser } = await import('phaser');
   const { sfx } = await import('./audio/sfx.js');
   sfx.installUnlock(window); // AudioContext is created/resumed on the first touch
+  ({ bgm } = await import('./audio/bgm.js')); // starts the wanted track on that same first touch
+  bgm.setSuspended('rotate', mq.matches); // landscape sleep = music paused too (re-applied in sync() below)
+  document.addEventListener('visibilitychange', () => bgm.setSuspended('hidden', document.hidden));
   const { default: BootScene } = await import('./scenes/BootScene.js');
   const { default: TitleScene } = await import('./scenes/TitleScene.js');
   const { default: BriefingScene } = await import('./scenes/BriefingScene.js');
@@ -45,6 +53,8 @@ async function boot() {
       colorsView = true;
     }
   }
+
+  await loadGameFont(); // Orbit ready (max ~3 s, never throws) before any canvas text is drawn
 
   game = new Phaser.Game({
     type: Phaser.AUTO,

@@ -13,7 +13,7 @@ import { predicateJudge } from '../logic/judges.js';
 import {
   furnaceStageAt, furnaceFallFraction, countsAsWhite, practiceToastDue, pickBlobStart, stageStartFraction,
 } from '../logic/furnace.js';
-import { MISSION_TEXT } from '../data/copy.js';
+import { MISSION_TEXT, BANNER_TEXT } from '../data/copy.js';
 
 const SPAWN_Y = -60;
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -23,7 +23,6 @@ export default class M1FurnaceScene extends BaseMissionScene {
     super('m1');
     this.showGauge = false;
     this.backdropKey = 'bg-furnace'; // static furnace interior
-    this.toastAt = 'low'; // toasts below the white zone, never on top of it
   }
 
   buildPhases() {
@@ -80,9 +79,6 @@ export default class M1FurnaceScene extends BaseMissionScene {
     this.phaseMs = 0;
     this.asteroidSpeed = createFormationMemo(); // formation indices restart each phase
     this.blobSpeed = createFormationMemo();
-    if (!phase.practice) {
-      this.toast('이제 진짜예요! 흰색일 때만 쏘고, 부딪히면 선체 온도가 올라가요.', { tone: 'info' });
-    }
   }
 
   spawnObject(phase, slot) {
@@ -132,12 +128,12 @@ export default class M1FurnaceScene extends BaseMissionScene {
     const kind = result.neutral ? 'cooled' : 'white';
     if (!practiceToastDue(this.lastPracticeToast[kind], this.clockMs)) return;
     this.lastPracticeToast[kind] = this.clockMs;
-    this.toast(kind === 'white' ? '흰색일 때 맞혔어요! 가장 뜨거운 쇳물이에요.' : '이미 식은 쇳물이에요. 흰색일 때 쏴 보세요.', { tone: 'info' });
+    this.toast(kind === 'white' ? '흰색일 때 맞혔어요!\n가장 뜨거운 쇳물이에요.' : '이미 식은 쇳물이에요.\n흰색일 때 쏴 보세요.', { tone: 'info' });
   }
 
   onPhaseComplete(phase) {
     if (phase.practice) {
-      this.advancePhase();
+      this.startTransition({ ...BANNER_TEXT.m1, onDone: () => this.advancePhase() }); // practice -> test
       return;
     }
     this.completeMission({

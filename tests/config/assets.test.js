@@ -12,10 +12,6 @@ describe('assets config', () => {
   it('every image entry has its file on disk', () => {
     for (const { key, path } of IMAGE_ASSETS) expect(existsSync(pub(path)), `${key} ${path}`).toBe(true);
   });
-  it('bg-cluster (only the old m4 used it) is not downloaded at boot; the file stays for later use', () => {
-    expect(IMAGE_ASSETS.map(a => a.key)).not.toContain('bg-cluster');
-    expect(existsSync(pub('img/bg-cluster.jpg'))).toBe(true);
-  });
   it('every atlas entry has its png and json on disk', () => {
     for (const { key, png, json } of ATLAS_ASSETS) {
       expect(existsSync(pub(png)), `${key} png`).toBe(true);

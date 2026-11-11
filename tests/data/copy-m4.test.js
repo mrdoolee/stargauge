@@ -8,7 +8,7 @@ import { HUD_SAFE_MARGIN } from '../../src/config/balance.js';
 const BAND_W = GAME_WIDTH - 2 * HUD_SAFE_MARGIN - 140;
 const FONT_PX = 30;
 
-// Conservative advance widths at 30 px (Hangul a full em; Malgun Gothic / Noto Sans KR are slightly narrower).
+// Conservative advance widths at 30 px (Hangul a full em; Orbit, Malgun Gothic and Noto Sans KR are all at or below that).
 function glyphW(ch) {
   if (/[ㄱ-ㆎ가-힣]/.test(ch)) return FONT_PX;
   if (ch === ' ') return 0.3 * FONT_PX;
@@ -37,12 +37,12 @@ describe('MISSION_TEXT.m4 HUD band', () => {
   const line = `${MISSION_TEXT.m4.instruction} (${formatTime(210)})`;
 
   it('says to charge with hot stars and pierce the boss armor, and to dodge bullets', () => {
-    expect(MISSION_TEXT.m4.instruction).toBe('뜨거운 별로 충전해서 보스 함선의 장갑을 뚫으세요! 탄은 피해요');
+    expect(MISSION_TEXT.m4.instruction).toBe('뜨거운 별로 충전해서\n보스 장갑을 뚫고 탄은 피해요');
   });
 
   it('instruction + timer suffix fits two lines at 30 px in the 532 px band', () => {
     expect(BAND_W).toBe(532);
-    const lines = wrapLines(line, BAND_W);
+    const lines = line.split('\n').flatMap(part => wrapLines(part, BAND_W)); // explicit breaks, then Phaser's wrap per part
     expect(lines.length).toBeLessThanOrEqual(2);
     expect(line.length).toBeLessThanOrEqual(44); // pin: a longer text needs a new fit check
   });

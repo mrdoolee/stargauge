@@ -32,6 +32,18 @@ export const safeDistancePx = (category, diffKey, speedPxS) =>
 export const canLaunch = ({ fromY, shipY, speedPxS, category, diffKey }) =>
   shipY - fromY >= safeDistancePx(category, diffKey, speedPxS);
 
+/**
+ * Speed of one hazard shot fired from fromY at a ship on shipY: the hazard speed for the tier, capped so the reaction
+ * floor holds (canLaunch). null when even the capped speed is below minSpeed (ship right under the muzzle).
+ */
+export function cappedShotSpeed({ fromY, shipY, diffKey, tier = 0, minSpeed, rng = Math.random }) {
+  const key = getDifficulty(diffKey).key;
+  const cap = 0.999 * (shipY - fromY) / REACTION_FLOOR_SEC.hazard[key]; // 0.1% margin: no float edge
+  const v = Math.min(speedFor('hazard', key, tier, rng), cap);
+  if (!(v >= minSpeed)) return null;
+  return canLaunch({ fromY, shipY, speedPxS: v, category: 'hazard', diffKey: key }) ? v : null;
+}
+
 /** Velocity of magnitude speedPxS from `from` toward `to`, always downward, angle (from +y) clamped. */
 export function aimVelocity(from, to, speedPxS, maxAngleDeg = AIM_MAX_ANGLE_DEG) {
   const dx = to.x - from.x;

@@ -7,7 +7,8 @@ import {
 } from '../../src/logic/difficulty.js';
 import {
   STAR_HEAT, FURNACE_HEAT, ASTEROID_HEAT, BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_VOLLEY_MS, BOSS_FAN_SHIP_HITS,
-  FORMATION_GAP_MS, M3_STAR_POOL, DRONE_MAX_ON_SCREEN, DRONE_FIRE_MS, MISSED_STAR_SHARE, DRONE_ALIVE_DUTY,
+  FORMATION_GAP_MS, M3_STAR_POOL, M4_STAR_POOL, DRONE_MAX_ON_SCREEN, DRONE_FIRE_MS, MISSED_STAR_SHARE, DRONE_ALIVE_DUTY,
+  BOSS_ESCORTS, BOSS_ESCORT_FIRE_MS, BOSS_AIMED_FROM_STAGE,
 } from '../../src/config/balance.js';
 
 describe('DIFFICULTY table', () => {
@@ -91,7 +92,9 @@ describe('m3/m4 shooter density stays up (not fitted by thinning the game)', () 
     expect(b.DRONE_MAX_ON_SCREEN).toBeGreaterThanOrEqual(3);
     expect(b.FORMATION_GAP_MS.m3).toBeLessThanOrEqual(2800);
     expect(b.FORMATION_GAP_MS.m4).toBeLessThanOrEqual(3000);
-    expect(b.BOSS_GAP_MS).toBeLessThanOrEqual(4500);
+    for (const k of ['easy', 'normal', 'hard']) expect(b.BOSS_GAP_MS[k]).toBeLessThanOrEqual(4500);
+    expect(b.BOSS_GAP_MS.normal).toBeLessThan(4500); // the boss rests less (brief 2026-11-07)
+    expect(b.BOSS_GAP_MS.hard).toBeLessThan(b.BOSS_GAP_MS.normal);
     expect(b.MISSED_STAR_SHARE).toBe(0.25);
     expect(b.DRONE_ALIVE_DUTY).toBe(0.6);
   });
@@ -101,35 +104,41 @@ describe('m3/m4 shooter density stays up (not fitted by thinning the game)', () 
 });
 
 describe('m4 boss stages', () => {
-  it('every stage respects the easy / hard bounds and the difficulty order', () => {
-    for (const st of [1, 2, 3]) {
+  it('stage 1 and stage 3 respect the easy / hard bounds and the difficulty order', () => {
+    for (const st of [1, 3]) {
       const [e, n, h] = DIFFICULTY_KEYS.map(k => requiredDodgeFraction('m4', k, st));
       expect(e).toBeLessThanOrEqual(0.4); expect(h).toBeLessThan(0.9);
       expect(e).toBeLessThanOrEqual(n); expect(n).toBeLessThanOrEqual(h);
     }
   });
-  it('counts the volley that fires as the window opens (ceil) and a fan as BOSS_FAN_SHIP_HITS shots', () => {
+  it('= missed charge stars (M4_STAR_POOL mean x MISSED_STAR_SHARE) + boss volleys (ceil per window, fan = BOSS_FAN_SHIP_HITS shots, aimed shot from stage 2, not on easy) + escort bullets (alive duty, BOSS_ESCORT_FIRE_MS)', () => {
     expect(BOSS_FAN_SHIP_HITS).toBe(1.5);
-    const volleys = Math.ceil(BOSS_ATTACK_MS[3] / (BOSS_VOLLEY_MS[3] * DIFFICULTY.normal.spawnInterval));
-    const heat = scaledHeat('asteroid', null, 'normal'); // the engine's boss-bullet heat (handleBulletHit)
-    const boss = (volleys * (BOSS_FAN_SHIP_HITS + 1) * heat) / ((BOSS_ATTACK_MS[3] + BOSS_GAP_MS) / 1000);
-    const meanStar = Object.keys(STAR_HEAT).reduce((a, c) => a + scaledHeat('star', c, 'normal'), 0) / 7;
-    const stars = formationSlotsPerSec(FORMATION_GAP_MS.m4, 'normal') * meanStar * MISSED_STAR_SHARE;
-    expect(heatInflowPerSec('m4', 'normal', 3)).toBeCloseTo(boss + stars, 6);
-  });
-  it('volleys per window stay away from an integer cliff (no silent 1 <-> 2 flip from a small tweak)', () => {
+    expect(BOSS_AIMED_FROM_STAGE).toBe(2);
     for (const k of DIFFICULTY_KEYS) for (const st of [1, 2, 3]) {
-      const r = BOSS_ATTACK_MS[st] / scaleInterval(BOSS_VOLLEY_MS[st], k);
-      const frac = r - Math.floor(r);
-      expect(frac, `${k} stage ${st}: ${r.toFixed(3)}`).toBeGreaterThanOrEqual(0.15);
-      expect(frac, `${k} stage ${st}: ${r.toFixed(3)}`).toBeLessThanOrEqual(0.85);
+      const volleys = Math.ceil(BOSS_ATTACK_MS[st] / (BOSS_VOLLEY_MS[k][st] * DIFFICULTY[k].spawnInterval));
+      const heat = scaledHeat('star', 'blue', k);
+      const aimed = k !== 'easy' && st >= BOSS_AIMED_FROM_STAGE ? 1 : 0;
+      const boss = (volleys * ((st === 1 ? 1 : BOSS_FAN_SHIP_HITS) + aimed) * heat) / ((BOSS_ATTACK_MS[st] + BOSS_GAP_MS[k]) / 1000);
+      const poolStar = M4_STAR_POOL.reduce((a, c) => a + scaledHeat('star', c, k), 0) / M4_STAR_POOL.length;
+      const stars = formationSlotsPerSec(FORMATION_GAP_MS.m4, k) * poolStar * MISSED_STAR_SHARE;
+      const escorts = BOSS_ESCORTS[k][st] * DRONE_ALIVE_DUTY * (1000 / BOSS_ESCORT_FIRE_MS[k]) * scaledHeat('asteroid', null, k);
+      expect(heatInflowPerSec('m4', k, st)).toBeCloseTo(boss + stars + escorts, 6);
     }
   });
-  it('every stage fires at least two volleys per attack window, inside the agreed 3000 ms interval cap', () => {
-    for (const st of [1, 2, 3]) expect(BOSS_VOLLEY_MS[st]).toBeLessThanOrEqual(3000);
-    for (const k of DIFFICULTY_KEYS) for (const st of [1, 2, 3]) {
-      expect(Math.ceil(BOSS_ATTACK_MS[st] / scaleInterval(BOSS_VOLLEY_MS[st], k))).toBeGreaterThanOrEqual(2);
+  it('escorts add heat only in the stages that have them', () => {
+    for (const k of ['normal', 'hard']) {
+      expect(BOSS_ESCORTS[k][1]).toBe(0);
+      expect(BOSS_ESCORTS[k][2]).toBeGreaterThan(0);
     }
+  });
+  it('the boss is the hardest stage: m4 needs more dodging than m3 on normal and hard (teacher 2026-11-07)', () => {
+    for (const k of ['normal', 'hard']) {
+      expect(requiredDodgeFraction('m4', k)).toBeGreaterThan(requiredDodgeFraction('m3', k));
+    }
+  });
+  it('m4 dodge is at least m3 dodge on EVERY difficulty, and easy m4 stays within 0.4 (controller ruling 2026-11-07)', () => {
+    for (const k of DIFFICULTY_KEYS) expect(requiredDodgeFraction('m4', k)).toBeGreaterThanOrEqual(requiredDodgeFraction('m3', k));
+    expect(requiredDodgeFraction('m4', 'easy')).toBeLessThanOrEqual(0.4);
   });
   it('no-stage m4 is the worst stage', () => {
     for (const k of DIFFICULTY_KEYS) {

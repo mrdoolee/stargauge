@@ -36,7 +36,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -108,7 +108,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -144,7 +144,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -180,7 +180,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -216,7 +216,7 @@
         "native_scale_reviewed": true,
         "in_engine_reviewed": true,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -252,7 +252,7 @@
         "native_scale_reviewed": true,
         "in_engine_reviewed": true,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -288,7 +288,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -324,7 +324,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -360,7 +360,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -396,7 +396,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -432,12 +432,12 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
       "id": "bg-cluster",
-      "role": "mission 4 cluster background (unused since the m3/m4 shooter redesign: not in IMAGE_ASSETS, not loaded at boot)",
+      "role": "mission 4 cluster background",
       "path": "public/img/bg-cluster.jpg",
       "status": "generated",
       "technical": {
@@ -468,12 +468,12 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
       "id": "title-art",
-      "role": "title screen art",
+      "role": "title screen art (planet limb + rising ship, upper 40% and lower 20% left open for the overlaid title and buttons)",
       "path": "public/img/title-art.jpg",
       "status": "generated",
       "technical": {
@@ -490,21 +490,21 @@
         "silhouette",
         "light-direction"
       ],
-      "prompt": "Title screen artwork: a mint-and-silver exploration spaceship flying up through a dark navy sky with a soft nebula, leaving the upper third and lower third empty for overlaid text. No stars drawn as dots, no star points. Style: crisp hand-painted HD 2D game sprite, chunky detailed panels and rivets like classic 90s arcade shooters but clean and high resolution, soft cel shading, subtle glow. Not pixel art, no low-res blur, no WWII aircraft or military uniforms. NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "prompt": "Composition: the dark curved limb of a huge planet fills the bottom quarter with a thin mint-teal atmospheric rim glow; the explorer ship, small, rises away from the horizon toward the empty dark sky above, leaving a thin straight light trail. Calm, majestic, minimal. Portrait 2:3 key art for the title screen of a calm, refined science-education space game. Leave the upper 40% mostly empty dark space for an overlaid game title, and the lower 20% quiet for buttons. Palette: deep navy-black #05070f, muted teal and silver, mint #7ef2d4 accents only; no saturated blue, yellow, orange or red as main colors. The ship design must match the reference image (mint-and-silver explorer ship). No stars drawn as dots, no star points, no sparkles, no constellations. Elegant, cinematic, minimal, premium sci-fi poster feel, soft volumetric light, fine detail, clean high resolution digital painting, not cartoonish, not busy. NO text, NO letters, NO numbers, NO logos, NO watermark, NO UI.",
       "source": {
         "kind": "generated",
         "url_or_tool": "OpenAI Images API",
         "creator": "",
-        "created_at": "2026-11-04",
+        "created_at": "2026-11-07",
         "license": "",
         "attribution": "",
-        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+        "prompt_or_source_record": "see prompt field; candidate art/raw/title-candidates/title-b.png (ref art/raw/ship-style-a.png); model in art/PROVENANCE.md"
       },
       "verification": {
         "native_scale_reviewed": false,
-        "in_engine_reviewed": false,
+        "in_engine_reviewed": true,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": "teacher (mock-b-orb, 2026-11-07)"
       }
     },
     {
@@ -540,7 +540,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -612,7 +612,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -648,7 +648,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -684,7 +684,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     },
     {
@@ -720,7 +720,7 @@
         "native_scale_reviewed": false,
         "in_engine_reviewed": false,
         "technical_checks_passed": true,
-        "approved_by": "teacher 2026-11-11"
+        "approved_by": ""
       }
     }
   ]

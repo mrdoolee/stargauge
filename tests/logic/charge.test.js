@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   chargeLevel, canPierce, piercingColors, pickShieldColor, bossArmorColor, resolveBeamOnEnemy, initialCharge, enemyHitOutcome,
+  beamDamage, hitsToDown,
+  beamCanTouch, bounceCounts,
 } from '../../src/logic/charge.js';
-import { DRONE_SHIELDS } from '../../src/config/balance.js';
+import { DRONE_SHIELDS, HUD_BAND_BOTTOM } from '../../src/config/balance.js';
 
 describe('charge', () => {
   it('chargeLevel by color', () => {
@@ -32,13 +34,29 @@ describe('charge', () => {
     expect(bossArmorColor(3, 'normal')).toBe('blueWhite');
     expect(bossArmorColor(1, 'easy')).toBe('yellow');
   });
-  it('resolveBeamOnEnemy', () => {
-    expect(resolveBeamOnEnemy({ charge: 'blue', shieldKey: 'white', hp: 1 })).toEqual({ pierced: true, hp: 0, down: true });
-    expect(resolveBeamOnEnemy({ charge: 'red', shieldKey: 'white', hp: 3 })).toEqual({ pierced: false, hp: 3, down: false });
+  it('beamDamage: 1 + (beam level - shield level), 0 when colder', () => {
+    expect(beamDamage('white', 'white')).toBe(1);
+    expect(beamDamage('blueWhite', 'white')).toBe(2);
+    expect(beamDamage('blue', 'white')).toBe(3);
+    expect(beamDamage('yellow', 'white')).toBe(0);
+    expect(beamDamage(null, 'red')).toBe(0);
+    expect(beamDamage('red', null)).toBe(1);
+    expect(beamDamage(null, null)).toBe(1);
+  });
+  it('resolveBeamOnEnemy: damage grows with charge temperature above the shield', () => {
+    expect(resolveBeamOnEnemy({ charge: 'blue', shieldKey: 'white', hp: 3 })).toEqual({ pierced: true, hp: 0, down: true, damage: 3 });
+    expect(resolveBeamOnEnemy({ charge: 'white', shieldKey: 'white', hp: 3 })).toEqual({ pierced: true, hp: 2, down: false, damage: 1 });
+    expect(resolveBeamOnEnemy({ charge: 'red', shieldKey: 'white', hp: 3 })).toEqual({ pierced: false, hp: 3, down: false, damage: 0 });
+    expect(resolveBeamOnEnemy({ charge: 'blue', shieldKey: 'yellowWhite', hp: 2 })).toEqual({ pierced: true, hp: 0, down: true, damage: 4 });
+  });
+  it('hitsToDown', () => {
+    expect(hitsToDown('white', 'white', 3)).toBe(3);
+    expect(hitsToDown('blueWhite', 'white', 3)).toBe(2);
+    expect(hitsToDown('yellow', 'white', 3)).toBe(Infinity);
   });
   it('unshielded enemy (shieldKey null) is pierced, even by a plain beam', () => {
-    expect(resolveBeamOnEnemy({ charge: 'red', shieldKey: null, hp: 2 })).toEqual({ pierced: true, hp: 1, down: false });
-    expect(resolveBeamOnEnemy({ charge: null, shieldKey: null, hp: 1 })).toEqual({ pierced: true, hp: 0, down: true });
+    expect(resolveBeamOnEnemy({ charge: 'red', shieldKey: null, hp: 2 })).toEqual({ pierced: true, hp: 1, down: false, damage: 1 });
+    expect(resolveBeamOnEnemy({ charge: null, shieldKey: null, hp: 1 })).toEqual({ pierced: true, hp: 0, down: true, damage: 1 });
   });
   it('enemyHitOutcome', () => {
     const blocked = { pierced: false, hp: 3, down: false };
@@ -56,17 +74,40 @@ describe('charge', () => {
   });
 });
 
-import { enemyBeamable } from '../../src/logic/charge.js';
-import { HUD_BAND_BOTTOM, BOSS_POS, DRONE_LANES_Y } from '../../src/config/balance.js';
-
-describe('enemyBeamable', () => {
-  it('an enemy still behind the HUD band (flying in) cannot be hit, so no invisible bounce costs a star', () => {
-    expect(enemyBeamable({ y: -40 })).toBe(false);
-    expect(enemyBeamable({ y: HUD_BAND_BOTTOM - 1 })).toBe(false);
-    expect(enemyBeamable({ y: HUD_BAND_BOTTOM })).toBe(true);
+describe('beam judged by its own fire-time charge', () => {
+  it('a blue beam pierces white and a red beam bounces, whatever the current charge is', () => {
+    const blue = resolveBeamOnEnemy({ charge: 'blue', shieldKey: 'white', hp: 2 });
+    const red = resolveBeamOnEnemy({ charge: 'red', shieldKey: 'white', hp: 2 });
+    expect(blue.pierced).toBe(true);
+    expect(red.pierced).toBe(false);
   });
-  it('patrolling drones and the boss are hittable', () => {
-    for (const y of DRONE_LANES_Y) expect(enemyBeamable({ y })).toBe(true);
-    expect(enemyBeamable({ y: BOSS_POS.y })).toBe(true);
+});
+
+describe('beamCanTouch (HUD band)', () => {
+  it('charge mode: only below the HUD band', () => {
+    expect(beamCanTouch({ chargeMode: true, y: HUD_BAND_BOTTOM })).toBe(false);
+    expect(beamCanTouch({ chargeMode: true, y: 100 })).toBe(false);
+    expect(beamCanTouch({ chargeMode: true, y: HUD_BAND_BOTTOM + 1 })).toBe(true);
+  });
+  it('m1/m2 (no charge mode) keep the old behavior', () => {
+    expect(beamCanTouch({ chargeMode: false, y: 100 })).toBe(true);
+    expect(beamCanTouch({ chargeMode: undefined, y: -50 })).toBe(true);
+  });
+});
+
+describe('bounceCounts', () => {
+  it('does not count an uncharged beam', () => {
+    expect(bounceCounts({ beamKey: null, firedAtMs: 500, shieldChangedAtMs: 0 })).toBe(false);
+  });
+  it('does not count a beam fired before the shield changed', () => {
+    expect(bounceCounts({ beamKey: 'blue', firedAtMs: 900, shieldChangedAtMs: 1000 })).toBe(false);
+  });
+  it('never counts a bounce off an optional target (m4 escort drone), however the beam was charged', () => {
+    expect(bounceCounts({ beamKey: 'red', firedAtMs: 2000, shieldChangedAtMs: 1000, optionalTarget: true })).toBe(false);
+    expect(bounceCounts({ beamKey: 'red', firedAtMs: 2000, shieldChangedAtMs: 1000, optionalTarget: false })).toBe(true);
+  });
+  it('counts a charged beam fired at/after the shield was set', () => {
+    expect(bounceCounts({ beamKey: 'red', firedAtMs: 1000, shieldChangedAtMs: 1000 })).toBe(true);
+    expect(bounceCounts({ beamKey: 'red', firedAtMs: 2000, shieldChangedAtMs: 1000 })).toBe(true);
   });
 });

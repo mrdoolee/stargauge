@@ -3,7 +3,7 @@
 
 import { STAR_COLORS } from '../logic/temperature.js';
 
-export const FONT = '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
+export const FONT = 'Orbit, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
 
 const ORDERED = [...STAR_COLORS].sort((a, b) => a.rank - b.rank);
 

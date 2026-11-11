@@ -43,7 +43,7 @@ export function drawGlassCraft(scene, slot, anchors, font) {
   g.fillStyle(0xffffff, 0.35);
   g.fillEllipse(x - 20, cy - 30, 190, 14);
 
-  const style = { fontFamily: font, fontSize: '40px', fontStyle: 'bold', color: '#ffffff', stroke: '#101424', strokeThickness: 7 };
+  const style = { fontFamily: font, fontSize: '40px', color: '#ffffff', stroke: '#101424', strokeThickness: 7 };
   const a = scene.add.text(anchors.left.x, anchors.left.y, '(가)', style).setOrigin(0.5);
   const b = scene.add.text(anchors.right.x, anchors.right.y, '(나)', style).setOrigin(0.5);
   return [g, a, b];

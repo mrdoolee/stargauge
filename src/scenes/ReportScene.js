@@ -8,6 +8,7 @@ import { reportLayout, REPORT_L } from '../logic/reportLayout.js';
 import { hasImage } from '../config/assets.js';
 import { drawGlassCraft } from '../objects/glassCraft.js';
 import { armButton } from '../ui/button.js';
+import { bgm } from '../audio/bgm.js';
 
 const Q2_LAYOUT = reportLayout(QUIZ.find(q => q.id === 'q2').choices.length, true);
 
@@ -38,6 +39,7 @@ export default class ReportScene extends Phaser.Scene {
   }
 
   create() {
+    bgm.requestForScene(this.scene.key);
     this.answers = [];
     this.ui = [];
     this.leaving = false;
@@ -58,7 +60,7 @@ export default class ReportScene extends Phaser.Scene {
   button(x, y, w, h, label, fill, fontSize, onTap) {
     const r = this.addUi(this.add.rectangle(x, y, w, h, fill, 1).setStrokeStyle(3, 0xffffff, 0.4));
     this.addUi(this.add.text(x, y, label, {
-      fontFamily: FONT, fontSize: `${fontSize}px`, fontStyle: 'bold', color: '#ffffff', align: 'center',
+      fontFamily: FONT, fontSize: `${fontSize}px`, color: '#ffffff', align: 'center',
       wordWrap: { width: w - 40, useAdvancedWrap: true },
     }).setOrigin(0.5), D + 1);
     armButton(r, () => onTap(r)); // a press that started on it, >= 300 ms after it appeared
@@ -70,7 +72,7 @@ export default class ReportScene extends Phaser.Scene {
     const anchors = q2LabelAnchors(slot);
     if (hasImage(this, slot.key)) {
       this.addUi(this.add.image(x, y + h / 2, slot.key).setDisplaySize(w, h));
-      const style = { fontFamily: FONT, fontSize: '40px', fontStyle: 'bold', color: '#ffffff', stroke: '#101424', strokeThickness: 7 };
+      const style = { fontFamily: FONT, fontSize: '40px', color: '#ffffff', stroke: '#101424', strokeThickness: 7 };
       this.addUi(this.add.text(anchors.left.x, anchors.left.y, '(가)', style).setOrigin(0.5), D + 1);
       this.addUi(this.add.text(anchors.right.x, anchors.right.y, '(나)', style).setOrigin(0.5), D + 1);
       return;
@@ -87,8 +89,8 @@ export default class ReportScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: '32px', color: '#8fd3ff',
     }).setOrigin(0.5));
     this.addUi(this.add.text(cx, L.prompt.top, q.prompt, {
-      fontFamily: FONT, fontSize: '38px', fontStyle: 'bold', color: '#ffffff', align: 'center', lineSpacing: 10,
-      wordWrap: { width: GAME_WIDTH - 100, useAdvancedWrap: true },
+      fontFamily: FONT, fontSize: '36px', color: '#ffffff', align: 'center', lineSpacing: 10,
+      wordWrap: { width: GAME_WIDTH - 40, useAdvancedWrap: true },
     }).setOrigin(0.5, 0));
 
     const hasImage = q.id === Q2_IMAGE_SLOT.qid;

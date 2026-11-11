@@ -1,7 +1,7 @@
 // Mission 3 drones (pure): wave layout, enemy shots, and which charge colors pierce what is on screen.
-import { speedFor, canLaunch, aimVelocity } from './speed.js';
+import { cappedShotSpeed, aimVelocity } from './speed.js';
+import { DRONE_MUZZLE_DY, DRONE_MIN_SHOT_SPEED } from '../config/balance.js';
 import { chargeLevel, piercingColors } from './charge.js';
-import { DRONE_MUZZLE_DY } from '../config/balance.js';
 
 const MIN_GAP = 120; // px between drones of one wave
 const MAX_COUNT = 3;
@@ -22,24 +22,16 @@ export function droneFormation({ count, minX, maxX, rng = Math.random }) {
 }
 
 /**
- * One drone shot: { vx, vy, y } (y = launch point, drone.y + muzzleDy) or null when the ship is too close to react
- * from that launch point. Easy / warm-up / no-aim shoot straight down.
+ * One drone shot: { vx, vy }. Safe distance is measured from the real bullet spawn (drone.y + DRONE_MUZZLE_DY); when the ship is
+ * close the speed is capped (reaction floor holds) instead of skipping. null only when even the minimum speed is unsafe.
+ * Easy / warm-up / no-aim shoot straight down.
  */
-export function droneShot({ drone, ship, diffKey, tier, aimAllowed, warmup, muzzleDy = DRONE_MUZZLE_DY, rng = Math.random }) {
-  const speed = speedFor('hazard', diffKey, tier, rng);
-  const from = { x: drone.x, y: drone.y + muzzleDy };
-  if (!canLaunch({ fromY: from.y, shipY: ship.y, speedPxS: speed, category: 'hazard', diffKey })) return null;
-  if (diffKey === 'easy' || warmup || !aimAllowed) return { vx: 0, vy: speed, y: from.y };
-  return { ...aimVelocity(from, ship, speed), y: from.y };
-}
-
-/** A random free patrol lane index (not in `taken`) out of laneCount, or null when every lane is taken. */
-export function pickDroneLane(taken, laneCount, rng = Math.random) {
-  const used = new Set(taken ?? []);
-  const free = [];
-  for (let i = 0; i < laneCount; i++) if (!used.has(i)) free.push(i);
-  if (!free.length) return null;
-  return free[Math.min(free.length - 1, Math.floor(rng() * free.length))];
+export function droneShot({ drone, ship, diffKey, tier, aimAllowed, warmup, rng = Math.random, minSpeed = DRONE_MIN_SHOT_SPEED }) {
+  const from = { x: drone.x, y: drone.y + DRONE_MUZZLE_DY };
+  const speed = cappedShotSpeed({ fromY: from.y, shipY: ship.y, diffKey, tier, minSpeed, rng });
+  if (speed === null) return null;
+  if (diffKey === 'easy' || warmup || !aimAllowed) return { vx: 0, vy: speed };
+  return aimVelocity(from, ship, speed);
 }
 
 /** Star colors that pierce every shield on screen (set by the highest one); no drones -> what pierces white. */

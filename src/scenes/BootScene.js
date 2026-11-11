@@ -16,7 +16,7 @@ export default class BootScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
     const label = this.add.text(cx, cy - 50, '불러오는 중… 0%', {
-      fontFamily: FONT, fontSize: '40px', fontStyle: 'bold', color: '#ffffff',
+      fontFamily: FONT, fontSize: '40px', color: '#ffffff',
     }).setOrigin(0.5);
     this.add.rectangle(cx, cy + 10, BAR_W + 8, BAR_H + 8, 0x1b2540, 1).setStrokeStyle(3, 0x6f86b3, 0.9);
     const fill = this.add.rectangle(cx - BAR_W / 2, cy + 10, 0, BAR_H, 0x8fd3ff, 1).setOrigin(0, 0.5);

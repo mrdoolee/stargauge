@@ -2,9 +2,11 @@
 import {
   M1_PRACTICE_SEC, M4_TIME_LIMIT_SEC, FORMATION_GAP_MS,
   M1_ASTEROID_SLOT_CHANCE, MISSION_GOAL_COUNTS, SPAWN_NEEDED_GUARANTEE, M3_DRONE_GOAL,
+  DRONE_HP, M3_DRONE_FIND_SEC, M3_SEC_PER_SHOT,
 } from '../config/balance.js';
 import { STAR_COLORS } from './temperature.js';
 import { effectiveWhiteShare } from './furnace.js';
+import { bossFightSec } from './boss.js';
 import { getDifficulty, formationSlotsPerSec } from './difficulty.js';
 
 /**
@@ -17,9 +19,12 @@ export const PACE = {
   hit: { m1: 0.3, m2: 0.25 },
   read: { title: 10, briefing: 25, m1: 25, m2: 25, m3: 25, m4: 15, card: 15, chart: 45 },
   // UNMEASURED assumptions (no playtest yet): seconds a student needs per shot-down drone (find a hot star, charge, aim, dodge)
-  // and for the whole boss fight (24 hp over three stages). m4 is capped by M4_TIME_LIMIT_SEC.
-  m3SecPerDrone: 18,
-  m4BossSec: 150,
+  // and for the whole boss fight (bossFightSec). m4 is capped by M4_TIME_LIMIT_SEC.
+  // Derived from the damage rule (2026-11-06): find + charge, then DRONE_HP shots (the student mostly charges with the shield's own
+  // color, which deals 1 per hit; hotter stars would be faster, so this is the conservative case). Easy 5 x 30 s keeps the
+  // easy total under 900 s (see flow.test.js), so M3_DRONE_GOAL stays unchanged.
+  m3SecPerDrone: M3_DRONE_FIND_SEC + DRONE_HP * M3_SEC_PER_SHOT,
+  m4BossSec: bossFightSec('normal'), // derived (boss.js: find time + armor-colored shots per stage); estimateFlow uses the chosen difficulty's
   retryFactor: 1.5, // heat restarts / wrong-shot detours on the timed missions (normal)
   retryByDifficulty: { easy: 1.0, normal: 1.5, hard: 1.8 }, // fewer / more restarts and detours
   quizSec: 90,
@@ -45,7 +50,7 @@ export function estimateFlow({
   const m2spawns = m2Spawns(4) + m2Spawns(2); // 2-a: 4 hotter colors, 2-b: 2 cooler colors
   const m2 = P.read.m2 + (m2spawns / P.hit.m2) / targetsPerSec(gaps.m2, d.key) * retry + P.read.card;
   const m3 = P.read.m3 + droneGoal[d.key] * P.m3SecPerDrone + P.read.card;
-  const m4 = P.read.m4 + Math.min(m4Limit, P.m4BossSec) + P.read.chart; // chart = the two questions + the bar chart
+  const m4 = P.read.m4 + Math.min(m4Limit, bossFightSec(d.key)) + P.read.chart; // chart = the two questions + the bar chart
   const rows = [
     { id: 'title', label: '시작', sec: P.read.title },
     { id: 'briefing-m1', label: '브리핑 1', sec: P.read.briefing },

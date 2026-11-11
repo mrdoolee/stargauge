@@ -11,14 +11,13 @@
 
 import { STAR_COLORS, FURNACE_STAGES } from '../logic/temperature.js';
 import { tintPixels, stretchLuminance, snapWhite } from './tint.js';
-import { BOSS_ART, BOSS_WIDTH_PX, BOSS_SHIELD_MARGIN_PX, BOSS_SHIELD_LINE_PX } from '../config/balance.js';
 
 export const STAR_TEX = 128; // texture edge (px)
 export const STAR_CORE_R = 36; // core disc radius in texture px == Arcade body radius
 export const GLOW_TEX = 192;
 export const ENEMY_TEX = 80; // drone / boss texture edge (px); body radius ENEMY_BODY_R at this size
 export const SHIELD_TEX = 128; // shield ring edge (px)
-export const SHIELD_RING_R = 56; // ring radius in texture px
+const SHIELD_RING_R = 56; // ring radius in texture px
 const SHIELD_RING_W = 8; // ring thickness in texture px
 const BULLET_COLOR = 0xff5fd2; // pink: not one of the 7 star colors
 
@@ -118,54 +117,6 @@ function bakeShield(scene, key, hex) {
   ct.refresh();
 }
 
-/** Texture key of the hull-fitted boss shield ellipse for a STAR_COLORS key. */
-export const bossShieldTextureKey = colorKey => `shield-boss-${colorKey}`;
-
-/**
- * White ellipse ring, RGBA bytes (w x h), centred: rgb 255 everywhere, soft 1.5 px edge in alpha (as ringPixels).
- * Distance to the ellipse = (q - 1) / |grad q| with q = hypot(dx/rx, dy/ry), so the line keeps `width` all round.
- */
-export function ellipseRingPixels(w, h, rx, ry, width) {
-  const out = new Uint8ClampedArray(w * h * 4);
-  const cx = (w - 1) / 2;
-  const cy = (h - 1) / 2;
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const ux = (x - cx) / rx;
-      const uy = (y - cy) / ry;
-      const q = Math.hypot(ux, uy);
-      const grad = q > 0 ? Math.hypot(ux / rx, uy / ry) / q : 0;
-      const d = grad > 0 ? Math.abs(q - 1) / grad : Infinity;
-      const a = Math.max(0, Math.min(1, (width / 2 - d) / 1.5 + 0.5));
-      const i = (y * w + x) * 4;
-      out[i] = 255;
-      out[i + 1] = 255;
-      out[i + 2] = 255;
-      out[i + 3] = Math.round(a * 255);
-    }
-  }
-  return out;
-}
-
-/** Boss shield ellipse in screen px: the loaded hull (BOSS_ART.hull at BOSS_WIDTH_PX) + BOSS_SHIELD_MARGIN_PX each side. */
-export function bossShieldGeometry() {
-  const k = BOSS_WIDTH_PX / BOSS_ART.canvasW;
-  const rx = (BOSS_ART.hull.w * k) / 2 + BOSS_SHIELD_MARGIN_PX;
-  const ry = (BOSS_ART.hull.h * k) / 2 + BOSS_SHIELD_MARGIN_PX;
-  const lineW = BOSS_SHIELD_LINE_PX;
-  const pad = lineW / 2 + 2; // soft edge room
-  return { rx, ry, lineW, w: 2 * Math.ceil(rx + pad), h: 2 * Math.ceil(ry + pad) };
-}
-
-function bakeBossShield(scene, key, hex, g) {
-  const tex = scene.textures;
-  if (tex.exists(key)) return; // once per game
-  const ct = tex.createCanvas(key, g.w, g.h);
-  const px = ellipseRingPixels(g.w, g.h, g.rx, g.ry, g.lineW);
-  ct.context.putImageData(new ImageData(tintPixels(px, hex), g.w, g.h), 0, 0);
-  ct.refresh();
-}
-
 export function makeStarTextures(scene) {
   const tex = scene.textures;
   const starPx = shapePixels(scene, 'star-shape');
@@ -184,8 +135,6 @@ export function makeStarTextures(scene) {
     bake(`glow-${c.key}`, GLOW_TEX, GLOW_TEX, () => drawGlow(g, c.hex));
   }
   for (const c of STAR_COLORS) bakeShield(scene, shieldTextureKey(c.key), c.hex);
-  const bossShield = bossShieldGeometry();
-  for (const c of STAR_COLORS) bakeBossShield(scene, bossShieldTextureKey(c.key), c.hex, bossShield);
   for (const s of FURNACE_STAGES) {
     if (furnacePx) bakeTinted(scene, `furnace-${s.key}`, furnacePx, s.hex);
     else bake(`furnace-${s.key}`, STAR_TEX, STAR_TEX, () => drawFurnace(g, s.hex));

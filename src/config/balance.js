@@ -14,7 +14,9 @@ export const SPAWN_NEEDED_GUARANTEE = 3; // force a needed color after this many
 export const MISSION_GOAL_COUNTS = { m1: 8 };
 export const STARS_THREE_MAX_WRONG = 1;
 export const STARS_TWO_MAX_WRONG = 4;
-export const STARS_TIMEOUT_MAX = 2; // m4: time ran out before the boss fell (not a failure, but not a full clear)
+// Charge-mode missions (m3/m4): only COUNTED bounces are wrong (see bounceCounts in charge.js). Provisional values, 교사 확인 필요.
+export const CHARGE_STARS_THREE_MAX_WRONG = 3;
+export const CHARGE_STARS_TWO_MAX_WRONG = 8;
 
 // Task 6 additions — touch controls, ship, beam, pools, HUD layout.
 // Controls revised 2026-10-31 (teacher field test): fixed virtual joystick bottom-left (left thumb)
@@ -43,20 +45,21 @@ export const POOL_ASTEROIDS = 12;
 export const POOL_ENEMIES = 8; // shielded drones + the boss ship
 export const POOL_BULLETS = 48; // enemy bullets (never targetable by beams)
 export const ENEMY_BODY_R = 34; // enemy hitbox radius for an 80 px enemy texture (scales with sprite scale)
-export const SHIELD_UNIT = 0.8; // round shield ring scale per enemy scale unit (ring just outside the 80 px body)
 export const BULLET_BODY_R = 8;
 export const BLOCKED_TOAST_MAX = 3; // "beam too weak" hints shown per run; later blocked hits only bounce
 export const CULL_MARGIN = 120; // release pooled objects this far past the screen edge
 export const COLLISION_COOLDOWN_MS = 1000; // persistent objects (the boss) re-hit delay
 export const MARK_FADE_MS = 450; // correct-star mark ring + fade before returning to the pool
-export const RESTART_DELAY_MS = 600; // heat-full flash before the mission restarts
+export const RESTART_DELAY_MS = 1800; // heat-full flash + centre banner before the mission restarts
+export const TRANSITION_CLEAR_MS = 400; // stage change: stars/rocks/bullets fade out and return to the pool
+export const TRANSITION_BANNER_MS = 2600; // stage change: the centre banner stays this long (only counts while the scene runs)
 export const HUD_SAFE_MARGIN = 24;
 export const TOAST_MS = 2400;
+export const STRIP_HOLD_MS = 1200; // a priority strip message is not replaced by a plain one for this long
 // HUD band heights (HudScene draws them). Falling objects are hidden/dimmed above HUD_BAND_BOTTOM.
 export const HUD_PANEL_H = 248; // top panel: buttons, heat bar, gauge
 export const HUD_INSTRUCTION_H = 96; // instruction strip under the panel
 export const HUD_BAND_BOTTOM = HUD_PANEL_H + HUD_INSTRUCTION_H; // 344
-export const HUD_TOAST_LOW_Y = 660; // top of a 'low' toast (m1: keeps the white zone 344-624 clear)
 
 // Task 7 additions — mission 1 (furnace) and mission 2 (star gauge).
 export const M1_PRACTICE_SEC = 15; // no asteroids / no ship-collision heat during this time
@@ -76,21 +79,37 @@ export const M2_STAR_SCALE = { min: 0.7, max: 1.5 };
 // Task 9 additions — mission 4 (boss ship).
 // Boss (2026-11-04): 3 stages by boss hp (BOSS_HP); each stage cycles attack window -> gap (no launches).
 export const BOSS_ATTACK_MS = { 1: 4000, 2: 4500, 3: 5000 };
-export const BOSS_GAP_MS = 4500;
-// Launch interval inside an attack window (x difficulty spawnInterval), <= 3000. Chosen so attack / interval sits >= 15% away
-// from an integer on every difficulty: easy and normal get 2 volleys per window, hard 3 (difficulty.test.js pins this).
-export const BOSS_VOLLEY_MS = { 1: 2200, 2: 2600, 3: 2800 };
-export const BOSS_FAN = { 2: { count: [2, 3], spreadDeg: 30 }, 3: { count: [2, 3], spreadDeg: 36 } };
+// Boss pressure (2026-11-07, teacher: "보스가 제일 쉽다", .superpowers/sdd/boss-hard/brief.md). The tables below are PER DIFFICULTY because
+// the volley count of a window is ceil(attack / (interval x spawnInterval)) (a step function): the old shared table was tuned so that
+// easy stays at 1-2 volleys per window, and any denser shared table would push easy past its dodge cap (difficulty.test.js, <= 0.4).
+// Easy keeps the old volley intervals (only its gap and fan spread rise a little, see below); normal/hard are the new, harder values. All UNMEASURED: tune after classroom play.
+// Rest after every attack window (no launches). Shorter = the student gets less free time to shoot; was 4500 for everyone.
+// Easy 4500 -> 3900 (controller ruling 2026-11-07: the boss must be at least as demanding as easy m3, dodge 0.335; easy stage 1 0.318 -> 0.354, still <= 0.4).
+export const BOSS_GAP_MS = { easy: 3900, normal: 3600, hard: 3200 };
+// Launch interval inside an attack window, base value (x difficulty spawnInterval: easy 1.35, hard 0.75).
+// Normal 2200/3400/3800 -> 2000/2800/3000 (2 volleys per window in every stage, the same count as before but the windows now repeat every
+// ~7.6-8.6 s instead of ~8.5-9.5 s); hard: stage 1 three volleys per window, stages 2-3 two (3000/3400 x 0.75 = 2250/2550 ms).
+export const BOSS_VOLLEY_MS = {
+  easy: { 1: 2200, 2: 3400, 3: 3800 },
+  normal: { 1: 2000, 2: 2800, 3: 3000 },
+  hard: { 1: 1800, 2: 3000, 3: 3400 },
+};
+// Fan per volley in stages 2-3 (stage 1 is one straight shot). Normal/hard fans are wider and fuller (3-5 shots; at most 5 + 1 aimed per
+// volley, so POOL_BULLETS 48 is plenty). A wider fan spreads its shots farther apart at the ship row, so BOSS_FAN_SHIP_HITS stays 1.5.
+export const BOSS_FAN = {
+  easy: { 2: { count: [2, 3], spreadDeg: 38 }, 3: { count: [2, 3], spreadDeg: 46 } }, // was 30 / 36
+  normal: { 2: { count: [3, 3], spreadDeg: 50 }, 3: { count: [3, 4], spreadDeg: 60 } },
+  hard: { 2: { count: [3, 4], spreadDeg: 56 }, 3: { count: [4, 5], spreadDeg: 72 } },
+};
+// From this stage on, a volley also carries one aimed single shot (where aim is allowed: never on easy, never in the warm-up; before: stage 3 only).
+export const BOSS_AIMED_FROM_STAGE = 2;
 // Balance model: mean shots of one fan that hit a standing ship. 2-fans and far launches usually land one hit;
 // a near 3-fan (launched 100-200 px above the ship, only 32-55 px wide at the ship row) can land two.
 export const BOSS_FAN_SHIP_HITS = 1.5;
 export const BOSS_GAP_DIM_ALPHA = 0.55;
-export const BOSS_STAGE_FLASH_MS = 260; // white camera flash when the armor stage rises
-// After a stage rise the first volley waits this long: the flash (BOSS_STAGE_FLASH_MS) + time to read the armor toast.
-export const BOSS_STAGE_GRACE_MS = 1000;
 
 // Difficulty (2026-10-31). Multipliers on the base values above; `normal` is 1 everywhere = the shipped feel.
-// speed: every falling/moving hazard or target (m1 blobs + asteroids, m2 stars, m3 stars + drone patrol,
+// speed: every falling/moving hazard or target (m1 blobs + asteroids, m2 stars, m3 stars (the drone patrol DRONE_SPEED_X is a fixed px/s, not scaled),
 // m4 charge stars). spawnInterval: FORMATION_GAP_MS, BOSS_VOLLEY_MS, SPAWN_INTERVAL_MS (m1 practice spawner only);
 // larger = fewer objects. heat: ship-collision heat only (not WRONG_SHOT_HEAT, not cooling).
 export const DIFFICULTY_MULTIPLIERS = {
@@ -159,13 +178,39 @@ export const DRONE_SHIELDS = {
   normal: { white: 0.6, blueWhite: 0.4 },
   hard: { white: 0.4, blueWhite: 0.4, blue: 0.2 },
 };
-export const M3_DRONE_GOAL = { easy: 5, normal: 6, hard: 8 };
+// Goal = drones DOWNED (not hits). With DRONE_HP 3 a drone now takes ~3 shots (30 s in the time model, flow.js), so hard 8 -> 6 to keep the
+// hard total <= 16 min (flow.test.js); easy 5 / normal 6 still fit (easy <= 900 s, normal <= 17 min). Hard stays harder through its
+// shorter drone fire gap and hotter shields (DRONE_FIRE_MS / DRONE_SHIELDS), not through a longer drone count.
+export const M3_DRONE_GOAL = { easy: 5, normal: 6, hard: 6 };
+// A drone has DRONE_HP hit points; a beam hit costs beamDamage(charge, shield) (1 at the same color, +1 per hotter step), so the
+// conservative case (charge = the shield color) takes DRONE_HP shots. UNMEASURED: adjust after classroom play.
+export const DRONE_HP = 3;
+// m3 time model (flow.js m3SecPerDrone = M3_DRONE_FIND_SEC + DRONE_HP x M3_SEC_PER_SHOT). UNMEASURED: the old single 18 s per drone
+// ("find a hot star, charge, aim, dodge, 1 shot") is split 12 s find+charge / 6 s per shot, so a 1-hit drone still costs 18 s.
+export const M3_DRONE_FIND_SEC = 12;
+export const M3_SEC_PER_SHOT = 6;
 export const BOSS_ARMOR = {
   easy: ['yellow', 'yellowWhite', 'white'],
   normal: ['yellowWhite', 'white', 'blueWhite'],
-  hard: ['yellowWhite', 'white', 'blueWhite'],
+  hard: ['yellowWhite', 'blueWhite', 'blue'], // 2026-11-07: stage 2 one step hotter and stage 3 blue (only blue pierces: 1 damage per hit)
 };
-export const BOSS_HP = [6, 8, 10];
+// Boss hp per stage and difficulty under the damage rule (a hit = 1 + beam level - armor level). Armor-colored charge = 1 damage per hit
+// (hits = hp), one step hotter = 2, ... (hits = ceil(hp / damage)). 2026-11-07: the old 4/5/6 let one blue shot fell stage 1 (blue 7 on
+// yellowWhite 4 = 4 damage); now even a blue charge needs 3+ hits per stage on normal/hard (2+ on easy):
+//   normal [9, 8, 6] on yellowWhite / white / blueWhite: blue does 4 / 3 / 2 -> 3 / 3 / 3 hits; the armor's own color 9 / 8 / 6 hits.
+//   hard [9, 7, 6] on yellowWhite / blueWhite / blue: blue does 4 / 2 / 1 -> 3 / 4 / 6 hits.
+// Totals 23 (normal) and 22 (hard) armor-colored hits -> bossFightSec 198 s / 192 s of the 210 s limit (the conservative case; hotter charges are faster).
+//   easy [6, 5, 4] on yellow / yellowWhite / white: blue does 5 / 4 / 3 -> 2 / 2 / 2 hits (was [4, 5, 6]: one blue shot felled stage 1).
+// Easy keeps the same 15 armor-colored hits = 150 s (only the order changed): the easy total is at 895.5 s of the 900 s cap (flow.test.js), so easy cannot get longer. UNMEASURED.
+// Overflow damage never carries to the next stage (bossStageFromHp).
+export const BOSS_HP = { easy: [6, 5, 4], normal: [9, 8, 6], hard: [9, 7, 6] };
+// Boss time model (boss.js bossFightSec): per stage, seconds to find a piercing star, charge and line up, before the shots
+// (M3_SEC_PER_SHOT each). 20 s x 3 + 15 shots x 6 s = 150 s, the same boss estimate flow.js used before damage existed. UNMEASURED.
+export const BOSS_STAGE_FIND_SEC = 20;
+// m4 charge-star pool (2026-11-07): like m3 big red/orange decoys (weight = repeats; red 3, orange 3 of 11) and hot stars rarer than
+// "one of seven colors" (the old m4 drew all seven colors evenly, hot stars were easy to find). The needed-color guarantee
+// (fillFormationColors with the current armor's piercing colors) still brings the required colour in, at the latest every SPAWN_NEEDED_GUARANTEE-th formation.
+export const M4_STAR_POOL = ['red', 'red', 'red', 'orange', 'orange', 'orange', 'yellow', 'yellowWhite', 'white', 'blueWhite', 'blue'];
 export const M3_STAR_POOL = ['red', 'red', 'red', 'orange', 'orange', 'orange', 'yellow', 'yellowWhite', 'white', 'blueWhite', 'blue']; // weight = repeats
 export const M3_DECOY_SCALE = { min: 1.4, max: 1.8 }; // red / orange stars
 export const M3_STAR_SCALE = { min: 0.55, max: 0.85 }; // the other stars
@@ -175,24 +220,34 @@ export const DRONE_MAX_ON_SCREEN = 3;
 // (drones get shot down, new waves come every DRONE_WAVE_MS). Tune after classroom play.
 export const DRONE_ALIVE_DUTY = 0.6;
 export const DRONE_FIRE_MS = { easy: 4000, normal: 2800, hard: 2000 };
-// Patrol lanes (hover y), one drone per lane so shields never overlap: 90 px apart >= the drone shield ring diameter
-// (2 x SHIELD_RING_R 56 x SHIELD_UNIT 0.8 = 89.6 px). Needs at least DRONE_MAX_ON_SCREEN lanes.
-export const DRONE_LANES_Y = [380, 470, 560];
-export const DRONE_SPEED_X = 90; // px/s patrol
-export const DRONE_MUZZLE_DY = 30; // drone bullets start this far below the drone centre (droneShot checks canLaunch from here)
+export const DRONE_BAND_Y = { min: 380, max: 560 }; // hover rows
+export const DRONE_SPEED_X = 90; // px/s patrol (fixed: the difficulty speed multiplier does not apply)
+export const DRONE_MUZZLE_DY = 30; // drone bullets spawn this far below the drone centre
+export const DRONE_MIN_SHOT_SPEED = 150; // a drone shot is skipped only if the safe-distance cap is below this
+
+// m4 escort drones (2026-11-07): the m3 drone (shield by pickShieldColor, DRONE_HP, hp bar, droneShot) flies in from the SIDE (never through
+// the boss hull) and patrols a row below the boss. Optional targets: not part of the goal; they vanish when the boss falls or flees.
+// Max on screen by stage (stage 1 has none). Easy: one, only in stage 3 (easy is at its dodge cap); normal one; hard one then two.
+export const BOSS_ESCORTS = { easy: { 1: 0, 2: 0, 3: 1 }, normal: { 1: 0, 2: 1, 3: 1 }, hard: { 1: 0, 2: 1, 3: 2 } };
+// Hover rows: the boss hull bottom is BOSS_POS.y + BOSS_MUZZLE_DY = 524 and its shield ring reaches ~610, so a drone (radius ENEMY_BODY_R 34, hp bar
+// ~55 px above its centre) at y >= 680 keeps body, ring and hp bar clear of both (smoke screenshot 2026-11-07: at 600 the hp bar touched the ring).
+// Max 720: droneShot toward the ship start row (y 900) must always fire, also on easy (reaction floor 1.2 s: muzzle <= ~750 for a 100 px/s shot).
+export const BOSS_ESCORT_BAND_Y = { min: 680, max: 720 };
+// Escort shots may be slower than DRONE_MIN_SHOT_SPEED (150): easy's hazard band starts at 115 px/s, and a 150 px/s floor made ~30% of easy shots skip.
+export const BOSS_ESCORT_MIN_SHOT_SPEED = 100;
+export const BOSS_ESCORT_RESPAWN_MS = 8000; // a downed escort is replaced after this (UNMEASURED)
+export const BOSS_ESCORT_FIRST_MS = 3000; // after a stage change the first escort arrives after this (UNMEASURED)
+// Escorts shoot slower than the m3 drones (DRONE_FIRE_MS 4000/2800/2000): they are support for the boss, whose volleys already fill the screen. UNMEASURED.
+export const BOSS_ESCORT_FIRE_MS = { easy: 5000, normal: 3800, hard: 3400 };
 
 // Mission 4 boss ship (2026-11-04). The boss is not a star: it can be shot down. Armor color rises with stages (BOSS_ARMOR).
-// BOSS_POS.y 450: the hull (293 x 187 px on screen) spans y 356..544, below the HUD band (344) together with its shield
-// ellipse line (ry 106 -> top 344). The muzzle (hull bottom, y 544) is 356 px above the ship row (900): canLaunch caps
-// hard at 712 px/s, normal 508, easy 296, all above BOSS_MIN_SHOT_SPEED (bullet speed is capped when the ship moves up).
-export const BOSS_POS = { x: 360, y: 450 };
+// BOSS_POS.y 430: the 300 px hull spans y 280..580, so everything below the HUD band (344) is visible and the muzzle
+// (y 550) is far enough above the ship row (900) for canLaunch at every speed band (bullet speed is capped when the ship moves up).
+export const BOSS_POS = { x: 360, y: 430 };
 export const BOSS_SWAY = { amp: 160, periodMs: 6000 };
 export const BOSS_HIT_FLASH_MS = 120;
-export const BOSS_WIDTH_PX = 300; // on-screen canvas width (the 512 px art is scaled down; the 80 px code placeholder up)
+export const BOSS_WIDTH_PX = 300; // on-screen hull width (the 80 px art is scaled up)
 // Hull alpha bbox of public/img/boss.png (512x320 canvas, alpha >= 128), in texture px: Arcade rectangle body + muzzle.
 export const BOSS_ART = { canvasW: 512, canvasH: 320, hull: { x: 6, y: 0, w: 500, h: 320 } };
 export const BOSS_MUZZLE_DY = 94; // bullets start this far below the boss centre = hull bottom ((0+320-160) * 300/512)
 export const BOSS_MIN_SHOT_SPEED = 150; // a volley is skipped if the safe-distance cap is below this (ship right under the muzzle)
-// Shield of the loaded boss art: an ellipse ring hugging the hull (screen px). The code placeholder boss keeps the round ring.
-export const BOSS_SHIELD_MARGIN_PX = 12; // gap between the hull bbox and the ellipse line, each side
-export const BOSS_SHIELD_LINE_PX = 8; // ellipse line thickness

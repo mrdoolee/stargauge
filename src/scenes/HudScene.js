@@ -8,15 +8,28 @@
 //   'gauge-changed' { filled: string[], visible: boolean } filled STAR_COLORS keys
 //   'heat-changed'  { value, max, ratio }                  hull heat (ratio 0..1)
 //   'charge-changed' { colorKey: string|null }             beam charge: that gauge cell gets a bright border + "빔 충전" label; null clears
+//   'boss-changed'  { visible: boolean, stage: 1..3, stages: 3, hp, maxHp, armorKey: string|null }  m4 boss gauge in the instruction strip's
+//                     right slot (it replaces the "남은 목표" counter while visible): neutral white fill = hp/maxHp, armor color cell
+//                     (exact STAR_COLORS hex), "n/3단계". { visible: false } hides it. Re-emitted on 'hud-ready'.
 //   'sun-ref'       boolean                                show the 태양 marker (mission 2+)
-//   'toast'         { text, colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert',
-//                     at?: 'top'|'low' }  'low' = below m1's white zone (HUD_TOAST_LOW_Y)
+//   'toast'         { text, colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert', priority?: boolean }
+//                     in-play message: it REPLACES the instruction text in the strip (never a box over the play field) for TOAST_MS,
+//                     then the current instruction returns. tone = strip border flash (info/alert/wrong). priority = a plain message
+//                     can't replace it for STRIP_HOLD_MS. ladder 'star' = the colorKey cell of the top gauge blinks while the message
+//                     shows; ladder 'furnace' = a small 4-colour FURNACE_STAGES ladder in the strip's right slot with colorKey outlined.
+//   'banner'        { title: string, body?: string, emphasis?: string, visible: boolean }  big centre banner on a translucent panel
+//                     (title ~56 px, body ~40 px, '\n' = line break, the `emphasis` word of the body in the accent colour). Missions send it
+//                     only while nothing dangerous moves (stage change, overheat, boss defeated). { visible: false } hides it.
+//                     Re-emitted on 'hud-ready'; also hidden on 'mission-end'. Drawn below the pause overlay.
+//   'gauge-target'  { keys: string[], animateFrom?: string[] }  bracket over the star-gauge cells that are the correct range ("맞힐 별");
+//                     animateFrom = the bracket slides from that range to `keys` (~800 ms). [] hides it. Re-emitted on 'hud-ready'.
 //   'mission-start' { key }                                scene key the pause button pauses
 //   'mission-end'   { key }
 // The HUD emits 'hud-ready' at the end of create(); missions answer by re-emitting their
 // full state (so nothing is lost when the HUD's create runs a frame after the mission's).
 // Pause = overlay stack: pause button pauses the mission scene and pushes the overlay;
-// '계속하기' pops it and resumes. Mute toggles registry 'muted' and sfx.setMuted.
+// '계속하기' pops it and resumes. Mute toggles registry 'muted' and sfx.setMuted
+// (the music bus shares the master, so music is muted too). The pause overlay also pauses the music (bgm.setSuspended('pause')).
 // Returning from the background (game 'hidden' -> 'visible') during live gameplay opens the pause
 // overlay, so a student coming back is not dropped into falling stars. If the device is in landscape
 // the loop stays asleep behind #rotate (main.js); the queued pause/overlay show once back in portrait.
@@ -24,18 +37,33 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import {
-  HUD_SAFE_MARGIN, TOAST_MS, HUD_PANEL_H, HUD_INSTRUCTION_H, HUD_TOAST_LOW_Y,
+  HUD_SAFE_MARGIN, HUD_PANEL_H, HUD_INSTRUCTION_H,
 } from '../config/balance.js';
 import { STAR_COLORS, FURNACE_STAGES } from '../logic/temperature.js';
+import { splitEmphasis } from '../logic/transition.js';
+import { hpBarFraction } from '../logic/enemyHp.js';
+import { stripReducer, stripText, initialStrip } from '../logic/strip.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
+import { bgm } from '../audio/bgm.js';
 import { armButton } from '../ui/button.js';
 
 const M = HUD_SAFE_MARGIN;
 const BTN = 72;
 const TXT = { fontFamily: FONT, fontSize: '28px', color: '#e8ecff' };
 const PANEL_H = HUD_PANEL_H;
-const TOAST_TOP_Y = PANEL_H + 120;
+const STRIP_TEXT_W = GAME_WIDTH - 2 * M - 140; // left text area; the right ~140 px is the goal counter / boss gauge
+const STRIP_FONT = 30;
+const STRIP_FONT_SMALL = 26; // one step down when the text would not fit the 96 px strip
+const STRIP_TONES = {
+  info: { stroke: 0x8fd3ff, text: '#ffffff' },
+  alert: { stroke: 0xffd23f, text: '#ffffff' },
+  wrong: { stroke: 0xff8a7a, text: '#ffffff' },
+};
+const LADDER_W = 31; // furnace ladder (4 cells) in the strip's top-right: x 560..696, above the goal label
+const LADDER_GAP = 3;
+const LADDER_Y = PANEL_H + 3;
+const LADDER_H = 9;
 
 // Gauge geometry (720 wide): 7 x 64 cells + 6 x 6 gaps = 484 → starts at x 118.
 const CELL_W = 64;
@@ -43,9 +71,22 @@ const CELL_H = 40;
 const GAP = 6;
 const GAUGE_Y = 116;
 
+const BANNER_W = 680; // centre banner panel (x 20..700), centred on the screen
+const BANNER_PAD = 40;
+const BANNER_TITLE_PX = 56;
+const BANNER_BODY_PX = 40;
+const BANNER_BODY_LINE_H = 56;
+const BANNER_BODY_SEGS = 6; // pooled body text pieces: up to 2 lines x 3 pieces (before / emphasis / after)
+const BANNER_EMPH_PX = 46; // banner emphasis = white + bigger (Orbit has no bold; no hue, because colour means temperature here)
+const TARGET_TWEEN_MS = 800;
+const TARGET_COLOR = 0x8fd3ff;
+
+const BOSS_BAR_W = 136; // boss gauge bar: the width of the 남은 목표 slot (x 560..696)
+const BOSS_GAUGE_TWEEN_MS = 160;
+
 export const HUD_EVENTS = [
   'instruction', 'goal-changed', 'gauge-changed', 'heat-changed', 'sun-ref', 'toast', 'mission-start', 'mission-end', 'ship-hit',
-  'charge-changed',
+  'charge-changed', 'boss-changed', 'banner', 'gauge-target',
 ];
 
 export default class HudScene extends Phaser.Scene {
@@ -66,11 +107,14 @@ export default class HudScene extends Phaser.Scene {
     this.createHeatBar();
     this.createGauge();
     this.createInstruction();
-    this.createToast();
+    this.createBossGauge();
+    this.createStripFeedback();
+    this.createGaugeTarget();
+    this.createBanner();
     this.createPauseOverlay();
 
     this.handlers = {
-      instruction: t => this.instruction.setText(t ?? ''),
+      instruction: t => this.stripEvent({ type: 'instruction', text: t ?? '' }),
       'goal-changed': g => this.setGoal(g?.remaining ?? null),
       'gauge-changed': g => {
         this.gauge.setFilled(g?.filled ?? []);
@@ -78,6 +122,7 @@ export default class HudScene extends Phaser.Scene {
         this.gaugeVisible = g?.visible !== false;
         this.setCharge(this.chargeKey);
         this.sunMarker.setVisible(this.sunOn && g?.visible !== false);
+        this.syncTargetVisible();
       },
       'heat-changed': h => this.setHeat(h?.ratio ?? 0),
       'sun-ref': on => {
@@ -91,10 +136,16 @@ export default class HudScene extends Phaser.Scene {
         this.setCharge(null); // a new mission starts uncharged (the mission re-emits its charge right after)
       },
       'charge-changed': c => this.setCharge(c?.colorKey ?? null),
+      'boss-changed': b => this.setBoss(b),
+      banner: b => this.setBanner(b),
+      'gauge-target': t => this.setGaugeTarget(t),
       'ship-hit': () => this.flashHeatBar(),
       'mission-end': () => {
         this.closePause(false);
-        this.hideToast();
+        this.stripEvent({ type: 'clear' });
+        this.setBoss({ visible: false });
+        this.setBanner({ visible: false });
+        this.setGaugeTarget({ keys: [] });
         this.activeKey = null;
       },
     };
@@ -235,7 +286,7 @@ export default class HudScene extends Phaser.Scene {
     // Beam-charge highlight: bright thick border on the charged colour's cell + a small label above it.
     this.chargeBox = this.add.graphics().setVisible(false);
     this.chargeLabel = this.add
-      .text(0, GAUGE_Y - 6, '빔 충전', { ...TXT, fontSize: '22px', fontStyle: 'bold', color: '#ffffff' })
+      .text(0, GAUGE_Y - 6, '빔 충전', { ...TXT, fontSize: '22px', color: '#ffffff' })
       .setOrigin(0.5, 1)
       .setVisible(false);
     this.chargeKey = null;
@@ -250,6 +301,11 @@ export default class HudScene extends Phaser.Scene {
     this.chargeLabel.setVisible(show);
     if (!show) return;
     const cx = this.gauge.cellCenterX(this.chargeKey);
+    const hex = STAR_COLORS.find(c => c.key === this.chargeKey)?.hex;
+    if (hex !== undefined) { // the charged cell is filled with the exact palette color (uncharged cells stay dim)
+      this.chargeBox.fillStyle(hex, 1);
+      this.chargeBox.fillRoundedRect(cx - CELL_W / 2, GAUGE_Y, CELL_W, CELL_H, 8);
+    }
     this.chargeBox.lineStyle(7, 0xffffff, 1);
     this.chargeBox.strokeRoundedRect(cx - CELL_W / 2 - 5, GAUGE_Y - 5, CELL_W + 10, CELL_H + 10, 11);
     this.chargeLabel.setX(cx);
@@ -262,85 +318,266 @@ export default class HudScene extends Phaser.Scene {
       ...TXT,
       fontSize: '30px',
       color: '#ffffff',
-      wordWrap: { width: GAME_WIDTH - 2 * M - 140, useAdvancedWrap: true },
+      wordWrap: { width: STRIP_TEXT_W, useAdvancedWrap: true },
       lineSpacing: 4,
     });
     this.goalLabel = this.add.text(GAME_WIDTH - M, y, '남은 목표', TXT).setOrigin(1, 0);
     this.goalValue = this.add
-      .text(GAME_WIDTH - M, y + 36, '', { ...TXT, fontSize: '40px', fontStyle: 'bold', color: '#8fd3ff' })
+      .text(GAME_WIDTH - M, y + 36, '', { ...TXT, fontSize: '40px', color: '#8fd3ff' })
       .setOrigin(1, 0);
     this.setGoal(null);
   }
 
+  /** m4 boss gauge: the right slot of the instruction strip (x 560..696, y < HUD_BAND_BOTTOM). Built once; redrawn only on change. */
+  createBossGauge() {
+    const right = GAME_WIDTH - M;
+    const w = BOSS_BAR_W;
+    const y = PANEL_H + 12;
+    this.bossBack = this.add.rectangle(right, y + 50, w, 20, 0x2a3048).setOrigin(1, 0).setStrokeStyle(2, 0x8890a8);
+    this.bossFill = this.add.rectangle(right - w, y + 50, w, 20, 0xf2f5ff).setOrigin(0, 0); // neutral white, never a palette color
+    this.bossArmor = this.add.rectangle(right - w, y + 2, 28, 28, 0xffffff).setOrigin(0, 0).setStrokeStyle(2, 0xffffff);
+    this.bossStageText = this.add.text(right, y, '', { ...TXT, fontSize: '26px', color: '#ffffff' }).setOrigin(1, 0);
+    this.bossObjects = [this.bossBack, this.bossFill, this.bossArmor, this.bossStageText];
+    this.bossState = { visible: false, stage: 0, hp: 0, maxHp: 1, armorKey: null };
+    this.bossFrac = { v: 0 };
+    for (const o of this.bossObjects) o.setVisible(false);
+  }
+
+  setBoss(b) {
+    const visible = !!b?.visible;
+    const st = this.bossState;
+    if (!visible) {
+      if (!st.visible) return;
+      st.visible = false;
+      this.tweens.killTweensOf(this.bossFrac);
+      for (const o of this.bossObjects) o.setVisible(false);
+      this.setGoal(this.goalRemaining); // the counter comes back for other missions
+      return;
+    }
+    const target = hpBarFraction(b.hp, b.maxHp);
+    const stageChanged = !st.visible || b.stage !== st.stage;
+    if (stageChanged || b.armorKey !== st.armorKey) {
+      const hex = STAR_COLORS.find(c => c.key === b.armorKey)?.hex ?? 0xffffff;
+      this.bossArmor.setFillStyle(hex, 1);
+      this.bossStageText.setText(`${b.stage}/${b.stages}단계`);
+      this.bossArmor.setX(GAME_WIDTH - M - BOSS_BAR_W);
+    }
+    if (!st.visible) { // first show: no tween from empty
+      this.bossFrac.v = target;
+      this.bossFill.setSize(BOSS_BAR_W * target, 20);
+    }
+    Object.assign(st, { visible: true, stage: b.stage, hp: b.hp, maxHp: b.maxHp, armorKey: b.armorKey });
+    for (const o of this.bossObjects) o.setVisible(true);
+    this.setGoal(this.goalRemaining); // hides the counter while the gauge is up
+    this.tweens.killTweensOf(this.bossFrac);
+    this.tweens.add({
+      targets: this.bossFrac, v: target, duration: BOSS_GAUGE_TWEEN_MS,
+      onUpdate: () => this.bossFill.setSize(Math.max(0, BOSS_BAR_W * this.bossFrac.v), 20),
+    });
+  }
+
   setGoal(remaining) {
-    const show = remaining !== null && remaining !== undefined;
+    this.goalRemaining = remaining;
+    const show = remaining !== null && remaining !== undefined && !this.bossState?.visible;
     this.goalLabel.setVisible(show);
     this.goalValue.setVisible(show).setText(show ? String(remaining) : '');
   }
 
-  createToast() {
-    const y = TOAST_TOP_Y;
-    this.toastBg = this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 2 * M, 80, 0x2a1020, 0.92)
-      .setOrigin(0.5, 0)
-      .setStrokeStyle(3, 0xff8a7a);
-    this.toastText = this.add
-      .text(GAME_WIDTH / 2, y + 14, '', {
-        ...TXT,
-        color: '#ffffff',
-        align: 'center',
-        wordWrap: { width: GAME_WIDTH - 2 * M - 32, useAdvancedWrap: true },
-      })
-      .setOrigin(0.5, 0);
-    this.toastLadder = this.add.graphics();
-    this.toast = this.add.container(0, 0, [this.toastBg, this.toastText, this.toastLadder]).setVisible(false);
-    this.toastTimer = null;
+  createStripFeedback() {
+    this.strip = initialStrip();
+    this.stripShown = { text: null, tone: null };
+    this.stripFlash = this.add.rectangle(0, PANEL_H, GAME_WIDTH, HUD_INSTRUCTION_H).setOrigin(0).setStrokeStyle(4, 0xffffff, 1).setFillStyle(0, 0).setVisible(false);
+    this.stripLadder = this.add.graphics();
+    this.cellBlink = this.add.graphics().setVisible(false); // wrong-shot highlight on a gauge cell (blinks; the white charge border stays)
+    this.cellBlinkTween = this.tweens.add({ targets: this.cellBlink, alpha: 0.35, duration: 220, yoyo: true, repeat: -1, paused: true });
+    this.ladderKey = null;
   }
 
-  /** Hide any visible toast and cancel its timer (a late toast must not reappear in the next mission). */
-  hideToast() {
-    this.toastTimer?.remove(false);
-    this.toastTimer = null;
-    this.tweens.killTweensOf(this.toast);
-    this.toast.setVisible(false);
+  /** The single place the strip state changes; redraws only when the shown text/tone changed. */
+  stripEvent(event) {
+    const next = stripReducer(this.strip, event);
+    if (next === this.strip) return false;
+    this.strip = next;
+    const { text, tone } = stripText(next);
+    if (text !== this.stripShown.text || tone !== this.stripShown.tone) {
+      this.stripShown.text = text;
+      this.stripShown.tone = tone;
+      this.renderStrip(text, tone);
+    }
+    if (!next.message) this.clearLadder();
+    return true;
   }
 
-  showToast({ text = '', colorKey = null, ladder = null, tone = 'wrong', at = 'top' } = {}) {
-    const top = at === 'low' ? HUD_TOAST_LOW_Y : TOAST_TOP_Y;
-    this.toastBg.setY(top);
-    this.toastText.setY(top + 14);
-    this.toastText.setText(text);
-    let h = this.toastText.height + 28;
-    this.toastLadder.clear();
+  renderStrip(text, tone) {
+    const t = this.instruction;
+    const style = STRIP_TONES[tone];
+    t.setColor(style ? style.text : '#ffffff');
+    t.setFontSize(STRIP_FONT);
+    t.setText(text);
+    if (t.height > HUD_INSTRUCTION_H - 16) t.setFontSize(STRIP_FONT_SMALL); // once; a long text may still wrap to 3 lines
+  }
 
-    // Tiny color ladder (hot → cool) with the shot color circled.
-    const steps = ladder === 'furnace' ? FURNACE_STAGES : ladder === 'star' ? STAR_COLORS : null;
-    if (steps) {
-      const w = 44;
-      const gap = 6;
-      const total = steps.length * w + (steps.length - 1) * gap;
-      const x0 = (GAME_WIDTH - total) / 2;
-      const ly = this.toastBg.y + h - 6;
-      steps.forEach((c, i) => {
-        const lx = x0 + i * (w + gap);
-        this.toastLadder.fillStyle(c.hex, 1);
-        this.toastLadder.fillRect(lx, ly, w, 20);
+  clearLadder() {
+    if (this.ladderKey === null) return;
+    this.ladderKey = null;
+    this.stripLadder.clear();
+    this.cellBlinkTween.pause();
+    this.cellBlink.clear().setVisible(false);
+  }
+
+  update() {
+    if (this.strip.message) this.stripEvent({ type: 'tick', nowMs: this.time.now });
+  }
+
+  showToast({ text = '', colorKey = null, ladder = null, tone = 'wrong', priority = false } = {}) {
+    if (!this.stripEvent({ type: 'message', text, tone, priority, nowMs: this.time.now })) return; // held back by a priority message
+    const style = STRIP_TONES[tone] ?? STRIP_TONES.wrong;
+    this.stripFlash.setStrokeStyle(4, style.stroke, 1).setVisible(true).setAlpha(1);
+    this.tweens.killTweensOf(this.stripFlash);
+    this.tweens.add({ targets: this.stripFlash, alpha: 0, duration: 600, onComplete: () => this.stripFlash.setVisible(false) });
+
+    this.clearLadder();
+    if (!colorKey) return;
+    if (ladder === 'furnace') {
+      this.ladderKey = colorKey;
+      const x0 = GAME_WIDTH - M - (FURNACE_STAGES.length * LADDER_W + (FURNACE_STAGES.length - 1) * LADDER_GAP);
+      FURNACE_STAGES.forEach((c, i) => {
+        const lx = x0 + i * (LADDER_W + LADDER_GAP);
+        this.stripLadder.fillStyle(c.hex, 1);
+        this.stripLadder.fillRect(lx, LADDER_Y, LADDER_W, LADDER_H);
         if (c.key === colorKey) {
-          this.toastLadder.lineStyle(4, 0xffffff, 1);
-          this.toastLadder.strokeRect(lx - 4, ly - 4, w + 8, 28);
+          this.stripLadder.lineStyle(2, 0xffffff, 1);
+          this.stripLadder.strokeRect(lx - 1, LADDER_Y - 2, LADDER_W + 2, LADDER_H + 4);
         }
       });
-      h += 34;
+    } else if (ladder === 'star' && this.gaugeVisible) {
+      this.ladderKey = colorKey;
+      const cx = this.gauge.cellCenterX(colorKey);
+      this.cellBlink.clear();
+      this.cellBlink.lineStyle(5, 0xff8a7a, 1); // thinner and wider than the white 7 px charge border: it never replaces it
+      this.cellBlink.strokeRoundedRect(cx - CELL_W / 2 - 9, GAUGE_Y - 9, CELL_W + 18, CELL_H + 18, 14);
+      this.cellBlink.setVisible(true).setAlpha(1);
+      this.cellBlinkTween.restart();
     }
+  }
 
-    const stroke = tone === 'info' ? 0x8fd3ff : tone === 'alert' ? 0xffd23f : 0xff8a7a;
-    this.toastBg.setStrokeStyle(3, stroke);
-    this.toastBg.setSize(this.toastBg.width, h);
-    this.toast.setVisible(true).setAlpha(1);
-    this.tweens.killTweensOf(this.toast);
-    this.toastTimer?.remove(false);
-    this.toastTimer = this.time.delayedCall(TOAST_MS, () => {
-      this.tweens.add({ targets: this.toast, alpha: 0, duration: 250, onComplete: () => this.toast.setVisible(false) });
+  // ---- star-gauge correct range ("맞힐 별") ---------------------------------------
+
+  createGaugeTarget() {
+    this.targetBox = this.add.graphics().setVisible(false);
+    this.targetLabel = this.add
+      .text(0, GAUGE_Y - 12, '맞힐 별', { ...TXT, fontSize: '24px', color: '#8fd3ff' })
+      .setOrigin(0.5, 1)
+      .setVisible(false);
+    this.targetKeys = null;
+    this.targetEdges = { l: 0, r: 0 }; // tweened left/right edge (px) of the bracket
+  }
+
+  /** Left/right pixel edge of the cell range `keys` (null when empty). Called on events only. */
+  targetEdgesOf(keys) {
+    if (!keys?.length) return null;
+    let l = Infinity;
+    let r = -Infinity;
+    for (const k of keys) {
+      const cx = this.gauge.cellCenterX(k);
+      l = Math.min(l, cx - CELL_W / 2);
+      r = Math.max(r, cx + CELL_W / 2);
+    }
+    return { l, r };
+  }
+
+  drawTarget() {
+    const { l, r } = this.targetEdges;
+    this.targetBox.clear();
+    this.targetBox.lineStyle(5, TARGET_COLOR, 1);
+    this.targetBox.strokeRoundedRect(l - 8, GAUGE_Y - 8, r - l + 16, CELL_H + 16, 12);
+    this.targetLabel.setX((l + r) / 2);
+  }
+
+  syncTargetVisible() {
+    const on = !!this.targetKeys && this.gaugeVisible;
+    this.targetBox.setVisible(on);
+    this.targetLabel.setVisible(on);
+  }
+
+  setGaugeTarget(t) {
+    this.tweens.killTweensOf(this.targetEdges);
+    const to = this.targetEdgesOf(t?.keys);
+    this.targetKeys = to ? t.keys : null;
+    this.syncTargetVisible();
+    if (!to) return;
+    const from = this.targetEdgesOf(t.animateFrom);
+    if (from && (from.l !== to.l || from.r !== to.r)) {
+      this.targetEdges.l = from.l;
+      this.targetEdges.r = from.r;
+      this.drawTarget();
+      this.tweens.add({
+        targets: this.targetEdges, l: to.l, r: to.r, duration: TARGET_TWEEN_MS, ease: 'Sine.easeInOut',
+        onUpdate: () => this.drawTarget(),
+      });
+      return;
+    }
+    this.targetEdges.l = to.l;
+    this.targetEdges.r = to.r;
+    this.drawTarget();
+  }
+
+  // ---- centre banner -----------------------------------------------------------------
+
+  createBanner() {
+    const cx = GAME_WIDTH / 2;
+    const cy = GAME_HEIGHT / 2;
+    this.bannerPanel = this.add.rectangle(cx, cy, BANNER_W, 300, 0x05070f, 0.86).setStrokeStyle(4, 0x8fd3ff, 1);
+    this.bannerTitle = this.add
+      .text(cx, cy, '', {
+        ...TXT, fontSize: `${BANNER_TITLE_PX}px`, color: '#ffffff', align: 'center',
+        wordWrap: { width: BANNER_W - 2 * BANNER_PAD, useAdvancedWrap: true }, lineSpacing: 8,
+      })
+      .setOrigin(0.5, 0);
+    this.bannerSegs = [];
+    for (let i = 0; i < BANNER_BODY_SEGS; i++) {
+      this.bannerSegs.push(this.add.text(cx, cy, '', { ...TXT, fontSize: `${BANNER_BODY_PX}px`, color: '#e8ecff' }).setOrigin(0, 0.5));
+    }
+    this.bannerBox = this.add.container(0, 0, [this.bannerPanel, this.bannerTitle, ...this.bannerSegs]).setDepth(50).setVisible(false);
+  }
+
+  setBanner(b) {
+    this.tweens.killTweensOf(this.bannerBox);
+    if (!b?.visible) {
+      this.bannerBox.setVisible(false);
+      return;
+    }
+    const cx = GAME_WIDTH / 2;
+    this.bannerTitle.setText(b.title ?? '');
+    const lines = b.body ? b.body.split('\n') : [];
+    const titleH = this.bannerTitle.height;
+    const h = BANNER_PAD * 2 + titleH + (lines.length ? 20 + lines.length * BANNER_BODY_LINE_H : 0);
+    const top = GAME_HEIGHT / 2 - h / 2;
+    this.bannerPanel.setSize(BANNER_W, h).setPosition(cx, GAME_HEIGHT / 2);
+    this.bannerTitle.setPosition(cx, top + BANNER_PAD);
+    let seg = 0;
+    lines.forEach((line, li) => {
+      const y = top + BANNER_PAD + titleH + 20 + li * BANNER_BODY_LINE_H + BANNER_BODY_LINE_H / 2;
+      const parts = splitEmphasis(line, b.emphasis);
+      const used = [];
+      let w = 0;
+      for (const part of parts) {
+        const t = this.bannerSegs[seg++];
+        if (!t) break;
+        t.setText(part.text).setColor(part.emph ? '#ffffff' : '#e8ecff')
+          .setFontSize(part.emph ? BANNER_EMPH_PX : BANNER_BODY_PX).setVisible(true);
+        used.push(t);
+        w += t.width;
+      }
+      let x = cx - w / 2;
+      for (const t of used) {
+        t.setPosition(x, y);
+        x += t.width;
+      }
     });
+    for (; seg < BANNER_BODY_SEGS; seg++) this.bannerSegs[seg].setVisible(false);
+    this.bannerBox.setAlpha(0).setVisible(true);
+    this.tweens.add({ targets: this.bannerBox, alpha: 1, duration: 180 });
   }
 
   // ---- pause overlay (screen stack: gameplay → pause) ------------------------
@@ -348,7 +585,7 @@ export default class HudScene extends Phaser.Scene {
   createPauseOverlay() {
     const dim = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.65).setOrigin(0).setInteractive();
     const title = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.38, '일시정지', { ...TXT, fontSize: '56px', fontStyle: 'bold', color: '#ffffff' })
+      .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.38, '일시정지', { ...TXT, fontSize: '56px', color: '#ffffff' })
       .setOrigin(0.5);
     const resume = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.52, '계속하기', {
@@ -376,12 +613,14 @@ export default class HudScene extends Phaser.Scene {
     this.scene.pause(this.activeKey);
     this.resumeButton.rearm(); // the tap that opened it (or the return from background) can't close it
     this.pauseOverlay.setVisible(true);
+    bgm.setSuspended('pause', true);
   }
 
   closePause(resume) {
     if (!this.paused) return;
     this.paused = false;
     this.pauseOverlay.setVisible(false);
+    bgm.setSuspended('pause', false);
     if (resume && this.activeKey) this.scene.resume(this.activeKey);
   }
 }

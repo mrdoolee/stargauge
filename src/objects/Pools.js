@@ -13,8 +13,11 @@
 import Phaser from 'phaser';
 import {
   POOL_STARS, POOL_BEAMS, POOL_ASTEROIDS, POOL_ENEMIES, POOL_BULLETS, BEAM_BODY_W, BEAM_BODY_H,
-  ENEMY_BODY_R, BULLET_BODY_R,
+  ENEMY_BODY_R, BULLET_BODY_R, HUD_BAND_BOTTOM,
 } from '../config/balance.js';
+import { hpBarY } from '../logic/enemyHp.js';
+
+export const HP_BAR_H = 8; // small enemy hp bar height (px); width = the enemy's display width
 import { STAR_TEX, STAR_CORE_R, ENEMY_TEX } from './starTextures.js';
 
 function makePool(scene, { key, size, depth, setup }) {
@@ -72,6 +75,12 @@ export function createPools(scene) {
       const off = ENEMY_TEX / 2 - ENEMY_BODY_R;
       obj.body.setCircle(ENEMY_BODY_R, off, off);
       obj.shield = scene.add.image(-1000, -1000, 'shield-white').setDepth(11.5).setVisible(false);
+      // Small hp bar (drones): dark back + neutral white fill, shown only when spawnEnemy({ hpBar: true }).
+      obj.hpBarBack = scene.add.rectangle(-1000, -1000, 10, 10, HP_BAR_BACK_COLOR, HP_BAR_BACK_ALPHA).setDepth(12).setVisible(false);
+      obj.hpBar = scene.add.rectangle(-1000, -1000, 10, 10, HP_BAR_FILL_COLOR).setOrigin(0, 0.5).setDepth(12.1).setVisible(false);
+      obj.hpBarState = { v: 1 }; // tweened 0..1 shown fraction (a separate target: hit flashes kill tweens of the enemy itself)
+      obj.hpBarW = 0;
+      obj.hpBarOffY = 0;
     },
   });
   const bullets = makePool(scene, {
@@ -82,6 +91,10 @@ export function createPools(scene) {
   });
   return { stars, beams, asteroids, enemies, bullets };
 }
+
+const HP_BAR_BACK_COLOR = 0x05070f;
+const HP_BAR_BACK_ALPHA = 0.8;
+const HP_BAR_FILL_COLOR = 0xffffff; // neutral: never a palette color
 
 /** First inactive member, enabled at (x, y); null when every member is in use. */
 export function acquire(group, x = 0, y = 0) {
@@ -107,6 +120,11 @@ export function release(obj) {
     obj.scene?.tweens.killTweensOf(obj.shield);
     obj.shield.setVisible(false);
   }
+  if (obj.hpBar) {
+    obj.scene?.tweens.killTweensOf(obj.hpBarState);
+    obj.hpBar.setVisible(false);
+    obj.hpBarBack.setVisible(false);
+  }
 }
 
 /** Keep each active star's halo glued to it (call after physics has moved things). */
@@ -120,5 +138,15 @@ export function syncHalos(group) {
 export function syncShields(group) {
   for (const e of group.members) {
     if (e.active && e.shield.visible) e.shield.setPosition(e.x, e.y);
+  }
+}
+
+/** Keep each visible hp bar glued above its enemy (no allocation). */
+export function syncHpBars(group) {
+  for (const e of group.members) {
+    if (!e.active || !e.hpBar.visible) continue;
+    const y = hpBarY(e.y, e.hpBarOffY, HP_BAR_H, HUD_BAND_BOTTOM);
+    e.hpBarBack.setPosition(e.x, y);
+    e.hpBar.setPosition(e.x - e.hpBarW / 2, y);
   }
 }

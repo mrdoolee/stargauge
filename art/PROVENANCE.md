@@ -19,7 +19,7 @@ All generated with OpenAI Images API, model `gpt-image-2.5-sunburst` (from OPENA
 | boss | gpt-image-2.5-sunburst | 2026-11-04 | huge top-down boss warship, gray metal armor plates + dark magenta, twin cannons facing down, request 1536x1024. 2 calls (1 retry): try 1 was tall 1024x1024 and nose-up (art/raw/boss.try1-tall-up.png); try 2 with a "rotated 180 degrees, wide" suffix kept. Trimmed to bbox, contain-fit into 512x320 (178 KB). Raw: art/raw/boss.png (git-ignored) | yes |
 | bg-furnace | gpt-image-2.5-sunburst | 2026-11-04 | dark charcoal furnace-chamber plating. First try with ref drew a ship inside, rejected (raw kept as bg-furnace.try1-ship.png); regenerated without ref | no (retry); yes (rejected try) |
 | bg-cluster | gpt-image-2.5-sunburst | 2026-11-04 | abstract navy/violet painterly nebula, no stars | no |
-| title-art | gpt-image-2.5-sunburst | 2026-11-04 | mint-and-silver ship flying up through navy/teal nebula, top and bottom thirds open | yes |
+| title-art | gpt-image-2.5-sunburst | 2026-11-07 | REPLACED (teacher picked mock-b-orb): planet limb with mint rim glow, small mint-and-silver ship rising away leaving a thin light trail, upper 40% and lower 20% left dark for title/buttons. Candidate art/raw/title-candidates/title-b.png (1024x1536, edits endpoint, ref art/raw/ship-style-a.png, prompt title-b.prompt.txt), center-cropped to 720x1280, jpg q88 (77 KB). Previous 2026-11-04 nebula version replaced | yes |
 | glass-craft | gpt-image-2.5-sunburst | 2026-11-04 | fix round 1: first image (bulb, yellow core/red rim, pipe) did not match quiz Q2; regenerated once without ref with a horizontal glass rod, left half yellow-white, right half orange-red, empty top half; 1536x1024 raw cropped to 1536x549 (rod at ~72% height) then 560x200; labels (가)/(나) are drawn at the centers of the halves, y = image center | no (retry); first try yes |
 | briefing-m1 | gpt-image-2.5-sunburst | 2026-11-04 | furnace pouring molten metal white-yellow-orange-red | yes |
 | briefing-m2 | gpt-image-2.5-sunburst | 2026-11-04 | observatory scanner dish and survey ship, mint/silver/navy | yes |
@@ -68,3 +68,9 @@ Then add `{ key: 'ship', path: 'img/ship.png' }` to `src/config/assets.js` (only
 - captain (4 states x 2 frames): `prepare` OK in `C:\Users\mrdoo\tools\sprite-runs\captain`; `gen-set --provider codex` FAILED for all rows: Codex "usage limit ... try again at Nov 20th, 2026 9:08 AM" (exit 1). Not used for the shipped captain art.
 - ship-engine (`burn`, 3 frames): request kept at art/sprites/ship/sprite-request.json, not run. The captain request art/sprites/captain/sprite-request.json is also kept.
 - PENDING: sprite-gen animation (blink/nod frames for the captain, engine flame atlas) after the Codex reset on 2026-11-20. Teacher decides then; the OpenAI provider of sprite-gen is not used without the teacher's choice. `ship-engine` is not in ATLAS_ASSETS.
+
+## Fonts
+
+| font | file | source | license | date |
+|---|---|---|---|---|
+| Orbit (Regular, only weight) | public/fonts/Orbit-Regular.woff2 (converted from Orbit-Regular.ttf with fontTools + brotli, glyphs unchanged) | https://github.com/google/fonts/tree/main/ofl/orbit | SIL Open Font License 1.1, "Copyright 2022 The Orbit Project Authors (https://github.com/JAMO-TYPEFACE/Orbit)"; license text shipped as public/fonts/OFL.txt | 2026-11-07 |

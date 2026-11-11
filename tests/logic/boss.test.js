@@ -1,27 +1,39 @@
 import { describe, it, expect } from 'vitest';
-import { bossCycle, fanVelocities, bossWarmup, swayOffset, formatTime } from '../../src/logic/boss.js';
+import {
+  bossCycle, fanVelocities, bossWarmup, swayOffset, formatTime, bossStageFromHp, bossFightSec, bossHp, bossGapMs, bossFan, escortTarget, bossVolleyShots,
+} from '../../src/logic/boss.js';
+import { hitsToDown, bossArmorColor, chargeLevel } from '../../src/logic/charge.js';
+import { droneShot } from '../../src/logic/drones.js';
+import { STAR_COLORS } from '../../src/logic/temperature.js';
 import { canLaunch } from '../../src/logic/speed.js';
 import {
-  BOSS_ATTACK_MS, BOSS_GAP_MS, SHIP_START_Y, WARMUP_MS, WARMUP_DENSITY,
+  BOSS_ATTACK_MS, BOSS_GAP_MS, BOSS_HP, BOSS_FAN, BOSS_ESCORTS, BOSS_ESCORT_BAND_Y, BOSS_ESCORT_FIRE_MS, BOSS_ARMOR, BOSS_ESCORT_MIN_SHOT_SPEED, M4_TIME_LIMIT_SEC, BOSS_STAGE_FIND_SEC, M3_SEC_PER_SHOT, SHIP_START_Y, WARMUP_MS, WARMUP_DENSITY,
 } from '../../src/config/balance.js';
 
 describe('bossCycle', () => {
-  it('alternates attack and gap, gapJustStarted fires once per cycle', () => {
-    for (const stage of [1, 2, 3]) {
+  it('alternates attack and gap (gap per difficulty), gapJustStarted fires once per cycle', () => {
+    for (const diffKey of ['easy', 'normal', 'hard']) for (const stage of [1, 2, 3]) {
       const atk = BOSS_ATTACK_MS[stage];
-      const period = atk + BOSS_GAP_MS;
+      const period = atk + BOSS_GAP_MS[diffKey];
       let starts = 0;
       let prev = 0;
       for (let t = 16; t < period * 3; t += 16) {
-        const c = bossCycle(stage, t, prev);
+        const c = bossCycle(stage, t, prev, diffKey);
         expect(c.attacking).toBe(t % period < atk);
         if (c.gapJustStarted) starts += 1;
         prev = t;
       }
       expect(starts).toBe(3);
-      expect(bossCycle(stage, 0).attacking).toBe(true);
-      expect(bossCycle(stage, 0).gapJustStarted).toBe(false);
+      expect(bossCycle(stage, 0, null, diffKey).attacking).toBe(true);
+      expect(bossCycle(stage, 0, null, diffKey).gapJustStarted).toBe(false);
     }
+  });
+  it('bossGapMs is the table value, normal for an unknown key; the rest gets shorter with difficulty and is never longer than before (4500)', () => {
+    expect(bossGapMs('hard')).toBe(BOSS_GAP_MS.hard);
+    expect(bossGapMs('zzz')).toBe(BOSS_GAP_MS.normal);
+    expect(BOSS_GAP_MS.easy).toBeGreaterThan(BOSS_GAP_MS.normal);
+    expect(BOSS_GAP_MS.normal).toBeGreaterThan(BOSS_GAP_MS.hard);
+    expect(BOSS_GAP_MS.easy).toBeLessThan(4500);
   });
 });
 
@@ -55,21 +67,24 @@ describe('bossWarmup', () => {
   });
 });
 
-import { bossStageFromHp, bossShotSpeed } from '../../src/logic/boss.js';
+import { bossShotSpeed, stageChangeVolleyMs, bossVolleyMs } from '../../src/logic/boss.js';
 import { bossArmorColor, chargeLevel } from '../../src/logic/charge.js';
 import { speedFor } from '../../src/logic/speed.js';
-import { BOSS_HP, BOSS_POS, BOSS_MUZZLE_DY, BOSS_SWAY, HUD_BAND_BOTTOM, BOSS_WIDTH_PX, BOSS_ART } from '../../src/config/balance.js';
+import { BOSS_VOLLEY_MS, BOSS_POS, BOSS_MUZZLE_DY, BOSS_SWAY, HUD_BAND_BOTTOM, BOSS_WIDTH_PX, BOSS_ART } from '../../src/config/balance.js';
+import { scaleInterval } from '../../src/logic/difficulty.js';
 
 describe('bossStageFromHp', () => {
   it('stays on the stage while hp is left', () => {
-    expect(bossStageFromHp({ stage: 1, hp: 3 })).toEqual({ stage: 1, hp: 3, cleared: false });
+    expect(bossStageFromHp({ stage: 1, hp: 3, diffKey: 'normal' })).toEqual({ stage: 1, hp: 3, cleared: false });
   });
-  it('hp 0 advances to the next stage with its full hp', () => {
-    expect(bossStageFromHp({ stage: 1, hp: 0 })).toEqual({ stage: 2, hp: BOSS_HP[1], cleared: false });
-    expect(bossStageFromHp({ stage: 2, hp: 0 })).toEqual({ stage: 3, hp: BOSS_HP[2], cleared: false });
+  it('hp 0 advances to the next stage with its full hp of that difficulty', () => {
+    for (const diffKey of ['easy', 'normal', 'hard']) {
+      expect(bossStageFromHp({ stage: 1, hp: 0, diffKey })).toEqual({ stage: 2, hp: BOSS_HP[diffKey][1], cleared: false });
+      expect(bossStageFromHp({ stage: 2, hp: 0, diffKey })).toEqual({ stage: 3, hp: BOSS_HP[diffKey][2], cleared: false });
+    }
   });
   it('stage 3 at hp 0 is cleared', () => {
-    expect(bossStageFromHp({ stage: 3, hp: 0 })).toEqual({ stage: 3, hp: 0, cleared: true });
+    expect(bossStageFromHp({ stage: 3, hp: 0, diffKey: 'hard' })).toEqual({ stage: 3, hp: 0, cleared: true });
   });
 });
 
@@ -136,31 +151,175 @@ describe('formatTime', () => {
   });
 });
 
-import { bossVolleyTick } from '../../src/logic/boss.js';
-import { BOSS_STAGE_GRACE_MS, BOSS_STAGE_FLASH_MS, BOSS_VOLLEY_MS } from '../../src/config/balance.js';
-
-describe('bossVolleyTick', () => {
-  it('counts down inside the attack window and fires at 0; outside the window it re-arms to fire as the next one opens', () => {
-    expect(bossVolleyTick({ volleyMs: 100, dtMs: 16, attacking: true })).toEqual({ volleyMs: 84, fire: false });
-    expect(bossVolleyTick({ volleyMs: 10, dtMs: 16, attacking: true })).toEqual({ volleyMs: -6, fire: true });
-    expect(bossVolleyTick({ volleyMs: 900, dtMs: 16, attacking: false })).toEqual({ volleyMs: 0, fire: false });
-  });
-  it('after a stage advance no volley launches during the white flash + grace (BOSS_STAGE_GRACE_MS)', () => {
-    expect(BOSS_STAGE_GRACE_MS - BOSS_STAGE_FLASH_MS).toBeGreaterThanOrEqual(500); // flash, then time to read the toast
-    for (const stage of [2, 3]) for (const dt of [8, 16, 33, 100]) {
-      // the scene on a stage advance: stageMs = 0, volleyMs = BOSS_STAGE_GRACE_MS
-      let stageMs = 0;
-      let volleyMs = BOSS_STAGE_GRACE_MS;
-      let firstFireMs = null;
-      while (stageMs < BOSS_STAGE_GRACE_MS + 2 * BOSS_VOLLEY_MS[stage] && firstFireMs === null) {
-        const prev = stageMs;
-        stageMs += dt;
-        const t = bossVolleyTick({ volleyMs, dtMs: dt, attacking: bossCycle(stage, stageMs, prev).attacking });
-        volleyMs = t.volleyMs;
-        if (t.fire) firstFireMs = stageMs;
-      }
-      expect(firstFireMs).not.toBeNull();
-      expect(firstFireMs).toBeGreaterThanOrEqual(BOSS_STAGE_GRACE_MS);
+describe('stageChangeVolleyMs / bossVolleyMs', () => {
+  it('waits one full scaled volley interval of the new stage (never 0)', () => {
+    for (const diffKey of ['easy', 'normal', 'hard']) for (const stage of [2, 3]) {
+      const ms = stageChangeVolleyMs(stage, diffKey);
+      expect(ms).toBe(scaleInterval(BOSS_VOLLEY_MS[diffKey][stage], diffKey));
+      expect(ms).toBe(bossVolleyMs(stage, diffKey));
+      expect(ms).toBeGreaterThanOrEqual(1500);
     }
+  });
+  it('easy keeps the old volley table; hard < normal < easy in every stage (2026-11-07)', () => {
+    expect(BOSS_VOLLEY_MS.easy).toEqual({ 1: 2200, 2: 3400, 3: 3800 });
+    for (const st of [1, 2, 3]) {
+      expect(BOSS_VOLLEY_MS.normal[st]).toBeLessThanOrEqual(BOSS_VOLLEY_MS.easy[st]);
+      expect(bossVolleyMs(st, 'hard')).toBeLessThan(bossVolleyMs(st, 'normal'));
+      expect(bossVolleyMs(st, 'normal')).toBeLessThan(bossVolleyMs(st, 'easy'));
+    }
+  });
+});
+
+describe('boss fan (per difficulty)', () => {
+  it('easy fans are a little wider than the old 30/36 deg; normal/hard are wider and fuller still in stages 2-3', () => {
+    expect(BOSS_FAN.easy).toEqual({ 2: { count: [2, 3], spreadDeg: 38 }, 3: { count: [2, 3], spreadDeg: 46 } });
+    for (const st of [2, 3]) for (const k of ['normal', 'hard']) {
+      expect(bossFan(st, k).spreadDeg).toBeGreaterThan(bossFan(st, 'easy').spreadDeg);
+      expect(bossFan(st, k).count[1]).toBeGreaterThanOrEqual(bossFan(st, 'easy').count[1]);
+    }
+    expect(bossFan(3, 'hard').spreadDeg).toBeGreaterThan(bossFan(3, 'normal').spreadDeg);
+    expect(bossFan(1, 'normal')).toBeNull();
+    expect(bossFan(2, 'zzz')).toBe(BOSS_FAN.normal[2]);
+  });
+  it('a fan never aims sideways past the clamp (fanVelocities keeps vy > 0) at the widest spread', () => {
+    for (const k of ['easy', 'normal', 'hard']) for (const st of [2, 3]) {
+      const f = bossFan(st, k);
+      for (const v of fanVelocities(35, f.count[1], f.spreadDeg, 400)) expect(v.vy).toBeGreaterThan(0);
+    }
+  });
+  it('one volley leaves room in the bullet pool (max fan + 1 aimed shot, a few volleys in flight, escort shots)', () => {
+    for (const k of ['easy', 'normal', 'hard']) for (const st of [2, 3]) {
+      const worst = bossFan(st, k).count[1] + 1;
+      expect(worst * 3 + 3 * 2).toBeLessThanOrEqual(48);
+    }
+  });
+});
+
+describe('bossStageFromHp (overflow damage is not carried over)', () => {
+  it('next stage starts with its full hp whatever the overshoot', () => {
+    expect(bossStageFromHp({ stage: 1, hp: -2, diffKey: 'normal' })).toEqual({ stage: 2, hp: BOSS_HP.normal[1], cleared: false });
+    expect(bossStageFromHp({ stage: 2, hp: 0, diffKey: 'hard' })).toEqual({ stage: 3, hp: BOSS_HP.hard[2], cleared: false });
+    expect(bossStageFromHp({ stage: 1, hp: 3, diffKey: 'easy' })).toEqual({ stage: 1, hp: 3, cleared: false });
+  });
+  it('the last stage clears', () => {
+    expect(bossStageFromHp({ stage: 3, hp: -1, diffKey: 'normal' }).cleared).toBe(true);
+    expect(bossStageFromHp({ stage: 3, hp: 0, diffKey: 'normal' }).cleared).toBe(true);
+  });
+});
+
+describe('boss balance (damage by charge temperature)', () => {
+  const hotter = armor => STAR_COLORS.find(c => chargeLevel(c.key) === chargeLevel(armor) + 1)?.key;
+  it('bossHp reads the difficulty table (normal for unknown)', () => {
+    expect(bossHp(1, 'hard')).toBe(BOSS_HP.hard[0]);
+    expect(bossHp(3, 'easy')).toBe(BOSS_HP.easy[2]);
+    expect(bossHp(2, 'zzz')).toBe(BOSS_HP.normal[1]);
+  });
+  it('armor-colored beams need hp hits; one hotter step needs fewer (where a hotter color exists)', () => {
+    for (const diff of ['easy', 'normal', 'hard']) for (const stage of [1, 2, 3]) {
+      const armor = bossArmorColor(stage, diff);
+      const hp = bossHp(stage, diff);
+      expect(hitsToDown(armor, armor, hp)).toBe(hp);
+      if (hotter(armor)) expect(hitsToDown(hotter(armor), armor, hp)).toBeLessThan(hp);
+    }
+  });
+  it('even a BLUE charge needs at least 2 hits per stage on easy (easy hp [6,5,4]: same 15 armor-colored shots as before)', () => {
+    expect(BOSS_HP.easy).toEqual([6, 5, 4]);
+    for (const stage of [1, 2, 3]) expect(hitsToDown('blue', bossArmorColor(stage, 'easy'), bossHp(stage, 'easy'))).toBeGreaterThanOrEqual(2);
+  });
+  it('even a BLUE charge needs at least 3 hits per stage on normal and hard (no more one-shot stages)', () => {
+    for (const diff of ['normal', 'hard']) for (const stage of [1, 2, 3]) {
+      expect(hitsToDown('blue', bossArmorColor(stage, diff), bossHp(stage, diff))).toBeGreaterThanOrEqual(3);
+    }
+  });
+  it('hard armor: stage 3 is blue (only blue pierces)', () => {
+    expect(BOSS_ARMOR.hard[2]).toBe('blue');
+    expect(bossArmorColor(3, 'hard')).toBe('blue');
+  });
+  it('hp totals: easy 15 (unchanged), normal and hard clearly more', () => {
+    const tot = k => BOSS_HP[k].reduce((a, b) => a + b, 0);
+    expect(tot('easy')).toBe(15);
+    expect(tot('normal')).toBeGreaterThanOrEqual(20);
+    expect(tot('hard')).toBeGreaterThanOrEqual(20);
+  });
+  it('bossFightSec = per stage find time + armor-colored shots x seconds per shot, and fits the time limit', () => {
+    for (const diff of ['easy', 'normal', 'hard']) {
+      const want = [1, 2, 3].reduce((a, st) => a + BOSS_STAGE_FIND_SEC + hitsToDown(bossArmorColor(st, diff), bossArmorColor(st, diff), bossHp(st, diff)) * M3_SEC_PER_SHOT, 0);
+      expect(bossFightSec(diff)).toBe(want);
+      expect(bossFightSec(diff)).toBeLessThanOrEqual(M4_TIME_LIMIT_SEC);
+    }
+  });
+  it('easy stays at the old 150 s; normal is noticeably longer (170..210 s)', () => {
+    expect(bossFightSec('easy')).toBe(150);
+    expect(bossFightSec('normal')).toBeGreaterThanOrEqual(170);
+    expect(bossFightSec('normal')).toBeLessThanOrEqual(M4_TIME_LIMIT_SEC);
+    expect(bossFightSec('hard')).toBeGreaterThan(bossFightSec('easy'));
+  });
+});
+
+describe('bossVolleyShots: the aimed shot never sits on a fan bullet', () => {
+  const angles = v => v.map(s => Math.atan2(s.vx, s.vy) * 180 / Math.PI).sort((a, b) => a - b);
+  const minGap = a => a.slice(1).reduce((m, x, i) => Math.min(m, x - a[i]), Infinity);
+  const from = { x: 360, y: BOSS_POS.y + BOSS_MUZZLE_DY };
+  it('no two velocities of an aimed volley are equal (>= 5 deg apart) for every fan size, difficulty, ship position', () => {
+    for (const diffKey of ['normal', 'hard']) for (const stage of [2, 3]) {
+      for (const r of [0, 0.5, 0.9999]) for (const x of [20, 150, 300, 360, 420, 600, 700]) for (const y of [600, 800, 900, 960]) {
+        const v = bossVolleyShots({ stage, diffKey, from, ship: { x, y }, speed: 400, aim: true, rng: () => r });
+        const fan = bossFan(stage, diffKey);
+        expect(v.length).toBeGreaterThanOrEqual(fan.count[0] + 1);
+        expect(minGap(angles(v))).toBeGreaterThanOrEqual(5);
+      }
+    }
+  });
+  it('also holds when the ship is above the muzzle or exactly beneath it (degenerate aim)', () => {
+    for (const diffKey of ['normal', 'hard']) for (const stage of [2, 3]) for (const r of [0, 0.5, 0.9999]) {
+      for (const ship of [{ x: 360, y: 300 }, { x: 100, y: 300 }, { x: 360, y: 700 }]) {
+        const v = bossVolleyShots({ stage, diffKey, from, ship, speed: 400, aim: true, rng: () => r });
+        expect(minGap(angles(v))).toBeGreaterThan(0.5);
+      }
+    }
+  });
+  it('unaimed: just the fan (no extra shot); stage 1: one straight shot; every shot goes down', () => {
+    const f = bossFan(3, 'hard');
+    const v = bossVolleyShots({ stage: 3, diffKey: 'hard', from, ship: { x: 100, y: 900 }, speed: 400, aim: false, rng: () => 0.9999 });
+    expect(v).toHaveLength(f.count[1]);
+    const one = bossVolleyShots({ stage: 1, diffKey: 'hard', from, ship: { x: 100, y: 900 }, speed: 400, aim: true });
+    expect(one).toHaveLength(1);
+    for (const s of [...v, ...one]) expect(s.vy).toBeGreaterThan(0);
+  });
+  it('easy never aims (aim false) so it fires just the fan', () => {
+    const v = bossVolleyShots({ stage: 2, diffKey: 'easy', from, ship: { x: 100, y: 900 }, speed: 300, aim: false, rng: () => 0 });
+    expect(v).toHaveLength(2);
+  });
+});
+
+describe('escort drones (m4)', () => {
+  it('escortTarget: none in stage 1; at most 1 on easy, 1 on normal, 2 on hard; never fewer in a later stage', () => {
+    for (const k of ['easy', 'normal', 'hard']) {
+      expect(escortTarget(1, k)).toBe(0);
+      expect(escortTarget(2, k)).toBeLessThanOrEqual(escortTarget(3, k));
+    }
+    expect(Math.max(...[1, 2, 3].map(st => escortTarget(st, 'easy')))).toBeLessThanOrEqual(1);
+    expect(Math.max(...[1, 2, 3].map(st => escortTarget(st, 'normal')))).toBe(1);
+    expect(Math.max(...[1, 2, 3].map(st => escortTarget(st, 'hard')))).toBe(2);
+    expect(escortTarget(2, 'zzz')).toBe(BOSS_ESCORTS.normal[2]);
+    expect(escortTarget(9, 'hard')).toBe(0);
+  });
+  it('hover rows keep the whole drone body below the boss hull and well above the ship start row', () => {
+    const hullBottom = BOSS_POS.y + BOSS_MUZZLE_DY;
+    expect(BOSS_ESCORT_BAND_Y.min - 34).toBeGreaterThan(hullBottom);
+    expect(BOSS_ESCORT_BAND_Y.max).toBeLessThan(SHIP_START_Y - 100);
+  });
+  it('droneShot from every hover row toward the ship start row is never null on any difficulty (so the escort shots counted in the heat model really fire)', () => {
+    for (const diffKey of ['easy', 'normal', 'hard']) for (const tier of [0, 3]) for (const rng of [0, 0.3, 0.9999]) {
+      for (const y of [BOSS_ESCORT_BAND_Y.min, BOSS_ESCORT_BAND_Y.max]) for (const aimAllowed of [false, true]) {
+        const s = droneShot({ drone: { x: 300, y }, ship: { x: 500, y: SHIP_START_Y }, diffKey, tier, aimAllowed, warmup: false, rng: () => rng, minSpeed: BOSS_ESCORT_MIN_SHOT_SPEED });
+        expect(s).not.toBeNull();
+      }
+    }
+  });
+  it('escorts shoot slower on easier difficulties, never faster than every 3 s', () => {
+    for (const k of ['easy', 'normal', 'hard']) expect(BOSS_ESCORT_FIRE_MS[k]).toBeGreaterThanOrEqual(3000);
+    expect(BOSS_ESCORT_FIRE_MS.easy).toBeGreaterThan(BOSS_ESCORT_FIRE_MS.normal);
+    expect(BOSS_ESCORT_FIRE_MS.normal).toBeGreaterThan(BOSS_ESCORT_FIRE_MS.hard);
   });
 });

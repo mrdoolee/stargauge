@@ -10,6 +10,7 @@ import { BRIEFING, briefingParts } from '../data/briefing.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { armButton } from '../ui/button.js';
+import { bgm } from '../audio/bgm.js';
 
 const M = HUD_SAFE_MARGIN;
 const CAPTAIN_W = 200; // 416x520 frame -> 200x250
@@ -28,6 +29,7 @@ export default class BriefingScene extends Phaser.Scene {
   }
 
   create() {
+    bgm.requestForScene(this.scene.key);
     const b = BRIEFING[this.mission];
     const cx = GAME_WIDTH / 2;
     const hasCaptain = hasImage(this, 'captain') && this.textures.get('captain').has(b.expression);
@@ -36,7 +38,7 @@ export default class BriefingScene extends Phaser.Scene {
     this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH - 2 * M, GAME_HEIGHT - 2 * M, 0x111a30, 0.95).setStrokeStyle(4, 0x8fd3ff).setDepth(-5);
 
     this.add.text(cx, 52, `MISSION ${this.mission.slice(1)} 브리핑`, { fontFamily: FONT, fontSize: '28px', color: '#8fd3ff' }).setOrigin(0.5);
-    this.add.text(cx, 100, b.title, { fontFamily: FONT, fontSize: '48px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+    this.add.text(cx, 100, b.title, { fontFamily: FONT, fontSize: '48px', color: '#ffffff' }).setOrigin(0.5);
 
     // captain (left) + speech bubble (right)
     const top = 150;
@@ -53,7 +55,7 @@ export default class BriefingScene extends Phaser.Scene {
     this.add.rectangle(bx + bw / 2, by + bh / 2, bw, bh, 0xf2f6ff, 1).setStrokeStyle(4, 0x8fd3ff);
     this.add.triangle(bx - 6, by + 100, 0, 0, 24, -18, 24, 18, 0xf2f6ff).setOrigin(1, 0.5).setPosition(bx + 4, by + 100);
     this.add.text(bx + bw / 2, by + bh / 2, b.line, {
-      fontFamily: FONT, fontSize: '32px', fontStyle: 'bold', color: '#0b1226', align: 'center',
+      fontFamily: FONT, fontSize: '32px', color: '#0b1226', align: 'center',
       lineSpacing: 8, wordWrap: { width: bw - 36, useAdvancedWrap: true },
     }).setOrigin(0.5);
 
@@ -80,16 +82,26 @@ export default class BriefingScene extends Phaser.Scene {
 
     // bullets
     const bulletTop = picBottom + 28;
-    const text = b.bullets.map(t => `• ${t}`).join('\n');
-    const bullets = this.add.text(M + 28, bulletTop, text, {
-      fontFamily: FONT, fontSize: '30px', color: '#e8ecff', lineSpacing: 12,
-      wordWrap: { width: GAME_WIDTH - 2 * (M + 28), useAdvancedWrap: true },
-    }).setOrigin(0, 0);
+    // Hanging indent: the "•" is its own Text and the body sits beside it, so wrapped lines line up under the first letter.
+    const bulletStyle = { fontFamily: FONT, fontSize: '30px', color: '#e8ecff', lineSpacing: 12 };
+    const bulletW = GAME_WIDTH - 2 * (M + 28);
+    const markerProbe = this.add.text(0, 0, '• ', bulletStyle);
+    const indent = Math.ceil(markerProbe.width);
+    markerProbe.destroy();
+    let cursorY = bulletTop;
+    for (const t of b.bullets) {
+      this.add.text(M + 28, cursorY, '•', bulletStyle).setOrigin(0, 0);
+      const body = this.add.text(M + 28 + indent, cursorY, t, {
+        ...bulletStyle, wordWrap: { width: bulletW - indent, useAdvancedWrap: true },
+      }).setOrigin(0, 0);
+      cursorY += body.height + bulletStyle.lineSpacing;
+    }
+    const bulletsBottom = cursorY - bulletStyle.lineSpacing;
 
     // goal box (yellow border)
-    const goalTop = bullets.y + bullets.height + 28;
+    const goalTop = bulletsBottom + 28;
     const goal = this.add.text(cx, 0, `임무: ${b.goal}`, {
-      fontFamily: FONT, fontSize: '32px', fontStyle: 'bold', color: '#ffe27a', align: 'center', lineSpacing: 8,
+      fontFamily: FONT, fontSize: '32px', color: '#ffe27a', align: 'center', lineSpacing: 8,
       wordWrap: { width: GAME_WIDTH - 2 * (M + 28) - 40, useAdvancedWrap: true },
     }).setOrigin(0.5, 0.5);
     const gh = goal.height + 36;

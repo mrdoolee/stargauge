@@ -13,8 +13,7 @@
  *   }
  * Do NOT override create() or update(): use setupMission() and the per-frame hook onMissionUpdate(dtMs, time). If you override init(data), call super.init(data) first.
  * Fields: missionId ('m1'..'m4' — registry results key), sunRef (bool, default false),
- *         showGauge (bool, default true), toastAt ('top' | 'low', default 'top': where HUD toasts sit;
- *         m1 uses 'low' so toasts never cover the white zone just under the HUD).
+ *         showGauge (bool, default true). In-play messages never cover the play field: toast() puts them in the HUD's instruction strip.
  *
  * Phase object (plain; rebuilt every run so judge state like orderedJudge.progress resets):
  *   {
@@ -22,6 +21,7 @@
  *     judge: predicateJudge(...) | orderedJudge(...) | null,  // null = practice: hits just mark
  *     practice: true,               // optional marker for subclasses (e.g. m1 skips it on a restart)
  *     remaining: scene => number,   // optional; goal counter. <= 0 auto-completes the phase
+ *         hideGoal: scene => bool,      // optional; true keeps the counter hidden (the goal still auto-completes)
  *     instruction: '...',           // optional override of MISSION_TEXT[id].instruction
  *     spawnIntervalMs: 900,         // optional; default SPAWN_INTERVAL_MS[missionId]; 0 = no spawner
  *     collisions: true,             // optional; false = ship passes through everything (m1 practice)
@@ -35,6 +35,7 @@
  *                                   // zigzag: {amp, periodMs} | null, formationId, tier, aimAllowed,
    *                                   // formationIndex, formationSize, slotIndex }. Pass slot.zigzag to spawnStar/spawnAsteroid. A correct hit feeds director.onCorrect().
  *     waveBounds: { minX, maxX },   // optional; formation x range (default 70 .. GAME_WIDTH - 70)
+ *     gaugeTarget: ['blue', ...],   // optional; STAR_COLORS keys the HUD brackets as the correct range while the phase runs ('gauge-target')
  *     blockedToast: false,          // optional (chargeMode phases); false = no engine hint toast on a blocked hit (default: shown, first
  *                                   // BLOCKED_TOAST_MAX per run). this.blockedHits counts every blocked hit either way.
  *     chargeMode: true,             // optional; shooting a star MEASURES it: ring + fade (markObject, never destroyed) and
@@ -49,7 +50,7 @@
  * onShipHit(obj, heat), onStarMeasured(obj) (chargeMode), onEnemyDown(enemy) (hp hit 0, already released),
  * onEnemyPierced(enemy, res) (every pierce, hp already lowered, enemy still active; return true to KEEP it: then no
  * explosion, no release, no onEnemyDown, and the scene owns what follows, e.g. reset hp + setEnemyShield(next armor) + its fx),
- * onEnemyBlocked(enemy) (beam charge too weak for its shield; wrongShots and this.blockedHits already +1), practiceTone(obj) ('correct' | 'neutral', default 'correct': a practice hit
+ * onEnemyBlocked(enemy, beamKey) (beam charge too weak for its shield; this.blockedHits already +1; wrongShots +1 unless chargeMode and the bounce does not count, see bounceCounts), practiceTone(obj) ('correct' | 'neutral', default 'correct': a practice hit
  * (judge null) on a 'neutral' object gets a soft mark — no "+1", no correct chime — and onCorrectHit
  * receives { correct: true, practice: true, neutral: true }).
  *
@@ -63,17 +64,24 @@
  *   Asteroids are never targetable.
  *
  * ── Enemies, enemy bullets, charge (generic; used by m3/m4) ───────────────────────────
+ *   Each fired beam keeps its own b.chargeKey/b.firedAtMs: enemy hits are judged on the fire-time charge. In chargeMode phases beams only
+ *   touch stars/enemies below the HUD band (beamCanTouch).
  *   this.charge: star colorKey the beam is charged with, or null (plain beam). setCharge(colorKey|null) re-tints newly
  *   fired beams with the exact palette hex and emits 'charge-changed' { colorKey } (HUD highlights that gauge cell).
  *   Reset to initialCharge() (null) in init() (so also on a heat restart).
- *   spawnEnemy({ x, y, vx=0, vy=0, shieldKey=null, hp=1, kind='drone', texture='drone', scale=1 }) -> enemy|null
+ *   spawnEnemy({ x, y, vx=0, vy=0, shieldKey=null, hp=1, kind='drone', texture='drone', scale=1, hpBar=false }) -> enemy|null
  *     (pool POOL_ENEMIES; fields kind, shieldKey, hp, maxHp, colorKey null, collides, hitCooldownUntil; obj.shield = ring image
  *     shield-<shieldKey> kept over it). Not a star: a beam that pierces (resolveBeamOnEnemy: charge level >= shield level)
- *     costs 1 hp (an enemy with shieldKey null is always pierced); then onEnemyPierced(enemy, res); hp 0 (unless the hook kept it) =>
+ *     costs res.damage hp = 1 + (beam level - shield level), clamped at 0 (an enemy with shieldKey null is always pierced for 1);
+ *     then onEnemyPierced(enemy, res); hp 0 (unless the hook kept it) =>
  *     explosion, releaseEnemy, onEnemyDown(enemy) (receives the ALREADY RELEASED enemy: inactive, shield hidden, x/y still readable).
- *     Setting enemy.collides = false disables the ship overlap for that enemy. Beams pass enemies still behind the HUD
- *     band (y < HUD_BAND_BOTTOM, enemyBeamable). Blocked => bounce spark + shield flash +
- *     wrongShots += 1 + onEnemyBlocked(enemy) (+ a short hint toast, at most BLOCKED_TOAST_MAX per run).
+ *     Setting enemy.collides = false disables the ship overlap for that enemy. Blocked => bounce spark + shield flash +
+ *     onEnemyBlocked(enemy, beamKey) (beamKey = the beam's fire-time charge, null if uncharged) (+ a short hint toast,
+ *     at most BLOCKED_TOAST_MAX per run). wrongShots += 1 only when bounceCounts says so: an uncharged beam, or a beam
+ *     fired before the enemy's shield was last set, does not count; nor does a bounce off an enemy for which the hook isOptionalEnemy(enemy) is true.
+ *     hpBar: true (drones; default false, the boss has its own gauge) adds a small neutral-white hp bar above the shield ring
+ *     (enemy.hpBar fill + enemy.hpBarBack, glued by syncHpBars, shrinks over 120 ms per hit, hidden by releaseEnemy); a pierce
+ *     that does not down such an enemy also pops "-N" (N = res.damage) above the bar.
  *   releaseEnemy(enemy), setEnemyShield(enemy, shieldKey|null) (recolor / drop the shield).
  *   spawnBullet({ x, y, vx, vy }) -> bullet|null (pool POOL_BULLETS; never targetable by beams).
  *   Ship vs bullet: heat scaledHeat('asteroid', null, diff), bullet returned. Ship vs enemy body: same heat, enemy stays
@@ -89,14 +97,23 @@
  *   wrongShotMessage, beam consumed, object keeps flying. Collision heat =
  *   heatOnCollision(kind, colorKey) only. Heat full ⇒ registry results.<missionId>.restarts += 1
  *   and scene.restart({ ...initData, restarted: true }).
- *   Helpers: advancePhase(), completePhase(), endGameplay(), completeMission({ next, nextData, timedOut }),
- *   refreshGoal(), toast(text, opts), setInstruction(text), emitGauge(), updateResult(patch).
+ *   Stage transition: startTransition({ title, body?, emphasis?, gaugeTarget?: { from: string[], to: string[] }, onDone }) — call it from
+ *   onPhaseComplete instead of advancePhase(). New spawns stop; active stars/asteroids/bullets (and beams) lose collision, judging and
+ *   targeting and fade out over TRANSITION_CLEAR_MS, then return to the pool (stars are never destroyed or measured: no score, charge or
+ *   heat). Fire is ignored, the ship may still move, hull heat keeps cooling. When the field is empty the HUD 'banner' shows for
+ *   TRANSITION_BANNER_MS (gaugeTarget slides from `from` to `to`), then the banner hides and onDone() runs (usually advancePhase()).
+ *   It advances ONLY by update dt (logic/transition.js, dt capped by MAX_DT_MS): pause / app switch / landscape freeze it; this.playing
+ *   stays true, so returning from the background still opens the pause overlay. showBanner(copy)/hideBanner() drive the banner by hand
+ *   (overheat); clearField() is the same fade-and-return clear without the banner (advance it with updateFade(dt)).
+ *   Overheat: a full hull shows the BANNER_TEXT.overheat banner for RESTART_DELAY_MS, then restarts (the new run hides the banner).
+ *   Helpers: advancePhase(), completePhase(), endGameplay(), completeMission({ next, nextData }),
+ *   refreshGoal(), toast(text, opts: { colorKey?, ladder?: 'star'|'furnace', tone?: 'wrong'|'info'|'alert', priority? } — shown in the instruction strip, then the instruction returns), setInstruction(text), emitGauge(), updateResult(patch).
  *
  * ── Registry ───────────────────────────────────────────────────────────────────────
  *   results.<missionId> = { stars, wrongShots, restarts }. Reset to zeros on a fresh start
  *   (data.restarted falsy); restarts accumulate across heat restarts; stars/wrongShots are
  *   written by completeMission() from the finishing attempt (wrongShots count per attempt).
- *   'muted' (HUD; mirrored into sfx.setMuted). gaugeFinal / measuredCounts are written by the subclasses that own them.
+ *   'muted' (HUD; mirrored into sfx.setMuted, which also silences the music). gaugeFinal / measuredCounts are written by the subclasses that own them.
  *
  * ── HUD events (this.game.events) ── see HudScene.js for payloads.
  */
@@ -118,10 +135,10 @@ import {
   COLLISION_COOLDOWN_MS,
   MARK_FADE_MS,
   RESTART_DELAY_MS,
+  TRANSITION_CLEAR_MS, HUD_BAND_BOTTOM,
   FORMATION_GAP_MS,
   BLOCKED_TOAST_MAX,
   ENEMY_BODY_R,
-  SHIELD_UNIT,
   BOSS_ART,
 } from '../config/balance.js';
 import { HeatMeter } from '../logic/heat.js';
@@ -130,19 +147,22 @@ import { StarGauge } from '../logic/gauge.js';
 import { zigzagVx } from '../logic/formations.js';
 import { Spawner } from '../logic/spawner.js';
 import { WaveDirector } from '../logic/waves.js';
-import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome, enemyBeamable } from '../logic/charge.js';
+import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome, beamCanTouch, bounceCounts } from '../logic/charge.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { missionStars } from '../logic/scoring.js';
-import { MISSION_TEXT, wrongShotMessage, blockedBeamHint } from '../data/copy.js';
+import { advanceTransition, phaseResolution } from '../logic/transition.js';
+import { MISSION_TEXT, BANNER_TEXT, wrongShotMessage } from '../data/copy.js';
 import { TouchControls, fireButtonRect, joystickLayout, shipMaxY, stepShip } from '../input/TouchControls.js';
 import { hasImage, addBackdrop } from '../config/assets.js';
 import {
-  makeStarTextures, textureFor, loadedAsteroidKeys, ASTEROID_TEX, ENEMY_TEX, shieldTextureKey, bossShieldTextureKey,
+  makeStarTextures, textureFor, loadedAsteroidKeys, ASTEROID_TEX, ENEMY_TEX, shieldTextureKey,
 } from '../objects/starTextures.js';
 import { createParallax, PARALLAX_SPACE } from '../objects/parallax.js';
-import { createPools, acquire, release, syncHalos, syncShields } from '../objects/Pools.js';
+import { hpBarFraction, hpBarY } from '../logic/enemyHp.js';
+import { createPools, acquire, release, syncHalos, syncShields, syncHpBars, HP_BAR_H } from '../objects/Pools.js';
 import { FONT } from '../objects/gaugeView.js';
 import { sfx } from '../audio/sfx.js';
+import { bgm } from '../audio/bgm.js';
 
 // Backdrop dimming: stars must stay the brightest, most saturated things on screen.
 const BACKDROP_DIM = { color: 0x05070f, alpha: 0.45 };
@@ -151,7 +171,7 @@ const ENGINE_NOZZLES = [{ x: 0, y: 28, w: 7, h: 14 }, { x: -11, y: 23, w: 5, h: 
 const ENGINE_COLOR = 0x9ffff0;
 
 const FX_RINGS = 8;
-const FX_POPS = 6; // pooled "+1" score texts
+const FX_POPS = 6; // pooled "+1" score / "-N" damage texts
 const FX_FLASHES = 4; // pooled red wrong-shot beam flashes
 const SHAKE_MS = 120; // large tier: <= 150 ms, mission camera only
 const SHAKE_INTENSITY = 0.006;
@@ -159,9 +179,10 @@ const FX_BURSTS = 4; // pooled explosion / spark bursts: 1 ring + FX_BITS sparks
 const FX_BITS = 6;
 const EXPLODE_MS = 280; // downed enemy burst (<= 300 ms)
 const SPARK_MS = 160;
-const SHIELD_ALPHA = 0.85;
-/** The loaded 512x320 boss art (rectangle hull body, ellipse shield); the code placeholder boss is 80x80. */
-const isLoadedBossArt = obj => obj.kind === 'boss' && obj.width === BOSS_ART.canvasW && obj.height === BOSS_ART.canvasH;
+const HP_BAR_GAP = 8; // gap between the shield ring's top and the bar
+const HP_BAR_TWEEN_MS = 120;
+const SHIELD_ALPHA = 1; // exact palette color: no dimming over the dark backdrop
+const SHIELD_UNIT = 0.8; // shield ring scale per enemy scale unit (ring just outside the 80 px body)
 
 export default class BaseMissionScene extends Phaser.Scene {
   constructor(key) {
@@ -169,7 +190,6 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.missionId = key;
     this.sunRef = false;
     this.showGauge = true;
-    this.toastAt = 'top';
   }
 
   // ---- subclass hooks (defaults) --------------------------------------------------
@@ -191,7 +211,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   onStarMeasured(_obj) {}
   onEnemyDown(_enemy) {}
   onEnemyPierced(_enemy, _res) { return false; }
-  onEnemyBlocked(_enemy) {}
+  onEnemyBlocked(_enemy, _beamKey) {}
   practiceTone(_obj) { return 'correct'; }
 
   // ---- lifecycle ------------------------------------------------------------------
@@ -207,6 +227,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.phaseIndex = -1;
     this.phase = null;
     this.phaseDone = false;
+    this.phaseResolvePending = false;
     this.phaseHits = 0;
     this.spawner = null;
     this.director = null; // WaveDirector, created lazily by the first `waves` phase
@@ -218,6 +239,12 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.charge = initialCharge();
     this.blockedHits = 0;
 
+    this.transition = null; // { st: {step, ms}, ... } while a stage transition runs
+    this.fadeObjs = [];
+    this.fadeMs = 0;
+    this._banner = null; // last 'banner' payload (re-sent on 'hud-ready'); null = hidden
+    this._gaugeTarget = null; // last 'gauge-target' keys (null = none)
+
     this.playing = false;
     this.restarting = false;
     this.finished = false;
@@ -228,6 +255,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   create() {
+    bgm.requestForScene(this.scene.key); // a restart (overheat) asks for the same track: it keeps playing
     makeStarTextures(this);
     this.pools = createPools(this);
 
@@ -255,7 +283,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.fxPops = [];
     for (let i = 0; i < FX_POPS; i++) {
       this.fxPops.push(this.add.text(0, 0, '+1', {
-        fontFamily: FONT, fontSize: '34px', fontStyle: 'bold', color: '#ffe98a', stroke: '#05070f', strokeThickness: 5,
+        fontFamily: FONT, fontSize: '34px', color: '#ffe98a', stroke: '#05070f', strokeThickness: 5,
       }).setOrigin(0.5).setDepth(16).setVisible(false));
     }
     this.fxFlashes = [];
@@ -359,6 +387,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.controls.update();
     this.syncJoystick();
     this.parallax?.update(dt);
+    if (this.fadeObjs.length) this.updateFade(dt); // clearField() fade (also after endGameplay: the m4 end)
     if (!this.playing) return;
 
     const v = this.controls.vector;
@@ -369,6 +398,12 @@ export default class BaseMissionScene extends Phaser.Scene {
 
     this.heat.update(dt);
     this.emitHeat();
+
+    if (this.transition) { // stage change: nothing spawns, the field fades, then the banner; nothing is judged or measured
+      this.updateTransition(dt);
+      this.cull();
+      return;
+    }
 
     if (this.spawner && !this.phaseDone && this.spawner.update(dt)) this.spawnObject(this.phase);
     if (this.director && this.phase?.waves && !this.phaseDone) {
@@ -391,8 +426,10 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   lateUpdate() {
+    if (this.phaseResolvePending) this.resolvePhaseDone();
     syncHalos(this.pools.stars);
     syncShields(this.pools.enemies);
+    syncHpBars(this.pools.enemies);
     this.updateEngine(this.time.now);
     this.onLateUpdate();
   }
@@ -415,11 +452,14 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.setInstruction(this.currentInstruction());
     this._lastRemaining = undefined;
     this.emitGoal();
+    this.game.events.emit('banner', this._banner ?? { visible: false });
+    this.game.events.emit('gauge-target', { keys: this._gaugeTarget ?? [] });
   }
 
   currentInstruction() {
     const p = this.phase;
     if (!p) return '';
+    if (this.transition?.shown && this.transition.instruction) return this.transition.instruction; // the next stage's text while its banner is up
     return p.instruction ?? MISSION_TEXT[p.id]?.instruction ?? '';
   }
 
@@ -442,9 +482,10 @@ export default class BaseMissionScene extends Phaser.Scene {
   emitGoal() {
     const p = this.phase;
     const remaining = p?.remaining ? Math.max(0, p.remaining(this)) : null;
-    if (remaining !== this._lastRemaining) {
-      this._lastRemaining = remaining;
-      this.game.events.emit('goal-changed', { remaining });
+    const shown = p?.hideGoal?.(this) ? null : remaining; // hideGoal: the counter stays hidden (m4 after the fight)
+    if (shown !== this._lastRemaining) {
+      this._lastRemaining = shown;
+      this.game.events.emit('goal-changed', { remaining: shown });
     }
     return remaining;
   }
@@ -455,8 +496,25 @@ export default class BaseMissionScene extends Phaser.Scene {
     if (remaining !== null && remaining <= 0) this.completePhase();
   }
 
+  /** Centre banner (HUD). copy = { title, body?, emphasis? }. Only while nothing dangerous moves. */
+  showBanner(copy) {
+    this._banner = { title: copy.title, body: copy.body, emphasis: copy.emphasis, visible: true };
+    this.game.events.emit('banner', this._banner);
+  }
+
+  hideBanner() {
+    this._banner = null;
+    this.game.events.emit('banner', { visible: false });
+  }
+
+  /** Bracket the correct range on the HUD star gauge (null/[] hides it). animateFrom = slide from that range. */
+  setGaugeTarget(keys, animateFrom) {
+    this._gaugeTarget = keys?.length ? keys : null;
+    this.game.events.emit('gauge-target', { keys: keys ?? [], animateFrom });
+  }
+
   toast(text, opts = {}) {
-    this.game.events.emit('toast', { text, at: this.toastAt, ...opts });
+    this.game.events.emit('toast', { text, ...opts });
   }
 
   // ---- phases ---------------------------------------------------------------------
@@ -482,6 +540,7 @@ export default class BaseMissionScene extends Phaser.Scene {
       this.spawner = interval > 0 ? new Spawner({ intervalMs: interval }) : null;
     }
     this.setInstruction(this.currentInstruction());
+    if (p.gaugeTarget) this.setGaugeTarget(p.gaugeTarget);
     this.onPhaseStart(p);
     this.refreshGoal();
   }
@@ -490,7 +549,21 @@ export default class BaseMissionScene extends Phaser.Scene {
     if (this.phaseDone || this.restarting || this.finished || !this.phase) return;
     this.phaseDone = true;
     this.spawner = null;
-    this.onPhaseComplete(this.phase);
+    // Decided after the physics step (lateUpdate): a ship hit later in the same step may fill the hull, and a restart wins.
+    this.phaseResolvePending = true;
+  }
+
+  /** After physics: overheat restart beats a phase transition / mission end (spec). */
+  resolvePhaseDone() {
+    const pending = this.phaseResolvePending;
+    this.phaseResolvePending = false;
+    const what = phaseResolution({
+      pending, restarting: this.restarting,
+      heatFull: this.heat.isFull(), hasNextPhase: this.phaseIndex + 1 < this.phases.length,
+    });
+    if (what === null || this.finished) return;
+    if (what === 'restart') this.overheat();
+    else this.onPhaseComplete(this.phase);
   }
 
   /** Start the next phase; false when there is none. */
@@ -500,27 +573,93 @@ export default class BaseMissionScene extends Phaser.Scene {
     return true;
   }
 
+  /**
+   * Stage transition (see the header): clear the field, show the centre banner, then onDone().
+   * @param {{ title: string, body?: string, emphasis?: string, instruction?: string, gaugeTarget?: {from: string[], to: string[]}, onDone: () => void }} o
+   *   instruction = the strip text switched to when the banner appears (the next stage's).
+   */
+  startTransition({ title, body, emphasis, instruction, gaugeTarget, onDone }) {
+    if (this.transition || this.restarting || this.finished) return;
+    this.spawner = null; // the joystick stays live (the ship may move); fire() is ignored while this.transition is set
+    this.transition = {
+      st: { step: 'clear', ms: 0 }, shown: false, copy: { title, body, emphasis }, instruction, gaugeTarget, onDone,
+    };
+    this.clearField();
+  }
+
+  /** Fade every active star/asteroid/bullet out over TRANSITION_CLEAR_MS (advance with updateFade(dt)), then return them to the pool. No judging. */
+  clearField() {
+    for (const b of this.pools.beams.members) if (b.active) release(b);
+    this.fadeMs = 0;
+    this.fadeObjs.length = 0;
+    for (const g of [this.pools.stars, this.pools.asteroids, this.pools.bullets]) {
+      for (const o of g.members) {
+        if (!o.active) continue;
+        if (o.marked && !o.keepOnMark) continue; // already fading out on its own (a measured/hit star)
+        this.tweens.killTweensOf(o);
+        o.targetable = false;
+        o.collides = false;
+        o.marked = true; // no more judging, no zigzag, no recolouring
+        o.body.setVelocity(0, 0);
+        o.body.setAngularVelocity(0);
+        o.fadeFrom = o.alpha;
+        o.fadeHaloFrom = o.halo ? o.halo.alpha : 0;
+        this.fadeObjs.push(o);
+      }
+    }
+  }
+
+  /** Advance the clear fade by dt. Returns true when it finished (everything is back in the pool). */
+  updateFade(dt) {
+    this.fadeMs += dt;
+    const k = Math.max(0, 1 - this.fadeMs / TRANSITION_CLEAR_MS);
+    const done = k <= 0;
+    for (let i = 0; i < this.fadeObjs.length; i++) {
+      const o = this.fadeObjs[i];
+      if (!o.active) continue;
+      if (done) { release(o); continue; }
+      o.setAlpha(o.fadeFrom * k);
+      if (o.halo) o.halo.setAlpha(o.fadeHaloFrom * k);
+    }
+    if (done) this.fadeObjs.length = 0;
+    return done;
+  }
+
+  updateTransition(dt) {
+    const t = this.transition;
+    advanceTransition(t.st, dt);
+    if (t.st.step === 'clear') return;
+    if (!t.shown) {
+      t.shown = true;
+      this.showBanner(t.copy);
+      if (t.instruction) this.setInstruction(t.instruction);
+      if (t.gaugeTarget) this.setGaugeTarget(t.gaugeTarget.to, t.gaugeTarget.from);
+    }
+    if (t.st.step !== 'done') return;
+    this.transition = null;
+    this.hideBanner();
+    t.onDone();
+  }
+
   /** Stop play (no spawns, shots or collisions; ship + joystick + fire button hidden) but keep the scene. */
   endGameplay() {
     this.playing = false;
     this.spawner = null;
+    this.transition = null;
     this.controls.cancel();
     this.ship.setVisible(false);
     this.joystickView.setVisible(false);
     this.fireButton.setVisible(false);
   }
 
-  /**
-   * Write results, sleep the HUD and start `next` (if given). Returns the 1–3 star rating.
-   * timedOut: the mission's time limit ran out before its goal (m4) — not a failure, stars capped at STARS_TIMEOUT_MAX.
-   */
-  completeMission({ next, nextData, timedOut = false } = {}) {
+  /** Write results, sleep the HUD and start `next` (if given). Returns the 1–3 star rating. */
+  completeMission({ next, nextData } = {}) {
     if (this.finished) return null;
     this.finished = true;
     this.playing = false;
     this.controls.cancel();
     const restarts = this.registry.get('results')?.[this.missionId]?.restarts ?? 0;
-    const stars = missionStars({ wrongShots: this.wrongShots, restarts, timedOut });
+    const stars = missionStars({ wrongShots: this.wrongShots, restarts, chargeMode: !!this.phase?.chargeMode });
     this.updateResult({ stars, wrongShots: this.wrongShots, restarts });
     sfx.play('clear');
     this.game.events.emit('mission-end', { key: this.scene.key });
@@ -666,7 +805,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.firePressedGlow.fillStyle(0x7ef2d4, 0.45);
     this.firePressedGlow.fillCircle(0, 0, r.w / 2 - 6);
     const label = this.add
-      .text(0, 0, '발사', { fontFamily: FONT, fontSize: '38px', fontStyle: 'bold', color: '#ffffff' })
+      .text(0, 0, '발사', { fontFamily: FONT, fontSize: '38px', color: '#ffffff' })
       .setOrigin(0.5);
     let parts = [g, this.firePressedGlow, label];
     if (hasImage(this, 'fire-button')) {
@@ -684,7 +823,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   // ---- shooting -------------------------------------------------------------------
 
   fire() {
-    if (!this.playing) return;
+    if (!this.playing || this.transition) return;
     sfx.play('fire'); // small tier: sound only (+ the button press below)
     this.tweens.killTweensOf(this.fireButton);
     this.fireButton.setScale(0.9);
@@ -692,14 +831,17 @@ export default class BaseMissionScene extends Phaser.Scene {
     const b = acquire(this.pools.beams, this.ship.x, this.ship.y - BEAM_SPAWN_OFFSET_Y);
     if (!b) return;
     b.body.setVelocity(0, -BEAM_SPEED);
-    const hex = this.chargeHex();
+    b.chargeKey = this.charge; // the beam keeps the charge it was fired with (judged on it, not on the later charge)
+    b.firedAtMs = this.time.now;
+    const hex = this.chargeHex(b.chargeKey);
     if (hex !== null) b.setTint(hex); // charged: the beam core is exactly the palette color
+    else b.clearTint(); // pooled beam: drop a tint left from an earlier shot
   }
 
-  /** Palette hex of the current charge, or null (no charge = the plain beam). */
-  chargeHex() {
-    if (!this.charge) return null;
-    return STAR_COLORS.find(c => c.key === this.charge)?.hex ?? null;
+  /** Palette hex of a charge color (default: the current charge), or null (no charge = the plain beam). */
+  chargeHex(key = this.charge) {
+    if (!key) return null;
+    return STAR_COLORS.find(c => c.key === key)?.hex ?? null;
   }
 
   /** Charge the beam with a star color (null clears). Newly fired beams take the color; the HUD highlights the cell. */
@@ -713,7 +855,8 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   canBeamHit(beam, obj) {
-    return this.playing && beam.active && obj.active && obj.targetable && !obj.marked;
+    return this.playing && !this.transition && beam.active && obj.active && obj.targetable && !obj.marked
+      && beamCanTouch({ chargeMode: this.phase?.chargeMode, y: obj.y });
   }
 
   handleBeamHit(beam, obj) {
@@ -806,12 +949,12 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   /** Medium tier (correct): "+1" pops up and drifts away. Pooled; no stray tweens. */
-  popScore(x, y) {
+  popScore(x, y, label = '+1', color = '#ffe98a') {
     const t = this.fxPops.find(p => !p.visible);
     if (!t) return;
     this.tweens.killTweensOf(t);
     const px = Phaser.Math.Clamp(x, 40, GAME_WIDTH - 40);
-    t.setPosition(px, y).setAlpha(1).setScale(0.6).setVisible(true);
+    t.setText(label).setColor(color).setPosition(px, y).setAlpha(1).setScale(0.6).setVisible(true);
     this.tweens.add({ targets: t, scale: 1.15, duration: 110, ease: 'Back.Out' });
     this.tweens.add({
       targets: t, y: y - 56, alpha: 0, duration: 520, delay: 60,
@@ -833,7 +976,7 @@ export default class BaseMissionScene extends Phaser.Scene {
 
   // ---- collisions / heat ----------------------------------------------------------
   canShipHit(_ship, obj) {
-    return this.playing && this.phase?.collisions !== false && obj.active && obj.collides
+    return this.playing && !this.transition && this.phase?.collisions !== false && obj.active && obj.collides
       && !obj.marked && this.time.now >= obj.hitCooldownUntil;
   }
 
@@ -872,22 +1015,22 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.physics.pause();
     const restarts = (this.registry.get('results')?.[this.missionId]?.restarts ?? 0) + 1;
     this.updateResult({ restarts });
-    this.toast('선체 온도가 가득 찼어요! 이 미션을 처음부터 다시 해요.', { tone: 'alert' });
-    this.cameras.main.flash(RESTART_DELAY_MS - 100, 255, 90, 40);
+    this.showBanner(BANNER_TEXT.overheat); // physics is paused: nothing moves under it; the restart hides it
+    this.cameras.main.flash(Math.min(500, RESTART_DELAY_MS - 100), 255, 90, 40);
     this.time.delayedCall(RESTART_DELAY_MS, () => this.scene.restart({ ...this.initData, restarted: true }));
   }
 
   // ---- enemies / bullets / beam vs enemy --------------------------------------------
-  spawnEnemy({ x, y, vx = 0, vy = 0, shieldKey = null, hp = 1, kind = 'drone', texture = 'drone', scale = 1 }) {
+  spawnEnemy({ x, y, vx = 0, vy = 0, shieldKey = null, hp = 1, kind = 'drone', texture = 'drone', scale = 1, hpBar = false }) {
     const obj = acquire(this.pools.enemies, x, y);
     if (!obj) return null;
     Object.assign(obj, {
       kind, colorKey: null, targetable: false, collides: true, persistent: false, keepOnMark: false,
-      starId: null, name: '', marked: false, hitCooldownUntil: 0, zigzag: null, hp, maxHp: hp, shieldKey: null, blinkTween: null,
+      starId: null, name: '', marked: false, hitCooldownUntil: 0, zigzag: null, hp, maxHp: hp, shieldKey: null,
     });
     obj.setTexture(texture).setScale(scale);
     const r = ENEMY_BODY_R * (obj.width / ENEMY_TEX); // hitbox follows the art size (a loaded image of another size keeps the footprint)
-    if (isLoadedBossArt(obj)) {
+    if (kind === 'boss' && obj.width === BOSS_ART.canvasW && obj.height === BOSS_ART.canvasH) {
       // loaded boss art: rectangle fitted to the hull's alpha bbox (center on the hull, not the canvas)
       const h = BOSS_ART.hull;
       obj.body.setSize(h.w, h.h, false);
@@ -897,19 +1040,48 @@ export default class BaseMissionScene extends Phaser.Scene {
     }
     obj.body.setVelocity(vx, vy);
     this.setEnemyShield(obj, shieldKey);
+    this.showHpBar(obj, hpBar);
     return obj;
+  }
+
+  /** Show (full) or hide the small hp bar above an enemy's shield ring. Bar width = the enemy's display width. */
+  showHpBar(obj, on) {
+    this.tweens.killTweensOf(obj.hpBarState);
+    obj.hpBarState.v = 1;
+    obj.hpBarOn = on;
+    obj.hpBar.setVisible(on);
+    obj.hpBarBack.setVisible(on);
+    if (!on) return;
+    const ringHalf = obj.shield?.visible ? obj.shield.displayHeight / 2 : 0;
+    obj.hpBarW = obj.displayWidth;
+    obj.hpBarOffY = -(Math.max(obj.displayHeight / 2, ringHalf) + HP_BAR_GAP + HP_BAR_H / 2);
+    obj.hpBarBack.setSize(obj.hpBarW, HP_BAR_H);
+    this.applyHpBar(obj);
+    syncHpBars(this.pools.enemies);
+  }
+
+  applyHpBar(obj) {
+    obj.hpBar.setSize(Math.max(0, obj.hpBarW * obj.hpBarState.v), HP_BAR_H);
+  }
+
+  /** The bar shrinks to hp / maxHp over HP_BAR_TWEEN_MS. */
+  updateHpBar(obj) {
+    if (!obj.hpBarOn) return;
+    this.tweens.killTweensOf(obj.hpBarState);
+    this.tweens.add({
+      targets: obj.hpBarState, v: hpBarFraction(obj.hp, obj.maxHp), duration: HP_BAR_TWEEN_MS,
+      onUpdate: () => this.applyHpBar(obj),
+    });
   }
 
   releaseEnemy(obj) {
     release(obj);
   }
 
-  /**
-   * Recolor (or, with null, remove) an enemy's shield ring. The loaded boss art gets the hull-fitted ellipse
-   * (shield-boss-<key>, baked in screen px, scale 1; the hull bbox centre is the canvas centre); everything else the round ring.
-   */
+  /** Recolor (or, with null, remove) an enemy's shield ring. */
   setEnemyShield(obj, shieldKey) {
     obj.shieldKey = shieldKey ?? null;
+    obj.shieldChangedAtMs = this.time.now; // beams fired before this do not count as wrong bounces
     const sh = obj.shield;
     if (!sh) return;
     this.tweens.killTweensOf(sh);
@@ -917,15 +1089,9 @@ export default class BaseMissionScene extends Phaser.Scene {
       sh.setVisible(false);
       return;
     }
-    const bossKey = bossShieldTextureKey(obj.shieldKey);
-    if (isLoadedBossArt(obj) && this.textures.exists(bossKey)) {
-      obj.shieldScale = 1;
-      sh.setTexture(bossKey);
-    } else {
-      obj.shieldScale = SHIELD_UNIT * obj.scaleX * (obj.width / ENEMY_TEX);
-      sh.setTexture(shieldTextureKey(obj.shieldKey));
-    }
-    sh.setPosition(obj.x, obj.y).setScale(obj.shieldScale).setAlpha(SHIELD_ALPHA).setVisible(true);
+    obj.shieldScale = SHIELD_UNIT * obj.scaleX * (obj.width / ENEMY_TEX);
+    sh.setTexture(shieldTextureKey(obj.shieldKey)).setPosition(obj.x, obj.y).setScale(obj.shieldScale)
+      .setAlpha(SHIELD_ALPHA).setVisible(true);
   }
 
   spawnBullet({ x, y, vx = 0, vy = 0 }) {
@@ -936,52 +1102,58 @@ export default class BaseMissionScene extends Phaser.Scene {
     return obj;
   }
 
+  /** Hook: true = a bounce off this enemy is never a wrong shot (an optional target such as the m4 escort drones). Default false. */
+  isOptionalEnemy(_enemy) { return false; }
+
   canBeamEnemy(beam, enemy) {
-    return this.playing && beam.active && enemy.active && enemyBeamable(enemy); // a hidden enemy never bounces a beam
+    return this.playing && !this.transition && beam.active && enemy.active && beamCanTouch({ chargeMode: this.phase?.chargeMode, y: enemy.y });
   }
 
   handleBeamEnemy(beam, enemy) {
     if (!beam.active) return;
     const bx = beam.x;
     const by = beam.y;
+    const beamKey = beam.chargeKey ?? null; // read before release: the beam is judged on its fire-time charge
+    const firedAtMs = beam.firedAtMs ?? 0;
     release(beam);
     const phase = this.phase;
     if (!phase || this.phaseDone || this.restarting) return;
-    const res = resolveBeamOnEnemy({ charge: this.charge, shieldKey: enemy.shieldKey, hp: enemy.hp });
+    const beamHex = this.chargeHex(beamKey) ?? 0xffffff;
+    const res = resolveBeamOnEnemy({ charge: beamKey, shieldKey: enemy.shieldKey, hp: enemy.hp });
     if (res.pierced) {
       enemy.hp = res.hp;
+      this.updateHpBar(enemy);
       const keep = this.onEnemyPierced(enemy, res) === true;
       const outcome = enemyHitOutcome({ res, keepAlive: keep });
       if (outcome === 'kept') {
-        this.sparkAt(bx, by, this.chargeHex() ?? 0xffffff);
+        this.sparkAt(bx, by, beamHex);
         sfx.play('correct');
       } else if (outcome === 'down') {
-        this.explodeAt(enemy.x, enemy.y, enemy.displayWidth / ENEMY_TEX, this.chargeHex() ?? 0xffffff);
+        this.explodeAt(enemy.x, enemy.y, enemy.displayWidth / ENEMY_TEX, beamHex);
         sfx.play('clear');
         this.releaseEnemy(enemy);
         this.onEnemyDown(enemy);
       } else {
-        this.sparkAt(bx, by, this.chargeHex() ?? 0xffffff);
+        this.sparkAt(bx, by, beamHex);
         sfx.play('correct');
-        // restart only the engine's own hit blink: a scene tween on the enemy (e.g. the m4 stage pulse) must survive
-        enemy.blinkTween?.stop();
+        if (enemy.hpBarOn) this.popScore(enemy.x, Math.max(HUD_BAND_BOTTOM + 14, hpBarY(enemy.y, enemy.hpBarOffY, HP_BAR_H, HUD_BAND_BOTTOM) - 14), `-${res.damage}`, '#ffffff');
+        this.tweens.killTweensOf(enemy);
         enemy.setAlpha(1);
-        enemy.blinkTween = this.tweens.add({
-          targets: enemy, alpha: 0.4, duration: 60, yoyo: true,
-          onComplete: () => { enemy.setAlpha(1); enemy.blinkTween = null; },
-          onStop: () => { enemy.setAlpha(1); enemy.blinkTween = null; },
-        });
+        this.tweens.add({ targets: enemy, alpha: 0.4, duration: 60, yoyo: true, onComplete: () => enemy.setAlpha(1) });
       }
     } else {
-      this.wrongShots += 1;
+      // Charge mode: a bounce is a wrong shot only if the beam was charged and fired after the shield was set.
+      if (!phase.chargeMode || bounceCounts({ beamKey, firedAtMs, shieldChangedAtMs: enemy.shieldChangedAtMs ?? 0, optionalTarget: this.isOptionalEnemy(enemy) })) this.wrongShots += 1;
       this.blockedHits += 1;
       this.sparkAt(bx, by, 0xffffff);
       this.flashShield(enemy);
       sfx.play('wrong');
       if (phase.blockedToast !== false && this.blockedHits <= BLOCKED_TOAST_MAX) {
-        this.toast(blockedBeamHint(this.charge, '방어막을 뚫기엔 빔이 약해요. 더 뜨거운(푸른쪽) 별을 맞혀 충전해요!'), { tone: 'wrong' });
+        this.toast(beamKey
+          ? '방어막을 뚫기엔 빔이 약해요.\n더 뜨거운(푸른쪽) 별을 맞혀 충전해요!'
+          : '먼저 별을 맞혀 빔을 충전해요!', { tone: 'wrong' });
       }
-      this.onEnemyBlocked(enemy);
+      this.onEnemyBlocked(enemy, beamKey);
     }
     this.refreshGoal();
   }

@@ -6,6 +6,7 @@ import { STAR_COLORS } from '../logic/temperature.js';
 import { buildResultSummary, clearRunKeys } from '../logic/flow.js';
 import { armButton } from '../ui/button.js';
 import { getDifficulty } from '../logic/difficulty.js';
+import { bgm } from '../audio/bgm.js';
 
 const cx = GAME_WIDTH / 2;
 
@@ -15,6 +16,7 @@ export default class ResultScene extends Phaser.Scene {
   }
 
   create() {
+    bgm.requestForScene(this.scene.key);
     this.leaving = false;
     const sum = buildResultSummary({
       results: this.registry.get('results') ?? {},
@@ -23,7 +25,7 @@ export default class ResultScene extends Phaser.Scene {
     });
     this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x05070f, 1);
     this.add.text(cx, 70, '탐사 완료! 결과', {
-      fontFamily: FONT, fontSize: '50px', fontStyle: 'bold', color: '#8fd3ff',
+      fontFamily: FONT, fontSize: '50px', color: '#8fd3ff',
     }).setOrigin(0.5);
 
     this.add.text(cx, 118, `난이도: ${getDifficulty(this.registry.get('difficulty')).label}`, {
@@ -40,7 +42,7 @@ export default class ResultScene extends Phaser.Scene {
     });
     this.add.text(70, 160 + 4 * 66, '귀환 보고서', { fontFamily: FONT, fontSize: '36px', color: '#ffffff' }).setOrigin(0, 0.5);
     this.add.text(GAME_WIDTH - 70, 160 + 4 * 66, sum.quizText, {
-      fontFamily: FONT, fontSize: '46px', fontStyle: 'bold', color: '#9ff0c8',
+      fontFamily: FONT, fontSize: '46px', color: '#9ff0c8',
     }).setOrigin(1, 0.5);
 
     // Completed star gauge (청색 -> 적색)
@@ -76,7 +78,7 @@ export default class ResultScene extends Phaser.Scene {
       const x = x0 + i * slot + slot / 2;
       const h = c.count > 0 ? Math.max(8, (c.count / max) * maxH) : 0;
       if (h > 0) this.add.rectangle(x, baseY - h / 2, slot - 18, h, col.hex, 1).setStrokeStyle(2, 0xffffff, 0.35);
-      this.add.text(x, baseY - h - 6, String(c.count), { fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5, 1);
+      this.add.text(x, baseY - h - 6, String(c.count), { fontFamily: FONT, fontSize: '28px', color: '#ffffff' }).setOrigin(0.5, 1);
       this.add.text(x, baseY + 10, col.label, { fontFamily: FONT, fontSize: '22px', color: '#e8ecff' }).setOrigin(0.5, 0);
     });
     this.add.rectangle(cx, baseY, counts.length * slot, 3, 0xe8ecff, 0.7);
