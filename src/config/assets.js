@@ -2,7 +2,8 @@
 // actually exist in public/img/, so nothing 404s. To adopt another image: put the PNG in public/img/ and add
 // { key, path: 'img/<file>.png' } here. Opaque backgrounds/title/briefing art are JPEG (q85) to keep the boot download small. Loaded keys: ship (256x304, scaled to the 64x76 footprint),
 // asteroid-1..3, drone (128x128, shown on the 80 px enemy footprint), boss (512x320, 300 px wide on screen), star-shape, furnace-shape (grayscale, tinted by code), bg-space-far, bg-space-near, bg-furnace,
-// bg-cluster, title-art, glass-craft, briefing-m1..m4. Scenes read them by key (some are wired in later tasks).
+// title-art, glass-craft, briefing-m1..m4. Scenes read them by key (some are wired in later tasks).
+// public/img/bg-cluster.jpg is kept but NOT listed: only the old m4 used it, and nothing should download unused art at boot.
 // Code-baked textures (starTextures.js) skip baking when a loaded texture already has the same key.
 export const IMAGE_ASSETS = [
   { key: 'ship', path: 'img/ship.png' },
@@ -16,7 +17,6 @@ export const IMAGE_ASSETS = [
   { key: 'bg-space-far', path: 'img/bg-space-far.jpg' },
   { key: 'bg-space-near', path: 'img/bg-space-near.png' },
   { key: 'bg-furnace', path: 'img/bg-furnace.jpg' },
-  { key: 'bg-cluster', path: 'img/bg-cluster.jpg' },
   { key: 'title-art', path: 'img/title-art.jpg' },
   { key: 'glass-craft', path: 'img/glass-craft.png' },
   { key: 'briefing-m1', path: 'img/briefing-m1.jpg' },

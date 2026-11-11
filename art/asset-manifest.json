@@ -437,7 +437,7 @@
     },
     {
       "id": "bg-cluster",
-      "role": "mission 4 cluster background",
+      "role": "mission 4 cluster background (unused since the m3/m4 shooter redesign: not in IMAGE_ASSETS, not loaded at boot)",
       "path": "public/img/bg-cluster.jpg",
       "status": "generated",
       "technical": {
