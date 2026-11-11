@@ -40,7 +40,7 @@ export const formationSlotsPerSec = (gapMs, key) =>
  *   star heat over the M3_STAR_POOL weights (charge stars, x MISSED_STAR_SHARE: the rest are shot or dodged) PLUS the drone bullets: DRONE_MAX_ON_SCREEN x DRONE_ALIVE_DUTY drones
  *   each firing every DRONE_FIRE_MS, one asteroid-heat hit per bullet (every bullet lands).
  * m4: the charge-star formations (mean star heat over the 7 colors at FORMATION_GAP_MS.m4, x MISSED_STAR_SHARE) PLUS the boss. Boss cycle = BOSS_ATTACK_MS[stage] + BOSS_GAP_MS. One volley every scaleInterval(BOSS_VOLLEY_MS[stage]) in
- *   the attack window, each blue (30) shot hits. Volleys per window = ceil(attack / interval) (the first fires at the window
+ *   the attack window, each shot that hits costs asteroid heat (ASTEROID_HEAT, what the engine's handleBulletHit gives). Volleys per window = ceil(attack / interval) (the first fires at the window
  *   start). A fan lands BOSS_FAN_SHIP_HITS shots on average on a standing ship (see balance.js); stage 3 adds one aimed shot where the difficulty allows aim (not easy).
  *   With no `stage`, m4 returns the worst of the three stages.
  */
@@ -56,7 +56,7 @@ export function heatInflowPerSec(mission, key, stage) {
     const volleys = Math.ceil(attack / scaleInterval(BOSS_VOLLEY_MS[st], key)); // a volley fires as the window opens
     const aimed = st === 3 && getDifficulty(key).key !== 'easy' ? 1 : 0;
     const fan = st === 1 ? 1 : BOSS_FAN_SHIP_HITS;
-    return (volleys * (fan + aimed) * h('star', 'blue')) / ((attack + BOSS_GAP_MS) / 1000);
+    return (volleys * (fan + aimed) * h('asteroid')) / ((attack + BOSS_GAP_MS) / 1000); // = handleBulletHit's heat
   };
   switch (mission) {
     case 'm1': return formation(FORMATION_GAP_MS.m1,

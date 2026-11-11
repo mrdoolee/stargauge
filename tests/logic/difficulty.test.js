@@ -101,8 +101,8 @@ describe('m3/m4 shooter density stays up (not fitted by thinning the game)', () 
 });
 
 describe('m4 boss stages', () => {
-  it('stage 1 and stage 3 respect the easy / hard bounds and the difficulty order', () => {
-    for (const st of [1, 3]) {
+  it('every stage respects the easy / hard bounds and the difficulty order', () => {
+    for (const st of [1, 2, 3]) {
       const [e, n, h] = DIFFICULTY_KEYS.map(k => requiredDodgeFraction('m4', k, st));
       expect(e).toBeLessThanOrEqual(0.4); expect(h).toBeLessThan(0.9);
       expect(e).toBeLessThanOrEqual(n); expect(n).toBeLessThanOrEqual(h);
@@ -111,11 +111,25 @@ describe('m4 boss stages', () => {
   it('counts the volley that fires as the window opens (ceil) and a fan as BOSS_FAN_SHIP_HITS shots', () => {
     expect(BOSS_FAN_SHIP_HITS).toBe(1.5);
     const volleys = Math.ceil(BOSS_ATTACK_MS[3] / (BOSS_VOLLEY_MS[3] * DIFFICULTY.normal.spawnInterval));
-    const heat = scaledHeat('star', 'blue', 'normal');
+    const heat = scaledHeat('asteroid', null, 'normal'); // the engine's boss-bullet heat (handleBulletHit)
     const boss = (volleys * (BOSS_FAN_SHIP_HITS + 1) * heat) / ((BOSS_ATTACK_MS[3] + BOSS_GAP_MS) / 1000);
     const meanStar = Object.keys(STAR_HEAT).reduce((a, c) => a + scaledHeat('star', c, 'normal'), 0) / 7;
     const stars = formationSlotsPerSec(FORMATION_GAP_MS.m4, 'normal') * meanStar * MISSED_STAR_SHARE;
     expect(heatInflowPerSec('m4', 'normal', 3)).toBeCloseTo(boss + stars, 6);
+  });
+  it('volleys per window stay away from an integer cliff (no silent 1 <-> 2 flip from a small tweak)', () => {
+    for (const k of DIFFICULTY_KEYS) for (const st of [1, 2, 3]) {
+      const r = BOSS_ATTACK_MS[st] / scaleInterval(BOSS_VOLLEY_MS[st], k);
+      const frac = r - Math.floor(r);
+      expect(frac, `${k} stage ${st}: ${r.toFixed(3)}`).toBeGreaterThanOrEqual(0.15);
+      expect(frac, `${k} stage ${st}: ${r.toFixed(3)}`).toBeLessThanOrEqual(0.85);
+    }
+  });
+  it('every stage fires at least two volleys per attack window, inside the agreed 3000 ms interval cap', () => {
+    for (const st of [1, 2, 3]) expect(BOSS_VOLLEY_MS[st]).toBeLessThanOrEqual(3000);
+    for (const k of DIFFICULTY_KEYS) for (const st of [1, 2, 3]) {
+      expect(Math.ceil(BOSS_ATTACK_MS[st] / scaleInterval(BOSS_VOLLEY_MS[st], k))).toBeGreaterThanOrEqual(2);
+    }
   });
   it('no-stage m4 is the worst stage', () => {
     for (const k of DIFFICULTY_KEYS) {

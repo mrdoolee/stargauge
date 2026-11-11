@@ -75,7 +75,9 @@ export const M2_STAR_SCALE = { min: 0.7, max: 1.5 };
 // Boss (2026-11-04): 3 stages by boss hp (BOSS_HP); each stage cycles attack window -> gap (no launches).
 export const BOSS_ATTACK_MS = { 1: 4000, 2: 4500, 3: 5000 };
 export const BOSS_GAP_MS = 4500;
-export const BOSS_VOLLEY_MS = { 1: 2200, 2: 3400, 3: 3800 }; // launch interval inside an attack window (x difficulty spawnInterval)
+// Launch interval inside an attack window (x difficulty spawnInterval), <= 3000. Chosen so attack / interval sits >= 15% away
+// from an integer on every difficulty: easy and normal get 2 volleys per window, hard 3 (difficulty.test.js pins this).
+export const BOSS_VOLLEY_MS = { 1: 2200, 2: 2600, 3: 2800 };
 export const BOSS_FAN = { 2: { count: [2, 3], spreadDeg: 30 }, 3: { count: [2, 3], spreadDeg: 36 } };
 // Balance model: mean shots of one fan that hit a standing ship. 2-fans and far launches usually land one hit;
 // a near 3-fan (launched 100-200 px above the ship, only 32-55 px wide at the ship row) can land two.
