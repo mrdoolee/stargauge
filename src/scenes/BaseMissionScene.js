@@ -879,7 +879,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     if (!obj) return null;
     Object.assign(obj, {
       kind, colorKey: null, targetable: false, collides: true, persistent: false, keepOnMark: false,
-      starId: null, name: '', marked: false, hitCooldownUntil: 0, zigzag: null, hp, maxHp: hp, shieldKey: null,
+      starId: null, name: '', marked: false, hitCooldownUntil: 0, zigzag: null, hp, maxHp: hp, shieldKey: null, blinkTween: null,
     });
     obj.setTexture(texture).setScale(scale);
     const r = ENEMY_BODY_R * (obj.width / ENEMY_TEX); // hitbox follows the art size (a loaded image of another size keeps the footprint)
@@ -959,9 +959,14 @@ export default class BaseMissionScene extends Phaser.Scene {
       } else {
         this.sparkAt(bx, by, this.chargeHex() ?? 0xffffff);
         sfx.play('correct');
-        this.tweens.killTweensOf(enemy);
+        // restart only the engine's own hit blink: a scene tween on the enemy (e.g. the m4 stage pulse) must survive
+        enemy.blinkTween?.stop();
         enemy.setAlpha(1);
-        this.tweens.add({ targets: enemy, alpha: 0.4, duration: 60, yoyo: true, onComplete: () => enemy.setAlpha(1) });
+        enemy.blinkTween = this.tweens.add({
+          targets: enemy, alpha: 0.4, duration: 60, yoyo: true,
+          onComplete: () => { enemy.setAlpha(1); enemy.blinkTween = null; },
+          onStop: () => { enemy.setAlpha(1); enemy.blinkTween = null; },
+        });
       }
     } else {
       this.wrongShots += 1;
