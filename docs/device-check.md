@@ -235,7 +235,8 @@ npm run build && npm run preview -- --host
 | 단계 전환 때 별이 사라지는 게 너무 느리다/빠르다 | `TRANSITION_CLEAR_MS` (400, 날아오던 별·운석·탄이 흐려져 사라지는 시간) |
 | 단계 전환·보스 끝 가운데 안내를 읽기엔 짧다/길다 | `TRANSITION_BANNER_MS` (2600, 가운데 안내가 떠 있는 시간. 일시정지 중에는 흐르지 않는다). 선체 온도 가득 안내가 보이는 시간은 `RESTART_DELAY_MS` (1800), 미션 4 끝 안내도 같은 `TRANSITION_CLEAR_MS`+`TRANSITION_BANNER_MS` (정리 뒤 안내, 그다음 질문) |
 | 안내 줄 글자가 너무 빨리 사라진다 / 오래 남는다 | `TOAST_MS` (2400, 안내가 안내 줄에 머무는 시간). 중요한 안내(장갑 색 바뀜·선체 온도 가득)가 다른 안내에 덮이지 않는 시간은 `STRIP_HOLD_MS` (1200) |
-| 미션 4 보스 위치·움직임 | `BOSS_POS` (x 360, y 430), `BOSS_SWAY` (amp 160 좌우 폭, periodMs 6000). 위 끝은 HUD 띠(y 344) 아래로 보여야 한다 |
+| 미션 4 보스 위치·움직임 | `BOSS_POS` (x 360, y 430), `BOSS_SWAY` (amp 160 좌우 폭, periodMs 6000). 선체는 y 336~524(탄은 선체 바닥 524에서 나감)라 위 끝 8 px가 HUD 띠(y 344) 뒤에 걸린다. 선체가 거의 다 보이면 된다 |
+| 미션 4 보스 방어막 크기 | `BOSS_SHIELD_MARGIN_PX` (12, 선체 둘레 여백), `BOSS_SHIELD_LINE_PX` (8, 선 두께). 선체에 맞춘 타원(가로 약 317 × 세로 약 212 px)이라 고리가 선체 바로 바깥을 감싼다. 고리 위쪽 끝(약 y 320)은 HUD 띠 뒤로 조금 가려진다 |
 | 미션 1 흰색이 너무 적게/많이 나온다 | `M1_BLOB_START_WEIGHTS` (쇳물이 시작하는 색 비율. 흰색만 점수), `M1_WHITE_GUARANTEE` (3, 흰색이 아닌 쇳물이 연달아 이만큼 나오면 다음은 흰색) |
 | 미션 3·4 균형 계산(코드 `heatInflowPerSec`): 놓친 충전 별 몫 | `MISSED_STAR_SHARE` (0.25). 충전용 별 중 쏘지도 피하지도 못하는 몫. **측정 안 함 — 교실 플레이 뒤 조정** |
 | 미션 3 균형 계산: 드론이 살아 있는 평균 몫 | `DRONE_ALIVE_DUTY` (0.6). `DRONE_MAX_ON_SCREEN` 중 평균적으로 살아서 쏘는 비율. **측정 안 함 — 교실 플레이 뒤 조정** |

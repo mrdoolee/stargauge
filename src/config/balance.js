@@ -258,4 +258,8 @@ export const BOSS_WIDTH_PX = 300; // on-screen hull width (the 80 px art is scal
 // Hull alpha bbox of public/img/boss.png (512x320 canvas, alpha >= 128), in texture px: Arcade rectangle body + muzzle.
 export const BOSS_ART = { canvasW: 512, canvasH: 320, hull: { x: 6, y: 0, w: 500, h: 320 } };
 export const BOSS_MUZZLE_DY = 94; // bullets start this far below the boss centre = hull bottom ((0+320-160) * 300/512)
+// Boss shield (final-review m2): an ellipse fitted to the hull bbox (293 x 187.5 px on screen) + this margin each side, line this thick
+// (screen px, baked once per color in starTextures.js). The old round drone ring scaled to the boss was ~336 px across, far past the hull.
+export const BOSS_SHIELD_MARGIN_PX = 12;
+export const BOSS_SHIELD_LINE_PX = 8;
 export const BOSS_MIN_SHOT_SPEED = 150; // a volley is skipped if the safe-distance cap is below this (ship right under the muzzle)

@@ -71,7 +71,7 @@
  *   Reset to initialCharge() (null) in init() (so also on a heat restart).
  *   spawnEnemy({ x, y, vx=0, vy=0, shieldKey=null, hp=1, kind='drone', texture='drone', scale=1, hpBar=false }) -> enemy|null
  *     (pool POOL_ENEMIES; fields kind, shieldKey, hp, maxHp, colorKey null, collides, hitCooldownUntil; obj.shield = ring image
- *     shield-<shieldKey> kept over it). Not a star: a beam that pierces (resolveBeamOnEnemy: charge level >= shield level)
+ *     shield-<shieldKey> kept over it; the loaded boss art uses the hull-fitted ellipse shield-boss-<shieldKey>). Not a star: a beam that pierces (resolveBeamOnEnemy: charge level >= shield level)
  *     costs res.damage hp = 1 + (beam level - shield level), clamped at 0 (an enemy with shieldKey null is always pierced for 1);
  *     then onEnemyPierced(enemy, res); hp 0 (unless the hook kept it) =>
  *     explosion, releaseEnemy, onEnemyDown(enemy) (receives the ALREADY RELEASED enemy: inactive, shield hidden, x/y still readable).
@@ -155,7 +155,7 @@ import { MISSION_TEXT, BANNER_TEXT, wrongShotMessage } from '../data/copy.js';
 import { TouchControls, fireButtonRect, joystickLayout, shipMaxY, stepShip } from '../input/TouchControls.js';
 import { hasImage, addBackdrop } from '../config/assets.js';
 import {
-  makeStarTextures, textureFor, loadedAsteroidKeys, ASTEROID_TEX, ENEMY_TEX, shieldTextureKey,
+  makeStarTextures, textureFor, loadedAsteroidKeys, ASTEROID_TEX, ENEMY_TEX, shieldTextureKey, bossShieldTextureKey,
 } from '../objects/starTextures.js';
 import { createParallax, PARALLAX_SPACE } from '../objects/parallax.js';
 import { hpBarFraction, hpBarY } from '../logic/enemyHp.js';
@@ -183,6 +183,8 @@ const HP_BAR_GAP = 8; // gap between the shield ring's top and the bar
 const HP_BAR_TWEEN_MS = 120;
 const SHIELD_ALPHA = 1; // exact palette color: no dimming over the dark backdrop
 const SHIELD_UNIT = 0.8; // shield ring scale per enemy scale unit (ring just outside the 80 px body)
+/** The loaded 512x320 boss art (rectangle hull body, hull-fitted ellipse shield); the code placeholder boss is 80x80. */
+const isLoadedBossArt = obj => obj.kind === 'boss' && obj.width === BOSS_ART.canvasW && obj.height === BOSS_ART.canvasH;
 
 export default class BaseMissionScene extends Phaser.Scene {
   constructor(key) {
@@ -1030,7 +1032,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     });
     obj.setTexture(texture).setScale(scale);
     const r = ENEMY_BODY_R * (obj.width / ENEMY_TEX); // hitbox follows the art size (a loaded image of another size keeps the footprint)
-    if (kind === 'boss' && obj.width === BOSS_ART.canvasW && obj.height === BOSS_ART.canvasH) {
+    if (isLoadedBossArt(obj)) {
       // loaded boss art: rectangle fitted to the hull's alpha bbox (center on the hull, not the canvas)
       const h = BOSS_ART.hull;
       obj.body.setSize(h.w, h.h, false);
@@ -1078,7 +1080,10 @@ export default class BaseMissionScene extends Phaser.Scene {
     release(obj);
   }
 
-  /** Recolor (or, with null, remove) an enemy's shield ring. */
+  /**
+   * Recolor (or, with null, remove) an enemy's shield ring. The loaded boss art gets the hull-fitted ellipse
+   * (shield-boss-<key>, baked in screen px, scale 1; the hull bbox centre is the canvas centre); everything else the round ring.
+   */
   setEnemyShield(obj, shieldKey) {
     obj.shieldKey = shieldKey ?? null;
     obj.shieldChangedAtMs = this.time.now; // beams fired before this do not count as wrong bounces
@@ -1089,9 +1094,15 @@ export default class BaseMissionScene extends Phaser.Scene {
       sh.setVisible(false);
       return;
     }
-    obj.shieldScale = SHIELD_UNIT * obj.scaleX * (obj.width / ENEMY_TEX);
-    sh.setTexture(shieldTextureKey(obj.shieldKey)).setPosition(obj.x, obj.y).setScale(obj.shieldScale)
-      .setAlpha(SHIELD_ALPHA).setVisible(true);
+    const bossKey = bossShieldTextureKey(obj.shieldKey);
+    if (isLoadedBossArt(obj) && this.textures.exists(bossKey)) {
+      obj.shieldScale = 1;
+      sh.setTexture(bossKey);
+    } else {
+      obj.shieldScale = SHIELD_UNIT * obj.scaleX * (obj.width / ENEMY_TEX);
+      sh.setTexture(shieldTextureKey(obj.shieldKey));
+    }
+    sh.setPosition(obj.x, obj.y).setScale(obj.shieldScale).setAlpha(SHIELD_ALPHA).setVisible(true);
   }
 
   spawnBullet({ x, y, vx = 0, vy = 0 }) {
