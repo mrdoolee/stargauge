@@ -19,6 +19,10 @@ const CHIP_Y = 972;
 const START_W = 372;
 const START_H = 106;
 const START_Y = 1125;
+// Credit line at the bottom of the title screen, below the start button (button bottom 1178).
+const FOOTER_TEXT = '© 2026 Designed & Developed by 두리쌤(@trdoolee). All rights reserved.';
+const FOOTER_Y = 1238;
+const FOOTER_MAX_W = GAME_WIDTH - 48; // 24 px side margin; the line shrinks to fit if the font renders wider
 
 export default class TitleScene extends Phaser.Scene {
   constructor() {
@@ -95,5 +99,10 @@ export default class TitleScene extends Phaser.Scene {
       leaving = true;
       this.scene.start(this.scene.get('briefing') ? 'briefing' : 'm1', { mission: 'm1' });
     });
+
+    const footer = this.add
+      .text(cx, FOOTER_Y, FOOTER_TEXT, { fontFamily: FONT, fontSize: '18px', color: '#8a96ad' })
+      .setOrigin(0.5);
+    if (footer.width > FOOTER_MAX_W) footer.setScale(FOOTER_MAX_W / footer.width);
   }
 }
