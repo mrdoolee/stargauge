@@ -3,10 +3,11 @@ import { ENDING } from '../../src/data/copy.js';
 import { IMAGE_ASSETS } from '../../src/config/assets.js';
 
 describe('ending screen copy', () => {
-  it('the captain thanks the crew for guarding the galaxy and sends them back to class', () => {
+  it('the captain thanks the crew for guarding the galaxy and asks them to guard the classroom with the teacher', () => {
     expect(ENDING.line).toContain('은하를 지켜');
     expect(ENDING.line).toContain('대원');
     expect(ENDING.line).toContain('선생님과 함께');
+    expect(ENDING.line).toContain('교실을 지켜 주게');
   });
   it('the speech bubble holds at most 4 lines of at most 12 characters (30 px font in a 416 px bubble)', () => {
     const lines = ENDING.line.split('\n');

@@ -58,6 +58,6 @@ export function wrongShotMessage(phaseId, target) {
 export const ENDING = {
   label: 'MISSION COMPLETE',
   title: '임무 완료!',
-  line: '은하를 지켜 주어\n고맙네, 대원!\n이제 선생님과 함께\n열심히 수업을 듣게나!',
+  line: '은하를 지켜 주어\n고맙네, 대원!\n이제 선생님과 함께\n교실을 지켜 주게!',
   button: '처음으로',
 };
