@@ -508,6 +508,42 @@
       }
     },
     {
+      "id": "ending-art",
+      "role": "ending screen art (after the result screen): the ship heading home past a calm glowing spiral galaxy; upper 30% and lower 40% kept dark and simple for the overlaid title, captain, speech bubble and button",
+      "path": "public/img/ending-art.jpg",
+      "status": "generated",
+      "technical": {
+        "target_size": "720x1280",
+        "alpha": false,
+        "anchor": "center",
+        "frames": 1,
+        "filtering": "linear",
+        "request_size": "1024x1536",
+        "background": "opaque"
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "light-direction"
+      ],
+      "prompt": "Tall portrait illustration for the ending screen of a space exploration game. In the middle of the picture, a calm, softly glowing spiral galaxy seen at a gentle angle in navy, violet and soft mint light, peaceful and safe after a long mission. The small mint-and-silver exploration ship from the reference (same ship design, nose pointing up and slightly right) flies home across the galaxy leaving a thin light trail, small in the frame. Warm, grateful, celebratory mood, quiet sparkle. Keep the upper 30% of the image a simple dark navy sky and the lower 40% a simple dark navy-to-black gradient with no objects, so text, a character portrait and a button can be placed there. Not a recognizable real galaxy, no photo look. Style: crisp hand-painted HD 2D game art matching the reference ship, soft cel shading, subtle glow. Not pixel art, no low-res blur. NO people, NO text, NO letters, NO numbers, NO logos, NO watermark.",
+      "source": {
+        "kind": "generated",
+        "url_or_tool": "OpenAI Images API",
+        "creator": "",
+        "created_at": "2026-11-13",
+        "license": "",
+        "attribution": "",
+        "prompt_or_source_record": "see prompt field; model in art/PROVENANCE.md"
+      },
+      "verification": {
+        "native_scale_reviewed": false,
+        "in_engine_reviewed": true,
+        "technical_checks_passed": true,
+        "approved_by": ""
+      }
+    },
+    {
       "id": "glass-craft",
       "role": "quiz 2 illustration",
       "path": "public/img/glass-craft.png",

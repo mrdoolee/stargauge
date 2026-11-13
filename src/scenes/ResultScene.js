@@ -1,9 +1,9 @@
-// 최종 결과 화면. Nothing is saved or sent anywhere; "처음부터 다시" clears the run and returns to the title.
+// 최종 결과 화면. Nothing is saved or sent anywhere; "마무리" goes to the ending screen (which clears the run and returns to the title).
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game.js';
 import { createGaugeView, FONT } from '../objects/gaugeView.js';
 import { STAR_COLORS } from '../logic/temperature.js';
-import { buildResultSummary, clearRunKeys } from '../logic/flow.js';
+import { buildResultSummary } from '../logic/flow.js';
 import { armButton } from '../ui/button.js';
 import { getDifficulty } from '../logic/difficulty.js';
 import { bgm } from '../audio/bgm.js';
@@ -59,10 +59,10 @@ export default class ResultScene extends Phaser.Scene {
     // m4 measurement chart: how many stars of each color the student measured (omitted without data)
     if (sum.measuredCounts) this.drawMeasuredChart(sum.measuredCounts);
 
-    const btn = this.add.text(cx, 1210, '처음부터 다시', {
+    const btn = this.add.text(cx, 1210, '마무리', {
       fontFamily: FONT, fontSize: '40px', color: '#05070f', backgroundColor: '#8fd3ff', padding: { x: 60, y: 18 },
     }).setOrigin(0.5);
-    armButton(btn, () => this.restart());
+    armButton(btn, () => this.finish());
   }
 
   /** Bar chart, STAR_COLORS order (hottest first); bar colour = the star colour. y 690..1150. */
@@ -84,10 +84,9 @@ export default class ResultScene extends Phaser.Scene {
     this.add.rectangle(cx, baseY, counts.length * slot, 3, 0xe8ecff, 0.7);
   }
 
-  restart() {
+  finish() {
     if (this.leaving) return;
     this.leaving = true;
-    for (const key of clearRunKeys) this.registry.remove(key); // `muted` stays
-    this.scene.start('title');
+    this.scene.start('ending');
   }
 }

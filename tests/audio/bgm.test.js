@@ -3,7 +3,7 @@ import { trackForScene, bgmAction, Bgm, FADE_MS } from '../../src/audio/bgm.js';
 
 describe('trackForScene', () => {
   it('maps reading screens to A, play missions to B, the boss to C', () => {
-    for (const k of ['title', 'briefing', 'card', 'report', 'result']) expect(trackForScene(k)).toBe('a');
+    for (const k of ['title', 'briefing', 'card', 'report', 'result', 'ending']) expect(trackForScene(k)).toBe('a');
     for (const k of ['m1', 'm2', 'm3']) expect(trackForScene(k)).toBe('b');
     expect(trackForScene('m4')).toBe('c');
   });

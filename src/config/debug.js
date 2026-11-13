@@ -1,7 +1,7 @@
 // Debug helpers (pure, no Phaser import). Everything here is inert unless the URL has ?debug=1.
 import { ALL_COLOR_KEYS } from '../logic/flow.js';
 
-export const DEBUG_MISSIONS = ['m1', 'm2', 'm3', 'm4', 'report'];
+export const DEBUG_MISSIONS = ['m1', 'm2', 'm3', 'm4', 'report', 'ending'];
 
 /** Parse location.search. `mission` is honoured only together with debug=1 and only for known scene keys. */
 export function parseDebug(search) {

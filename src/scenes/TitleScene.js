@@ -59,7 +59,7 @@ export default class TitleScene extends Phaser.Scene {
       .setOrigin(0.5);
     this.add.rectangle(cx, 357, 64, 2, MINT, 0.8);
 
-    // Difficulty choice (kept across "처음부터 다시" in the registry; default 중간).
+    // Difficulty choice (kept across "처음으로" on the ending screen, in the registry; default 중간).
     let selected = getDifficulty(this.registry.get('difficulty')).key;
     spaced(900, '난이도를 고르세요', 26, '#c9d3e6', 2.6);
     const chips = {};

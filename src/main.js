@@ -23,7 +23,7 @@ async function boot() {
   sync();
   mq.addEventListener('change', sync);
 
-  const dbg = parseDebug(window.location.search); // ?debug=1 [&mission=m1|m2|m3|m4|report]
+  const dbg = parseDebug(window.location.search); // ?debug=1 [&mission=m1|m2|m3|m4|report|ending]
   const { default: Phaser } = await import('phaser');
   const { sfx } = await import('./audio/sfx.js');
   sfx.installUnlock(window); // AudioContext is created/resumed on the first touch
@@ -38,12 +38,13 @@ async function boot() {
   const { default: M4BossScene } = await import('./scenes/M4BossScene.js');
   const { default: ReportScene } = await import('./scenes/ReportScene.js');
   const { default: ResultScene } = await import('./scenes/ResultScene.js');
+  const { default: EndingScene } = await import('./scenes/EndingScene.js');
   const { default: HudScene } = await import('./scenes/HudScene.js');
   const { default: M1FurnaceScene } = await import('./scenes/M1FurnaceScene.js');
   const { default: M2GaugeScene } = await import('./scenes/M2GaugeScene.js');
 
   let colorsView = false;
-  const scenes = [BootScene, TitleScene, BriefingScene, CardScene, M1FurnaceScene, M2GaugeScene, M3DroneScene, M4BossScene, ReportScene, ResultScene, HudScene];
+  const scenes = [BootScene, TitleScene, BriefingScene, CardScene, M1FurnaceScene, M2GaugeScene, M3DroneScene, M4BossScene, ReportScene, ResultScene, EndingScene, HudScene];
   if (dbg.debug) {
     const { default: DebugFpsScene } = await import('./scenes/DebugFpsScene.js');
     scenes.push(DebugFpsScene); // last = drawn on top; not even imported when debug is off

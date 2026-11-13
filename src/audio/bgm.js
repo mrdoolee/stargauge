@@ -25,7 +25,7 @@ export const TRACK_URLS = {
 };
 
 const SCENE_TRACK = {
-  title: 'a', briefing: 'a', card: 'a', report: 'a', result: 'a',
+  title: 'a', briefing: 'a', card: 'a', report: 'a', result: 'a', ending: 'a',
   m1: 'b', m2: 'b', m3: 'b',
   m4: 'c',
 };

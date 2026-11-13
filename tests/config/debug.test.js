@@ -13,7 +13,7 @@ describe('parseDebug', () => {
     expect(parseDebug('?debug=1')).toEqual({ debug: true, mission: null, difficulty: null });
   });
   it('accepts known mission keys only (with debug=1)', () => {
-    for (const m of ['m1', 'm2', 'm3', 'm4', 'report']) {
+    for (const m of ['m1', 'm2', 'm3', 'm4', 'report', 'ending']) {
       expect(parseDebug(`?debug=1&mission=${m}`).mission).toBe(m);
     }
     expect(parseDebug('?mission=m4&debug=1').mission).toBe('m4');

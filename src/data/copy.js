@@ -53,3 +53,11 @@ function byColor(phaseId, key) {
 export function wrongShotMessage(phaseId, target) {
   return byColor(phaseId, target?.colorKey);
 }
+
+// Ending screen (after the result screen): the captain thanks the crew and hands the class back to the teacher.
+export const ENDING = {
+  label: 'MISSION COMPLETE',
+  title: '임무 완료!',
+  line: '은하를 지켜 주어\n고맙네, 대원!\n이제 선생님과 함께\n열심히 수업을 듣게나!',
+  button: '처음으로',
+};

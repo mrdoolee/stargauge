@@ -93,5 +93,5 @@ export function buildResultSummary({ results = {}, gaugeFinal, measuredCounts } 
   };
 }
 
-/** Registry keys wiped by "처음부터 다시". `muted` is a preference and is kept. */
+/** Registry keys wiped by "처음으로" on the ending screen. `muted` is a preference and is kept. */
 export const clearRunKeys = ['results', 'gaugeFinal', 'measuredCounts'];
