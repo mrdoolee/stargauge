@@ -1,7 +1,7 @@
 // Mission 2 — 스타게이지 보정. 2-a: 태양보다 뜨거운 별, 2-b: 태양보다 차가운 별.
 // The gauge persists across the two phases (same scene) and resets on an overheat restart.
 import BaseMissionScene from './BaseMissionScene.js';
-import { M2_STAR_SCALE } from '../config/balance.js';
+import { M2_STAR_SCALE, M2_HITS_PER_COLOR } from '../config/balance.js';
 import { speedFor, aimVelocity, createFormationMemo } from '../logic/speed.js';
 import { predicateJudge } from '../logic/judges.js';
 import { fillFormationColors } from '../logic/spawner.js';
@@ -19,6 +19,7 @@ const PHASE_KEYS = {
 const HOTTER_KEYS = ALL.filter(hotterThanSun); // 2-a correct range on the gauge
 const COOLER_KEYS = ALL.filter(coolerThanSun); // 2-b correct range
 const rand = (a, b) => a + Math.random() * (b - a);
+const HALF_HINT = '같은 색을 한 번 더 맞히면\n게이지 칸이 채워져요!';
 
 export default class M2GaugeScene extends BaseMissionScene {
   constructor() {
@@ -28,18 +29,22 @@ export default class M2GaugeScene extends BaseMissionScene {
 
   gaugePrefill() { return ['yellow']; }
 
+  /** Normal/hard: two correct hits per color before its cell fills (2026-11-13, teacher). */
+  gaugeHitsPerColor() { return M2_HITS_PER_COLOR[this.diff.key] ?? 1; }
+
   unfilled(id) {
     return PHASE_KEYS[id].filter(k => !this.gauge.has(k));
   }
 
   buildPhases() {
     return [
-      { id: 'm2a', judge: predicateJudge(t => hotterThanSun(t.colorKey)), waves: true, gaugeTarget: HOTTER_KEYS, remaining: s => s.unfilled('m2a').length },
-      { id: 'm2b', judge: predicateJudge(t => coolerThanSun(t.colorKey)), waves: true, gaugeTarget: COOLER_KEYS, remaining: s => s.unfilled('m2b').length },
+      { id: 'm2a', judge: predicateJudge(t => hotterThanSun(t.colorKey)), waves: true, gaugeTarget: HOTTER_KEYS, remaining: s => s.gauge.remainingHits(PHASE_KEYS.m2a) },
+      { id: 'm2b', judge: predicateJudge(t => coolerThanSun(t.colorKey)), waves: true, gaugeTarget: COOLER_KEYS, remaining: s => s.gauge.remainingHits(PHASE_KEYS.m2b) },
     ];
   }
 
   onPhaseStart() {
+    this.halfHints = 0;
     this.formSpeed = createFormationMemo();
     this.sinceNeeded = 0;
     this.formColors = null;
@@ -71,6 +76,13 @@ export default class M2GaugeScene extends BaseMissionScene {
       scale: rand(M2_STAR_SCALE.min, M2_STAR_SCALE.max),
       glow: rand(0.25, 1),
     });
+  }
+
+  /** First hit of a color that needs two: say so (twice per stage); the HUD cell is half-bright meanwhile. */
+  onCorrectHit(obj) {
+    if (this.gauge.hitsPerColor < 2 || this.gauge.has(obj.colorKey) || this.halfHints >= 2) return;
+    this.halfHints += 1;
+    this.toast(HALF_HINT, { tone: 'info', colorKey: obj.colorKey });
   }
 
   onPhaseComplete(phase) {

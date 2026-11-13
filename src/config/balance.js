@@ -81,6 +81,12 @@ export const M1_BLOB_SPEED = { min: 150, max: 210 };
 export const M1_BLOB_START_WEIGHTS = { white: 0.4, yellow: 0.25, orange: 0.2, red: 0.15 }; // m1 blob starting color odds (only white scores)
 export const M1_WHITE_GUARANTEE = 3; // after this many non-white starts in a row the next blob starts white
 export const M2_STAR_SCALE = { min: 0.7, max: 1.5 };
+// m2 (2026-11-13, teacher): on normal and hard each color must be hit twice before its gauge cell fills (the first hit half-fills it).
+// Time model: flow.js scales the m2 spawns by M2_SPAWNS_PER_EXTRA_HIT per extra hit. UNMEASURED.
+export const M2_HITS_PER_COLOR = { easy: 1, normal: 2, hard: 2 };
+// Expected spawns grow by this share of the 1-hit count per extra hit: simulated 2026-11-13 with fillFormationColors, 2000 runs:
+// 2-a (4 colors) 13.5 -> 23.4 spawns (x1.73), 2-b (2 colors) 9.2 -> 17.2 (x1.87).
+export const M2_SPAWNS_PER_EXTRA_HIT = 0.8;
 
 // Task 9 additions — mission 4 (boss ship).
 // Boss (2026-11-04): 3 stages by boss hp (BOSS_HP); each stage cycles attack window -> gap (no launches).
@@ -196,6 +202,9 @@ export const M3_DRONE_GOAL = { easy: 5, normal: 6, hard: 6 };
 // A drone has DRONE_HP hit points; a beam hit costs beamDamage(charge, shield) (1 at the same color, +1 per hotter step), so the
 // conservative case (charge = the shield color) takes DRONE_HP shots. UNMEASURED: adjust after classroom play.
 export const DRONE_HP = 3;
+// m3/m4 (2026-11-13, teacher): on normal and hard a ship hit (enemy bullet, asteroid, drone or boss body) drops the beam charge back to
+// a plain beam (chargeAfterShipHit), so the student has to find and shoot a hot star again. Easy keeps its charge. UNMEASURED.
+export const CHARGE_LOST_ON_SHIP_HIT = { easy: false, normal: true, hard: true };
 // m3 time model (flow.js m3SecPerDrone = M3_DRONE_FIND_SEC + DRONE_HP x M3_SEC_PER_SHOT). UNMEASURED: the old single 18 s per drone
 // ("find a hot star, charge, aim, dodge, 1 shot") is split 12 s find+charge / 6 s per shot, so a 1-hit drone still costs 18 s.
 export const M3_DRONE_FIND_SEC = 12;

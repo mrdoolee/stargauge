@@ -5,7 +5,8 @@
 // state; it only reacts to these events (payloads):
 //   'instruction'   string                                 mission instruction line
 //   'goal-changed'  { remaining: number|null }             null hides the counter
-//   'gauge-changed' { filled: string[], visible: boolean } filled STAR_COLORS keys
+//   'gauge-changed' { filled: string[], partial?: string[], visible: boolean } filled STAR_COLORS keys; partial = hit but not full yet
+//                     (m2 normal/hard need 2 hits per color): drawn half-bright with a thinner white border
 //   'heat-changed'  { value, max, ratio }                  hull heat (ratio 0..1)
 //   'charge-changed' { colorKey: string|null }             beam charge: that gauge cell gets a bright border + "빔 충전" label; null clears
 //   'boss-changed'  { visible: boolean, stage: 1..3, stages: 3, hp, maxHp, armorKey: string|null }  m4 boss gauge in the instruction strip's
@@ -117,7 +118,7 @@ export default class HudScene extends Phaser.Scene {
       instruction: t => this.stripEvent({ type: 'instruction', text: t ?? '' }),
       'goal-changed': g => this.setGoal(g?.remaining ?? null),
       'gauge-changed': g => {
-        this.gauge.setFilled(g?.filled ?? []);
+        this.gauge.setFilled(g?.filled ?? [], g?.partial ?? []);
         for (const o of this.gaugeObjects) o.setVisible(g?.visible !== false);
         this.gaugeVisible = g?.visible !== false;
         this.setCharge(this.chargeKey);

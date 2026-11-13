@@ -11,7 +11,7 @@ const ORDERED = [...STAR_COLORS].sort((a, b) => a.rank - b.rank);
  * @param scene
  * @param {{x:number,y:number,cellW:number,cellH:number,gap:number,colorLabels?:boolean,fontSize?:number}} o
  *   x,y = top-left of the first cell.
- * @returns {{ setFilled(keys:string[]):void, cellCenterX(key:string):number, width:number, objects:any[] }}
+ * @returns {{ setFilled(keys:string[], partial?:string[]):void, cellCenterX(key:string):number, width:number, objects:any[] }}
  */
 export function createGaugeView(scene, { x, y, cellW, cellH, gap, colorLabels = false, fontSize = 28 }) {
   const g = scene.add.graphics();
@@ -29,16 +29,21 @@ export function createGaugeView(scene, { x, y, cellW, cellH, gap, colorLabels = 
     });
   }
 
-  const setFilled = keys => {
+  const setFilled = (keys, partial = []) => {
     const filled = new Set(keys);
+    const half = new Set(partial);
     g.clear();
     ORDERED.forEach((c, i) => {
       const left = x + i * (cellW + gap);
       const on = filled.has(c.key);
-      // Empty cells keep a faint hint of their color so the ladder reads even before filling.
-      g.fillStyle(c.hex, on ? 1 : 0.18);
+      const part = !on && half.has(c.key);
+      // Empty cells keep a faint hint of their color so the ladder reads even before filling; a partial cell (hit once of two)
+      // is half-bright with a thinner white border.
+      g.fillStyle(c.hex, on ? 1 : part ? 0.55 : 0.18);
       g.fillRoundedRect(left, y, cellW, cellH, 8);
-      g.lineStyle(on ? 4 : 2, on ? 0xffffff : 0x8890a8, on ? 1 : 0.8);
+      if (on) g.lineStyle(4, 0xffffff, 1);
+      else if (part) g.lineStyle(3, 0xffffff, 0.7);
+      else g.lineStyle(2, 0x8890a8, 0.8);
       g.strokeRoundedRect(left, y, cellW, cellH, 8);
     });
   };

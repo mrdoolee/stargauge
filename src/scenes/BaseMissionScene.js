@@ -148,7 +148,7 @@ import { StarGauge } from '../logic/gauge.js';
 import { zigzagVx } from '../logic/formations.js';
 import { Spawner } from '../logic/spawner.js';
 import { WaveDirector } from '../logic/waves.js';
-import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome, beamCanTouch, bounceCounts } from '../logic/charge.js';
+import { initialCharge, resolveBeamOnEnemy, enemyHitOutcome, beamCanTouch, bounceCounts, chargeAfterShipHit } from '../logic/charge.js';
 import { STAR_COLORS } from '../logic/temperature.js';
 import { missionStars } from '../logic/scoring.js';
 import { advanceTransition, phaseResolution } from '../logic/transition.js';
@@ -176,6 +176,7 @@ const FX_POPS = 6; // pooled "+1" score / "-N" damage texts
 const FX_FLASHES = 4; // pooled red wrong-shot beam flashes
 const SHAKE_MS = 120; // large tier: <= 150 ms, mission camera only
 const SHAKE_INTENSITY = 0.006;
+const CHARGE_LOST_TOAST_MAX = 3; // "charge lost" hints per mission attempt (normal/hard charge-mode stages)
 const FX_BURSTS = 4; // pooled explosion / spark bursts: 1 ring + FX_BITS sparks each
 const FX_BITS = 6;
 const EXPLODE_MS = 280; // downed enemy burst (<= 300 ms)
@@ -198,6 +199,8 @@ export default class BaseMissionScene extends Phaser.Scene {
     throw new Error(`${this.constructor.name}.buildPhases() must return the mission phases`);
   }
   gaugePrefill() { return []; }
+  /** Correct hits a color needs before its gauge cell fills (m2 normal/hard: 2). */
+  gaugeHitsPerColor() { return 1; }
   setupMission() {}
   spawnObject(_phase, _slot) {}
   onPhaseStart(_phase) {}
@@ -236,7 +239,8 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.score = 0;
     this.wrongShots = 0;
     this.heat = new HeatMeter();
-    this.gauge = new StarGauge(this.gaugePrefill());
+    this.gauge = new StarGauge(this.gaugePrefill(), this.gaugeHitsPerColor());
+    this.chargeLostToasts = 0;
     this.charge = initialCharge();
     this.blockedHits = 0;
 
@@ -469,7 +473,7 @@ export default class BaseMissionScene extends Phaser.Scene {
   }
 
   emitGauge() {
-    this.game.events.emit('gauge-changed', { filled: this.gauge.filledKeys(), visible: this.showGauge });
+    this.game.events.emit('gauge-changed', { filled: this.gauge.filledKeys(), partial: this.gauge.partialKeys(), visible: this.showGauge });
   }
 
   emitHeat() {
@@ -998,6 +1002,7 @@ export default class BaseMissionScene extends Phaser.Scene {
     this.cameras.main.shake(SHAKE_MS, SHAKE_INTENSITY);
     this.game.events.emit('ship-hit', { heat });
     this.onShipHit(obj, heat);
+    this.dropChargeOnHit();
     this.addHeat(heat);
   }
 
@@ -1176,6 +1181,17 @@ export default class BaseMissionScene extends Phaser.Scene {
     const base = enemy.shieldScale;
     sh.setAlpha(1).setScale(base * 1.25);
     this.tweens.add({ targets: sh, scale: base, alpha: SHIELD_ALPHA, duration: 160 });
+  }
+
+  /** Normal/hard charge-mode stages: a ship hit drops the beam charge (chargeAfterShipHit); a short hint the first few times. */
+  dropChargeOnHit() {
+    if (!this.charge) return;
+    if (chargeAfterShipHit({ charge: this.charge, chargeMode: !!this.phase?.chargeMode, diffKey: this.diff.key }) !== null) return;
+    this.setCharge(null);
+    if (this.chargeLostToasts < CHARGE_LOST_TOAST_MAX) {
+      this.chargeLostToasts += 1;
+      this.toast('부딪혀서 빔 충전이 풀렸어요!\n다시 별을 맞혀 충전해요.', { tone: 'wrong' });
+    }
   }
 
   handleEnemyBodyHit(_ship, enemy) {

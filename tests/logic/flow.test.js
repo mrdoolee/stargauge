@@ -109,10 +109,12 @@ describe('estimateFlow per difficulty', () => {
   });
   // Hard cap 16 -> 17 min (2026-11-07, controller ruling in .superpowers/sdd/boss-hard/brief.md): the boss fight got longer
   // (hard 150 -> 192 s) and hard was at 15.8 min, so only that growth moves the cap, by at most one minute. Easy stays <= 900 s (above).
-  it('easy, normal and hard finish within 17 minutes', () => {
+  // 2026-11-13 (teacher): m2 on normal/hard needs two hits per color (M2_HITS_PER_COLOR), ~+1.8 min there (m2 175 -> 282 s normal),
+  // so the normal/hard cap moves 17 -> 19 min. Easy is unchanged (one hit per color) and stays <= 17 min (and <= 900 s above).
+  it('easy finishes within 17 minutes, normal and hard within 19', () => {
     expect(min('easy')).toBeLessThanOrEqual(17);
-    expect(min('normal')).toBeLessThanOrEqual(17);
-    expect(min('hard')).toBeLessThanOrEqual(17);
+    expect(min('normal')).toBeLessThanOrEqual(19);
+    expect(min('hard')).toBeLessThanOrEqual(19);
   });
   it('the boss fight is the long part of the run on normal and hard (bossFightSec 170..210 s) and easy stays at 150 s', () => {
     expect(bossFightSec('easy')).toBe(150);

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   chargeLevel, canPierce, piercingColors, pickShieldColor, bossArmorColor, resolveBeamOnEnemy, initialCharge, enemyHitOutcome,
-  beamDamage, hitsToDown, guaranteeColors,
+  beamDamage, hitsToDown, guaranteeColors, chargeAfterShipHit,
   beamCanTouch, bounceCounts,
 } from '../../src/logic/charge.js';
 import { DRONE_SHIELDS, HUD_BAND_BOTTOM } from '../../src/config/balance.js';
@@ -67,6 +67,13 @@ describe('charge', () => {
     expect(guaranteeColors('white')).toEqual(['blueWhite', 'white']);
     expect(guaranteeColors('blueWhite')).toEqual(['blueWhite']);
     expect(guaranteeColors('blue')).toEqual(['blue']);
+  });
+  it('chargeAfterShipHit: a ship hit in a charge-mode stage drops the charge on normal and hard, keeps it on easy and outside charge mode', () => {
+    expect(chargeAfterShipHit({ charge: 'blue', chargeMode: true, diffKey: 'normal' })).toBeNull();
+    expect(chargeAfterShipHit({ charge: 'white', chargeMode: true, diffKey: 'hard' })).toBeNull();
+    expect(chargeAfterShipHit({ charge: 'blue', chargeMode: true, diffKey: 'easy' })).toBe('blue');
+    expect(chargeAfterShipHit({ charge: 'blue', chargeMode: false, diffKey: 'hard' })).toBe('blue');
+    expect(chargeAfterShipHit({ charge: null, chargeMode: true, diffKey: 'hard' })).toBeNull();
   });
   it('unshielded enemy (shieldKey null) is pierced, even by a plain beam', () => {
     expect(resolveBeamOnEnemy({ charge: 'red', shieldKey: null, hp: 2 })).toEqual({ pierced: true, hp: 1, down: false, damage: 1 });

@@ -1,7 +1,7 @@
 // Star-charged beam and shield rules (pure). Charge level = star color temperature step (blue 7 ... red 1).
 import { STAR_COLORS } from './temperature.js';
 import { getDifficulty } from './difficulty.js';
-import { DRONE_SHIELDS, BOSS_ARMOR, HUD_BAND_BOTTOM } from '../config/balance.js';
+import { DRONE_SHIELDS, BOSS_ARMOR, HUD_BAND_BOTTOM, CHARGE_LOST_ON_SHIP_HIT } from '../config/balance.js';
 
 const LEVELS = STAR_COLORS.length;
 
@@ -12,6 +12,10 @@ export function chargeLevel(colorKey) {
 }
 
 export const initialCharge = () => null;
+
+/** Charge after the ship is hit: dropped (null) in a charge-mode stage on difficulties with CHARGE_LOST_ON_SHIP_HIT, else kept. */
+export const chargeAfterShipHit = ({ charge, chargeMode, diffKey }) =>
+  (chargeMode && CHARGE_LOST_ON_SHIP_HIT[getDifficulty(diffKey).key] ? null : charge ?? null);
 
 /** Charge pierces a shield when its level is >= the shield's level (and a charge exists). */
 export const canPierce = (chargeKey, shieldKey) =>

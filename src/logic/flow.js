@@ -2,7 +2,7 @@
 import {
   M1_PRACTICE_SEC, M4_TIME_LIMIT_SEC, FORMATION_GAP_MS,
   M1_ASTEROID_SLOT_CHANCE, MISSION_GOAL_COUNTS, SPAWN_NEEDED_GUARANTEE, M3_DRONE_GOAL,
-  DRONE_HP, M3_DRONE_FIND_SEC, M3_SEC_PER_SHOT,
+  DRONE_HP, M3_DRONE_FIND_SEC, M3_SEC_PER_SHOT, M2_HITS_PER_COLOR, M2_SPAWNS_PER_EXTRA_HIT,
 } from '../config/balance.js';
 import { STAR_COLORS } from './temperature.js';
 import { effectiveWhiteShare } from './furnace.js';
@@ -47,7 +47,9 @@ export function estimateFlow({
   const d = getDifficulty(difficulty);
   const retry = P.retryByDifficulty[d.key];
   const m1 = P.read.m1 + practice + (goals.m1 / P.hit.m1) / targetsPerSec(gaps.m1, d.key, (1 - M1_ASTEROID_SLOT_CHANCE) * effectiveWhiteShare()) * retry + P.read.card;
-  const m2spawns = m2Spawns(4) + m2Spawns(2); // 2-a: 4 hotter colors, 2-b: 2 cooler colors
+  // 2-a: 4 hotter colors, 2-b: 2 cooler colors; normal/hard need M2_HITS_PER_COLOR hits each (simulated growth per extra hit)
+  const m2HitFactor = 1 + (M2_HITS_PER_COLOR[d.key] - 1) * M2_SPAWNS_PER_EXTRA_HIT;
+  const m2spawns = (m2Spawns(4) + m2Spawns(2)) * m2HitFactor;
   const m2 = P.read.m2 + (m2spawns / P.hit.m2) / targetsPerSec(gaps.m2, d.key) * retry + P.read.card;
   const m3 = P.read.m3 + droneGoal[d.key] * P.m3SecPerDrone + P.read.card;
   const m4 = P.read.m4 + Math.min(m4Limit, bossFightSec(d.key)) + P.read.chart; // chart = the two questions + the bar chart
