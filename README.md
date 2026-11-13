@@ -3,7 +3,7 @@
 별빛의 색(스펙트럼)으로 별의 표면 온도를 비교하는 중학교 2학년 과학 슈팅 웹게임입니다 (Vite + Phaser 4).
 터치(조이스틱 + 발사 버튼) 세로 화면용이고, 미션 4개와 귀환 보고서를 합쳐 약 15분 걸립니다.
 
-- 플레이: https://stargauge.vercel.app
+- 플레이: https://stargauge-trdoolee.vercel.app
 - 저장소: https://github.com/mrdoolee/stargauge
 
 ## 게임 구성
@@ -36,7 +36,7 @@ npm run build      # dist/
 
 Vercel 프로젝트 `stargauge`가 이 GitHub 저장소에 연결되어 있습니다.
 
-- `main`에 push하면 운영 주소(https://stargauge.vercel.app)로 자동 배포됩니다.
+- `main`에 push하면 운영 주소(https://stargauge-trdoolee.vercel.app)로 자동 배포됩니다. 예전 주소 https://stargauge.vercel.app 도 같은 배포를 보여 줍니다.
 - 다른 브랜치(`dev` 등)에 push하면 미리보기 배포가 만들어집니다. 미리보기 주소는 Vercel 로그인이 있어야 열립니다.
 - 빌드 설정은 Vercel의 Vite 기본값(`npm run build`, 출력 `dist`)을 씁니다.
 
